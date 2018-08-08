@@ -379,10 +379,13 @@ class TestSimulationArchive(unittest.TestCase):
         sim.dt = 0.1313
         sim.automateSimulationArchive("test.bin", walltime = 0.2,deletefile=True)
         sim.integrate(10000.,exact_finish_time=0)
+        print("t1 = ", sim.t)
 
         sim = None
         sa = rebound.SimulationArchive("test.bin")
+        print("len(sa) = ", len(sa))
         sim = sa[-1]
+        print("t2= ", sim.t)
         self.assertGreater(sim.t,100.)
         sim.integrate(20000.,exact_finish_time=0)
         x1 = sim.particles[1].x
@@ -395,6 +398,7 @@ class TestSimulationArchive(unittest.TestCase):
         sim.integrator = "ias15"
         sim.dt = 0.1313
         sim.integrate(20000.,exact_finish_time=0)
+        print("t3= ", sim.t)
         x0 = sim.particles[1].x
 
         self.assertEqual(x0,x1)
