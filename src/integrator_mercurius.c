@@ -246,6 +246,93 @@ static void reb_mercurius_predict_encounters(struct reb_simulation* const r){
     }
 }
 
+void reb_integrator_mercurius_A(struct reb_simulation* r){
+    
+    struct reb_particle* restrict const particles = r->particles;
+    struct reb_simulation_integrator_mercurius* const rim = &(r->ri_mercurius);
+    struct reb_simulation_integrator_whfast* const riw = &(r->ri_whfast);
+    // Force use of democratic heliocentric coordinates.
+    ri->coordinates = REB_WHFAST_COORDINATES_DEMOCRATICHELIOCENTRIC;
+    const int N = r->N;
+   
+    
+    if (rim->rhillallocatedN<N){
+        rim->rhillallocatedN = N;
+        rim->rhill              = realloc(rim->rhill, sizeof(double)*N);
+        rim->recalculate_rhill_this_timestep        = 1;
+    }
+    if (rim->allocatedN<N){
+        // These arrays are only used within one timestep. 
+        // Can be recreated without loosing bit-wise reproducibility
+        rim->allocatedN = N;
+        rim->encounterIndicies  = realloc(rim->encounterIndicies, sizeof(unsigned int)*N);
+        rim->p_hold             = realloc(rim->p_hold,sizeof(struct reb_particle)*N);
+    }
+    if (riw->allocated_N<N){
+        // Heliocentric coordinates. Stored in WHFast struct.
+        riw->allocated_N = N;
+        riw->p_jh = realloc(riw->p_jh,sizeof(struct reb_particle)*N);
+    }
+    rim->m0 = r->particles[0].m;
+    reb_transformations_inertial_to_democraticheliocentric_posvel(particles, riw->p_jh, N);
+
+    rim->rhill[0] = 0; // Unsused
+    for (int i=1;i<N;i++){
+        const double dx  = riw->p_jh[i].x;
+        const double dy  = riw->p_jh[i].y;
+        const double dz  = riw->p_jh[i].z;
+        const double dvx = r->particles[i].vx - r->particles[0].vx; 
+        const double dvy = r->particles[i].vy - r->particles[0].vy; 
+        const double dvz = r->particles[i].vz - r->particles[0].vz; 
+        const double _r = sqrt(dx*dx + dy*dy + dz*dz);
+        const double v2 = dvx*dvx + dvy*dvy + dvz*dvz;
+
+        const double GM = r->G*(rim->m0+r->particles[i].m);
+        const double a = GM*_r / (2.*GM - _r*v2);
+        const double vc = sqrt(GM/fabs(a));
+        double rhill = 0;
+        // Criteria 1: average velocity
+        rhill = MAX(rhill, vc*0.4*r->dt);
+        // Criteria 2: current velocity
+        rhill = MAX(rhill, sqrt(v2)*0.4*r->dt);
+        // Criteria 3: Hill radius
+        rhill = MAX(rhill, rim->rcrit*a*pow(r->particles[i].m/(3.*r->particles[0].m),1./3.));
+        // Criteria 4: physical radius
+        rhill = MAX(rhill, 2.*r->particles[i].r);
+
+        rim->rhill[i] = rhill;
+    }
+    
+    r->gravity = REB_GRAVITY_MERCURIUS;
+    rim->mode = 0;
+    
+    ///// part 2
+    reb_whfast_interaction_step(r,r->dt/2.);
+    reb_whfast_jump_step(r,r->dt/2.);
+   
+    reb_whfast_com_step(r,r->dt);
+    
+    memcpy(rim->p_hold,riw->p_jh,N*sizeof(struct reb_particle));
+    reb_whfast_kepler_step(r,r->dt);
+    
+    reb_mercurius_predict_encounters(r);
+   
+    reb_mercurius_encounterstep(r,r->dt);
+    
+    reb_whfast_jump_step(r,r->dt/2.);
+        
+    reb_transformations_democraticheliocentric_to_inertial_posvel(particles, riw->p_jh, N);
+   
+    // Synchronize 
+    rim->mode = 0;
+    reb_calculate_acceleration(r);
+    reb_whfast_interaction_step(r,r->dt/2.);
+    
+    reb_transformations_democraticheliocentric_to_inertial_posvel(particles, riw->p_jh, N);
+}
+
+
+
 void reb_integrator_mercurius_part1(struct reb_simulation* r){
     if (r->var_config_N){
         reb_warning(r,"Mercurius does not work with variational equations.");
