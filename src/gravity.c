@@ -53,6 +53,42 @@
   */
 static void reb_calculate_acceleration_for_particle(const struct reb_simulation* const r, const int pt, const struct reb_ghostbox gb);
 
+double reb_get_min_K(struct reb_simulation* r){
+	struct reb_particle* const particles = r->particles;
+	const int N = r->N;
+	const int N_active = r->N_active;
+	const double G = r->G;
+	const double softening2 = r->softening*r->softening;
+	const int _N_real   = N  - r->N_var;
+	const int _N_active = ((N_active==-1)?_N_real:N_active);
+    double minK = 1e300;
+            const double* const rhill = r->ri_mercurius.rhill;
+            for (int i=0; i<_N_real; i++){
+                particles[i].ax = 0; 
+                particles[i].ay = 0; 
+                particles[i].az = 0; 
+            }
+            // Summing over all particle pairs
+            for (int i=1; i<_N_real; i++){
+                for (int j=1; j<_N_active; j++){
+                    if (i==j) continue;
+                    const double dx = particles[i].x - particles[j].x;
+                    const double dy = particles[i].y - particles[j].y;
+                    const double dz = particles[i].z - particles[j].z;
+                    const double _r = sqrt(dx*dx + dy*dy + dz*dz + softening2);
+                    const double rchange = MAX(rhill[i],rhill[j]);
+                    const double K = reb_integrator_mercurius_K(_r,rchange);
+                    if (K<minK) minK = K;
+                    const double dKdr = reb_integrator_mercurius_dKdr(_r,rchange);
+                    const double mj = particles[j].m;
+                    const double prefact = -G*mj*(K/(_r*_r*_r)-dKdr/(_r*_r));
+                    particles[i].ax    += prefact*dx;
+                    particles[i].ay    += prefact*dy;
+                    particles[i].az    += prefact*dz;
+                }
+            }
+    return minK;
+} 
 
 /**
  * Main Gravity Routine
