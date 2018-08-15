@@ -234,6 +234,7 @@ struct reb_simulation_integrator_mercurius {
     unsigned int* encounterIndicies;
     struct reb_particle* encounterParticles;
     struct reb_particle* REBOUND_RESTRICT p_hold;
+    unsigned int derivative;
 };
 
 /**
@@ -603,6 +604,7 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_MERCURIUS_KEEPUNSYNC = 124,
     REB_BINARY_FIELD_TYPE_SAVERSION = 125,
     REB_BINARY_FIELD_TYPE_WALLTIME = 126,
+    REB_BINARY_FIELD_TYPE_MERCURIUS_DERIVATIVE = 127,
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob
     REB_BINARY_FIELD_TYPE_END = 9999,

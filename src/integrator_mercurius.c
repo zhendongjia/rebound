@@ -41,9 +41,9 @@
 #define MIN(a, b) ((a) > (b) ? (b) : (a))    ///< Returns the minimum of a and b
 #define MAX(a, b) ((a) > (b) ? (a) : (b))    ///< Returns the maximum of a and b
 
-double reb_integrator_mercurius_K(double r, double rcrit){
+double reb_integrator_mercurius_K(struct reb_simulation* r, double dis, double rcrit){
     // This is the changeover function.
-    double y = (r-0.1*rcrit)/(0.9*rcrit);
+    double y = (dis-0.1*rcrit)/(0.9*rcrit);
     if (y<0.){
         return 0.;
     }else if (y>1.){
@@ -52,17 +52,24 @@ double reb_integrator_mercurius_K(double r, double rcrit){
         return 10.*(y*y*y) - 15.*(y*y*y*y) + 6.*(y*y*y*y*y);
     }
 }
-double reb_integrator_mercurius_dKdr(double r, double rcrit){
+double reb_integrator_mercurius_dKdr(struct reb_simulation* r, double dis, double rcrit){
     // Derivative of the changeover function is not used. 
     // It does not seem to improve accuracy.
     // It is somewhat unclear why this derivative is not in the 
     // original Mercury code either.
-    return 0.;
-    //double y = (r-0.1*rcrit)/(0.9*rcrit);
-    //if (y<0. || y >1.){
-    //    return 0.;
-    //}
-    //return 1./(0.9*rcrit) *( 30.*y*y - 60.*y*y*y + 30.*y*y*y*y);
+    struct reb_simulation_integrator_mercurius* rim = &(r->ri_mercurius);
+    switch (rim->derivative){
+        case 1:
+            {
+                double y = (dis-0.1*rcrit)/(0.9*rcrit);
+                if (y<0. || y >1.){
+                    return 0.;
+                }
+                return 1./(0.9*rcrit) *( 30.*y*y - 60.*y*y*y + 30.*y*y*y*y);
+            }
+        default:
+            return 0.;
+    }
 }
 
 static void reb_mercurius_encounterstep(struct reb_simulation* const r, const double _dt){

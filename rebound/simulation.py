@@ -1560,6 +1560,7 @@ class reb_simulation_integrator_mercurius(Structure):
                 ("_encounterIndicies", c_void_p),
                 ("_encounterParticles", POINTER(Particle)),
                 ("_p_hold", POINTER(Particle)),
+                ("derivative", c_uint),
                 ]
 
 class reb_simulation_integrator_hermes(Structure):

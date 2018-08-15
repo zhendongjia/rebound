@@ -513,6 +513,7 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_hermes.current_hill_switch_factor = 3.;     //Internal 
     
     // ********** MERCURIUS
+    r->ri_mercurius.derivative = 0;
     r->ri_mercurius.mode = 0;
     r->ri_mercurius.safe_mode = 1;
     r->ri_mercurius.recalculate_coordinates_this_timestep = 0;
