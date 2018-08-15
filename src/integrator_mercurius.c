@@ -249,9 +249,6 @@ static void reb_mercurius_predict_encounters(struct reb_simulation* const r){
 void reb_integrator_mercurius_prep(struct reb_simulation* r){
     struct reb_simulation_integrator_mercurius* const rim = &(r->ri_mercurius);
     struct reb_simulation_integrator_whfast* const riw = &(r->ri_whfast);
-    // Force use of democratic heliocentric coordinates.
-    riw->coordinates = REB_WHFAST_COORDINATES_DEMOCRATICHELIOCENTRIC;
-    r->gravity = REB_GRAVITY_MERCURIUS;
     const int N = r->N;
     
     if (rim->rhillallocatedN<N){
@@ -279,8 +276,6 @@ void reb_integrator_mercurius_Hill(struct reb_simulation* r){
     struct reb_particle* restrict const particles = r->particles;
     struct reb_simulation_integrator_mercurius* const rim = &(r->ri_mercurius);
     struct reb_simulation_integrator_whfast* const riw = &(r->ri_whfast);
-    // Force use of democratic heliocentric coordinates.
-    riw->coordinates = REB_WHFAST_COORDINATES_DEMOCRATICHELIOCENTRIC;
     const int N = r->N;
     reb_transformations_inertial_to_democraticheliocentric_posvel(particles, riw->p_jh, N);
     rim->rhill[0] = 0; // Unsused
@@ -314,11 +309,14 @@ void reb_integrator_mercurius_Hill(struct reb_simulation* r){
 
 
 void reb_integrator_mercurius_A(struct reb_simulation* r){
+    struct reb_simulation_integrator_whfast* const riw = &(r->ri_whfast);
     reb_integrator_mercurius_prep(r); 
+    // Force use of democratic heliocentric coordinates.
+    riw->coordinates = REB_WHFAST_COORDINATES_DEMOCRATICHELIOCENTRIC;
+    r->gravity = REB_GRAVITY_MERCURIUS;
     
     struct reb_particle* restrict const particles = r->particles;
     struct reb_simulation_integrator_mercurius* const rim = &(r->ri_mercurius);
-    struct reb_simulation_integrator_whfast* const riw = &(r->ri_whfast);
     // Force use of democratic heliocentric coordinates.
     riw->coordinates = REB_WHFAST_COORDINATES_DEMOCRATICHELIOCENTRIC;
     const int N = r->N;
@@ -338,6 +336,9 @@ void reb_integrator_mercurius_B(struct reb_simulation* r){
     const int N = r->N;
     struct reb_particle* restrict const particles = r->particles;
     reb_integrator_mercurius_prep(r); 
+    // Force use of democratic heliocentric coordinates.
+    riw->coordinates = REB_WHFAST_COORDINATES_DEMOCRATICHELIOCENTRIC;
+    r->gravity = REB_GRAVITY_MERCURIUS;
     reb_transformations_inertial_to_democraticheliocentric_posvel(particles, riw->p_jh, N);
     reb_whfast_jump_step(r,r->dt/2.);
     reb_transformations_democraticheliocentric_to_inertial_posvel(particles, riw->p_jh, N);
@@ -349,6 +350,9 @@ void reb_integrator_mercurius_C(struct reb_simulation* r){
     struct reb_particle* restrict const particles = r->particles;
     const int N = r->N;
     reb_integrator_mercurius_prep(r); 
+    // Force use of democratic heliocentric coordinates.
+    riw->coordinates = REB_WHFAST_COORDINATES_DEMOCRATICHELIOCENTRIC;
+    r->gravity = REB_GRAVITY_MERCURIUS;
     reb_transformations_inertial_to_democraticheliocentric_posvel(particles, riw->p_jh, N);
     reb_whfast_com_step(r,r->dt);
     
