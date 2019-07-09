@@ -69,13 +69,15 @@ void reb_saba_corrector_step(struct reb_simulation* r, double cc){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_particle* const p_j = ri_whfast->p_jh;
 	struct reb_particle* const particles = r->particles;
-    struct reb_particle* temp_pj = r->ri_saba.temp_pj;
-    if (!temp_pj){
-        reb_warning(r,"Corrector called without buffer initialization.");
-        return;
-    }
-
+    struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
 	const int N = r->N;
+    if (ri_saba->allocated_N != N){
+        // Needed here because it might be calles from synchronize after loading from Simulation Archive
+        ri_saba->allocated_N = N;
+        ri_saba->temp_pj = realloc(ri_saba->temp_pj,sizeof(struct reb_particle)*N);
+    }
+    struct reb_particle* temp_pj = ri_saba->temp_pj;
+
 	const double G = r->G;
 
     // Calculate normal kick
@@ -143,14 +145,9 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     const int k = ri_saba->k;
     const int corrector = ri_saba->corrector;
-    const int N = r->N;
     if (reb_integrator_whfast_init(r)){
         // Non recoverable error occured.
         return;
-    }
-    if (corrector && ri_saba->allocated_N != N){
-        ri_saba->allocated_N = N;
-        ri_saba->temp_pj = realloc(ri_saba->temp_pj,sizeof(struct reb_particle)*N);
     }
     
     // Only recalculate Jacobi coordinates if needed
