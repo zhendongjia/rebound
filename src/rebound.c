@@ -434,6 +434,12 @@ struct reb_simulation* reb_copy_simulation(struct reb_simulation* r){
     return r_copy;
 }
 
+void reb_clear_pre_post_pointers(struct reb_simulation* const r){
+    // Temporary fix for REBOUNDx. 
+    r->pre_timestep_modifications  = NULL;
+    r->post_timestep_modifications  = NULL;
+}
+
 void reb_init_simulation(struct reb_simulation* r){
     reb_tools_init_srand();
     reb_reset_temporary_pointers(r);

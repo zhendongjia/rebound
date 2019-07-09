@@ -639,6 +639,9 @@ class Simulation(Structure):
             raise ValueError("Cannot multiply simulation with non-scalars.")
         clibrebound.reb_simulation_imul(byref(self), c_double(scalar_pos), c_double(scalar_vel))
 
+    def clear_pre_post_pointers(self):
+        # temporary fix for REBOUNDx
+        clibrebound.reb_clear_pre_post_pointers(byref(self))
 
 # Status functions
     def status(self):
