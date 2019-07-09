@@ -150,13 +150,6 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     
     // Only recalculate Jacobi coordinates if needed
     if (ri_saba->safe_mode || ri_whfast->recalculate_coordinates_this_timestep){
-        if (ri_saba->is_synchronized==0){
-            reb_integrator_saba_synchronize(r);
-            if (ri_whfast->recalculate_coordinates_but_not_synchronized_warning==0){
-                reb_warning(r,"Recalculating coordinates but pos/vel were not synchronized before.");
-                ri_whfast->recalculate_coordinates_but_not_synchronized_warning++;
-            }
-        }
         reb_integrator_whfast_from_inertial(r);
         ri_whfast->recalculate_coordinates_this_timestep = 0;
     }
@@ -257,6 +250,7 @@ void reb_integrator_saba_reset(struct reb_simulation* const r){
     ri_saba->k = 1;
     ri_saba->corrector = 0;
     ri_saba->safe_mode = 1;
+    ri_saba->is_synchronized = 1;
     reb_integrator_whfast_reset(r);
     if (ri_saba->temp_pj){
         free(ri_saba->temp_pj);
