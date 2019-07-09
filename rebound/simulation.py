@@ -129,6 +129,8 @@ class reb_simulation_integrator_saba(Structure):
     This class is an abstraction of the C-struct reb_simulation_integrator_saba.
     """
     _fields_ = [("k", c_uint),
+                ("_allocated_N", c_uint),
+                ("temp_pj", POINTER(Particle)),
             ]
 
 class reb_simulation_integrator_whfast(Structure):

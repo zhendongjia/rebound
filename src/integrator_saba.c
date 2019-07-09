@@ -78,8 +78,8 @@ void reb_saba_corrector_step(struct reb_simulation* r, double cc){
     reb_update_acceleration(r);
     reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
 
-    // Make copy of normal kick
-    struct reb_particle* temp_pj = malloc(sizeof(struct reb_particle)*r->N);
+    // make copy of normal kick, also stores original positions
+    struct reb_particle* temp_pj = r->ri_saba.temp_pj;
     memcpy(temp_pj,p_j,r->N*sizeof(struct reb_particle));
 
     double eta = particles[0].m;
@@ -100,43 +100,34 @@ void reb_saba_corrector_step(struct reb_simulation* r, double cc){
         p_j[i].z += prefac1 * temp_pj[i].az;
     }
    
-    // Recalculate  
+    // recalculate kick 
     reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
     reb_update_acceleration(r);
     reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
 
-
-    dt = 0.5*24.*dt*cc;
+    dt = 12.*dt*cc;
     eta = particles[0].m;
     for (unsigned int i=1;i<N;i++){
-        // Eq 132
         const struct reb_particle pji = p_j[i];
         eta += pji.m;
-        static double rj2i;
-        static double rj3iM;
-        p_j[i].vx -= dt*temp_pj[i].ax;
-        p_j[i].vy -= dt*temp_pj[i].ay;
-        p_j[i].vz -= dt*temp_pj[i].az;
-        p_j[i].vx += dt * pji.ax;
-        p_j[i].vy += dt * pji.ay;
-        p_j[i].vz += dt * pji.az;
         if (i>1){
-            rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
+            const double rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
             const double rji  = sqrt(rj2i);
-            rj3iM = rji*rj2i*G*eta;
-            p_j[i].vx += dt*rj3iM*pji.x;
-            p_j[i].vy += dt*rj3iM*pji.y;
-            p_j[i].vz += dt*rj3iM*pji.z;
+            const double rj3iM = rji*rj2i*G*eta;
+            p_j[i].ax += rj3iM*pji.x;
+            p_j[i].ay += rj3iM*pji.y;
+            p_j[i].az += rj3iM*pji.z;
         }
-    }
-    
-    for (unsigned int i=1;i<N;i++){
+        // commutator is difference between modified and original kick
+        p_j[i].vx += dt * (p_j[i].ax - temp_pj[i].ax);
+        p_j[i].vy += dt * (p_j[i].ay - temp_pj[i].ay);
+        p_j[i].vz += dt * (p_j[i].az - temp_pj[i].az);
+        // reset positions
         p_j[i].x = temp_pj[i].x;
         p_j[i].y = temp_pj[i].y;
         p_j[i].z = temp_pj[i].z;
     }
 
-    free(temp_pj);
 }
 
 void reb_integrator_saba_part1(struct reb_simulation* const r){
@@ -145,11 +136,16 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     // and                               B(AB)^(k-1)[A]    in part2.
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
-    int k = ri_saba->k%10;
-    int corrector = ri_saba->k/10;
+    const int k = ri_saba->k%10;
+    const int corrector = ri_saba->k/10;
+    const int N = r->N;
     if (reb_integrator_whfast_init(r)){
         // Non recoverable error occured.
         return;
+    }
+    if (corrector && ri_saba->allocated_N != N){
+        ri_saba->allocated_N = N;
+        ri_saba->temp_pj = realloc(ri_saba->temp_pj,sizeof(struct reb_particle)*N);
     }
     
     // Only recalculate Jacobi coordinates if needed
@@ -194,7 +190,7 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
     int k = ri_saba->k%10;
     int corrector = ri_saba->k/10;
     if (ri_whfast->is_synchronized == 0){
-        const int N_real = r->N-r->N_var;
+        const int N = r->N;
         struct reb_particle* sync_pj  = NULL;
         if (ri_whfast->keep_unsynchronized){
             sync_pj = malloc(sizeof(struct reb_particle)*r->N);
@@ -207,7 +203,7 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
             reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);
             reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
         }
-        reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N_real);
+        reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N);
         if (ri_whfast->keep_unsynchronized){
             memcpy(r->ri_whfast.p_jh,sync_pj,r->N*sizeof(struct reb_particle));
             free(sync_pj);
@@ -223,7 +219,7 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
     struct reb_particle* restrict const particles = r->particles;
     int k = ri_saba->k%10;
     int corrector = ri_saba->k/10;
-    const int N_real = r->N-r->N_var;
+    const int N = r->N;
     if (ri_whfast->p_jh==NULL){
         // Non recoverable error occured earlier. 
         // Skipping rest of integration to avoid segmentation fault.
@@ -235,7 +231,7 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
     for(int i=1;i<k;i++){
         reb_whfast_kepler_step(r, reb_saba_c[k-1][i]*r->dt);   
         reb_whfast_com_step(r, reb_saba_c[k-1][i]*r->dt);
-        reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
+        reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
         r->gravity_ignore_terms = 1;
         reb_update_acceleration(r);
         reb_whfast_interaction_step(r, reb_saba_d[k-1][i]*r->dt);
@@ -260,4 +256,9 @@ void reb_integrator_saba_reset(struct reb_simulation* const r){
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     ri_saba->k = 1;
     reb_integrator_whfast_reset(r);
+    if (ri_saba->temp_pj){
+        free(ri_saba->temp_pj);
+        ri_saba->temp_pj = NULL;
+    }
+    ri_saba->allocated_N = 0;
 }

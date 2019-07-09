@@ -305,6 +305,8 @@ struct reb_simulation_integrator_saba {
      * - 1: standard WH 
      */
     unsigned int k;
+    unsigned int allocated_N;   ///< Space allocated in arrays
+    struct reb_particle* REBOUND_RESTRICT temp_pj;
 };
 
 /**
