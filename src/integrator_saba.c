@@ -69,6 +69,12 @@ void reb_saba_corrector_step(struct reb_simulation* r, double cc){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_particle* const p_j = ri_whfast->p_jh;
 	struct reb_particle* const particles = r->particles;
+    struct reb_particle* temp_pj = r->ri_saba.temp_pj;
+    if (!temp_pj){
+        reb_warning(r,"Corrector called without buffer initialization.");
+        return;
+    }
+
 	const int N = r->N;
 	const double G = r->G;
 
@@ -79,7 +85,6 @@ void reb_saba_corrector_step(struct reb_simulation* r, double cc){
     reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
 
     // make copy of normal kick, also stores original positions
-    struct reb_particle* temp_pj = r->ri_saba.temp_pj;
     memcpy(temp_pj,p_j,r->N*sizeof(struct reb_particle));
 
     double eta = particles[0].m;

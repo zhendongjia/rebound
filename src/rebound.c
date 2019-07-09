@@ -521,6 +521,7 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_saba.k = 1;
     r->ri_saba.corrector = 0;
     r->ri_saba.safe_mode = 1;
+    r->ri_saba.is_synchronized = 1;
     
     // ********** IAS15
     r->ri_ias15.epsilon         = 1e-9;
