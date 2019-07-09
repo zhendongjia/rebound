@@ -72,7 +72,7 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     // Only recalculate Jacobi coordinates if needed
     if (ri_whfast->safe_mode || ri_whfast->recalculate_coordinates_this_timestep){
         if (ri_whfast->is_synchronized==0){
-            reb_integrator_whfast_synchronize(r);
+            reb_integrator_saba_synchronize(r);
             if (ri_whfast->recalculate_coordinates_but_not_synchronized_warning==0){
                 reb_warning(r,"Recalculating coordinates but pos/vel were not synchronized before.");
                 ri_whfast->recalculate_coordinates_but_not_synchronized_warning++;
@@ -86,12 +86,12 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
         //if (ri_whfast->corrector){
         //    reb_whfast_apply_corrector(r, 1., ri_whfast->corrector, reb_whfast_corrector_Z);
         //}
-        reb_whfast_kepler_step(r, reb_saba_c[k][0]*r->dt);   
-        reb_whfast_com_step(r, reb_saba_c[k][0]*r->dt);
+        reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);   
+        reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
     }else{
         // Combined DRIFT step
-        reb_whfast_kepler_step(r, 2.*reb_saba_c[k][0]*r->dt);   
-        reb_whfast_com_step(r, 2.*reb_saba_c[k][0]*r->dt);
+        reb_whfast_kepler_step(r, 2.*reb_saba_c[k-1][0]*r->dt);   
+        reb_whfast_com_step(r, 2.*reb_saba_c[k-1][0]*r->dt);
     }
 
     reb_integrator_whfast_to_inertial(r);
@@ -109,8 +109,8 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
             sync_pj = malloc(sizeof(struct reb_particle)*r->N);
             memcpy(sync_pj,r->ri_whfast.p_jh,r->N*sizeof(struct reb_particle));
         }
-        reb_whfast_kepler_step(r, reb_saba_c[k][0]*r->dt);
-        reb_whfast_com_step(r, reb_saba_c[k][0]*r->dt);
+        reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);
+        reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
         //if (ri_whfast->corrector){
         //    reb_whfast_apply_corrector(r, -1., ri_whfast->corrector, reb_whfast_corrector_Z);
         //}
@@ -127,25 +127,30 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
 void reb_integrator_saba_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
+    struct reb_particle* restrict const particles = r->particles;
     const int k = ri_saba->k;
+    const int N_real = r->N-r->N_var;
     if (ri_whfast->p_jh==NULL){
         // Non recoverable error occured earlier. 
         // Skipping rest of integration to avoid segmentation fault.
         return;
     }
     
-    reb_whfast_interaction_step(r, reb_saba_d[k][0]*r->dt);
+    reb_whfast_interaction_step(r, reb_saba_d[k-1][0]*r->dt);
   
     for(int i=1;i<k;i++){
-        reb_whfast_kepler_step(r, reb_saba_c[k][i]*r->dt);   
-        reb_whfast_com_step(r, reb_saba_c[k][i]*r->dt);
-        reb_whfast_interaction_step(r, reb_saba_d[k][i]*r->dt);
+        reb_whfast_kepler_step(r, reb_saba_c[k-1][i]*r->dt);   
+        reb_whfast_com_step(r, reb_saba_c[k-1][i]*r->dt);
+        reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
+        r->gravity_ignore_terms = 1;
+        reb_update_acceleration(r);
+        reb_whfast_interaction_step(r, reb_saba_d[k-1][i]*r->dt);
     } 
      
 
     ri_whfast->is_synchronized = 0;
     if (ri_whfast->safe_mode){
-        reb_integrator_whfast_synchronize(r);
+        reb_integrator_saba_synchronize(r);
     }
     
     r->t+=r->dt;
