@@ -305,7 +305,10 @@ struct reb_simulation_integrator_saba {
      * - 1: standard WH 
      */
     unsigned int k;
+    unsigned int corrector;
+    unsigned int safe_mode;
     unsigned int allocated_N;   ///< Space allocated in arrays
+    unsigned int is_synchronized;
     struct reb_particle* REBOUND_RESTRICT temp_pj;
 };
 
@@ -615,6 +618,10 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_SAAUTOSTEP = 135,
     REB_BINARY_FIELD_TYPE_SANEXTSTEP = 136,
     REB_BINARY_FIELD_TYPE_STEPSDONE = 137,
+    REB_BINARY_FIELD_TYPE_SABA_K = 138,
+    REB_BINARY_FIELD_TYPE_SABA_CORRECTOR = 139,
+    REB_BINARY_FIELD_TYPE_SABA_SAFEMODE = 140,
+    REB_BINARY_FIELD_TYPE_SABA_ISSYNCHRON = 141,
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob
     REB_BINARY_FIELD_TYPE_END = 9999,

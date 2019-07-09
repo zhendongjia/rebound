@@ -136,8 +136,8 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     // and                               B(AB)^(k-1)[A]    in part2.
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
-    const int k = ri_saba->k%10;
-    const int corrector = ri_saba->k/10;
+    const int k = ri_saba->k;
+    const int corrector = ri_saba->corrector;
     const int N = r->N;
     if (reb_integrator_whfast_init(r)){
         // Non recoverable error occured.
@@ -149,8 +149,8 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     }
     
     // Only recalculate Jacobi coordinates if needed
-    if (ri_whfast->safe_mode || ri_whfast->recalculate_coordinates_this_timestep){
-        if (ri_whfast->is_synchronized==0){
+    if (ri_saba->safe_mode || ri_whfast->recalculate_coordinates_this_timestep){
+        if (ri_saba->is_synchronized==0){
             reb_integrator_saba_synchronize(r);
             if (ri_whfast->recalculate_coordinates_but_not_synchronized_warning==0){
                 reb_warning(r,"Recalculating coordinates but pos/vel were not synchronized before.");
@@ -161,7 +161,7 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
         ri_whfast->recalculate_coordinates_this_timestep = 0;
     }
     if (corrector){
-        if (ri_whfast->is_synchronized){
+        if (ri_saba->is_synchronized){
             reb_saba_corrector_step(r, reb_saba_cc[k-1]);
         }else{
             reb_saba_corrector_step(r, 2.*reb_saba_cc[k-1]);
@@ -170,7 +170,7 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
         reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);   
         reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
     }else{
-        if (ri_whfast->is_synchronized){
+        if (ri_saba->is_synchronized){
             // First half DRIFT step
             reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);   
             reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
@@ -187,9 +187,9 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
 void reb_integrator_saba_synchronize(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
-    int k = ri_saba->k%10;
-    int corrector = ri_saba->k/10;
-    if (ri_whfast->is_synchronized == 0){
+    int k = ri_saba->k;
+    int corrector = ri_saba->corrector;
+    if (ri_saba->is_synchronized == 0){
         const int N = r->N;
         struct reb_particle* sync_pj  = NULL;
         if (ri_whfast->keep_unsynchronized){
@@ -208,7 +208,7 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
             memcpy(r->ri_whfast.p_jh,sync_pj,r->N*sizeof(struct reb_particle));
             free(sync_pj);
         }else{
-            ri_whfast->is_synchronized = 1;
+            ri_saba->is_synchronized = 1;
         }
     }
 }
@@ -217,8 +217,8 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     struct reb_particle* restrict const particles = r->particles;
-    int k = ri_saba->k%10;
-    int corrector = ri_saba->k/10;
+    int k = ri_saba->k;
+    int corrector = ri_saba->corrector;
     const int N = r->N;
     if (ri_whfast->p_jh==NULL){
         // Non recoverable error occured earlier. 
@@ -243,8 +243,8 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
         reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
     }
 
-    ri_whfast->is_synchronized = 0;
-    if (ri_whfast->safe_mode){
+    ri_saba->is_synchronized = 0;
+    if (ri_saba->safe_mode){
         reb_integrator_saba_synchronize(r);
     }
     
@@ -255,6 +255,8 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
 void reb_integrator_saba_reset(struct reb_simulation* const r){
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     ri_saba->k = 1;
+    ri_saba->corrector = 0;
+    ri_saba->safe_mode = 1;
     reb_integrator_whfast_reset(r);
     if (ri_saba->temp_pj){
         free(ri_saba->temp_pj);
