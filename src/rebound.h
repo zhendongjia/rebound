@@ -296,6 +296,18 @@ struct reb_simulation_integrator_sei {
 };
 
 /**
+ * @brief This structure contains variables used by the SABA integrator.
+ */
+struct reb_simulation_integrator_saba {
+    /**
+     * @brief Number of evaluations of the interaction step.
+     * @details
+     * - 1: standard WH 
+     */
+    unsigned int k;
+};
+
+/**
  * @brief This structure contains variables used by the WHFast integrator.
  */
 struct reb_simulation_integrator_whfast {
@@ -860,6 +872,7 @@ struct reb_simulation {
         REB_INTEGRATOR_NONE = 7,     ///< Do not integrate anything
         REB_INTEGRATOR_JANUS = 8,    ///< Bit-wise reversible JANUS integrator.
         REB_INTEGRATOR_MERCURIUS = 9,///< MERCURIUS integrator 
+        REB_INTEGRATOR_SABA = 10,    ///< SABA integrator family (Laskar and Robutel 2001)
         } integrator;
 
     /**
@@ -891,6 +904,7 @@ struct reb_simulation {
      */
     struct reb_simulation_integrator_sei ri_sei;        ///< The SEI struct 
     struct reb_simulation_integrator_whfast ri_whfast;  ///< The WHFast struct 
+    struct reb_simulation_integrator_saba ri_saba;      ///< The SABA struct 
     struct reb_simulation_integrator_ias15 ri_ias15;    ///< The IAS15 struct
     struct reb_simulation_integrator_mercurius ri_mercurius;      ///< The MERCURIUS struct
     struct reb_simulation_integrator_janus ri_janus;    ///< The JANUS struct 

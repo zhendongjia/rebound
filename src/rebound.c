@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include "rebound.h"
 #include "integrator.h"
+#include "integrator_saba.h"
 #include "integrator_whfast.h"
 #include "integrator_ias15.h"
 #include "integrator_mercurius.h"
@@ -512,6 +513,9 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_whfast.is_synchronized = 1;
     r->ri_whfast.timestep_warning = 0;
     r->ri_whfast.recalculate_coordinates_but_not_synchronized_warning = 0;
+    
+    // ********** SABA
+    r->ri_saba.k = 1;
     
     // ********** IAS15
     r->ri_ias15.epsilon         = 1e-9;
