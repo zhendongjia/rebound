@@ -145,6 +145,18 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     const int k = ri_saba->k;
     const int corrector = ri_saba->corrector;
+    if (r->var_config_N>0 && ri_whfast->coordinates!=REB_WHFAST_COORDINATES_JACOBI){
+        reb_error(r, "Variational particles are not supported in the SABA inttegrator.");
+        return; 
+    }
+    if (ri_whfast->coordinates!=REB_WHFAST_COORDINATES_JACOBI){
+        reb_error(r, "SABA integrator requires ri_whfast.coordinates to be set to Jacobi coordinates.");
+        return; 
+    }
+    if (k>4){
+        reb_error(r, "SABA is only implemented up to SABA4.");
+        return; 
+    }
     if (reb_integrator_whfast_init(r)){
         // Non recoverable error occured.
         return;
