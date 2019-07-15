@@ -44,78 +44,6 @@
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
 
 
-void reb_wkm_corrector_step(struct reb_simulation* r, double cc){
-    double dt = r->dt;
-    struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
-    struct reb_particle* const p_j = ri_whfast->p_jh;
-	struct reb_particle* const particles = r->particles;
-    struct reb_simulation_integrator_wkm* const ri_wkm = &(r->ri_wkm);
-	const int N = r->N;
-    if (ri_wkm->allocated_N != N){
-        // Needed here because it might be calles from synchronize after loading from Simulation Archive
-        ri_wkm->allocated_N = N;
-        ri_wkm->temp_pj = realloc(ri_wkm->temp_pj,sizeof(struct reb_particle)*N);
-    }
-    struct reb_particle* temp_pj = ri_wkm->temp_pj;
-
-	const double G = r->G;
-
-    // Calculate normal kick
-    reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
-    r->gravity_ignore_terms = 1;
-    reb_update_acceleration(r);
-    reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
-
-    // make copy of normal kick, also stores original positions
-    memcpy(temp_pj,p_j,r->N*sizeof(struct reb_particle));
-
-    double eta = particles[0].m;
-    for (unsigned int i=1;i<N;i++){
-        const struct reb_particle pji = p_j[i];
-        eta += pji.m;
-        const double prefac1 = dt*dt/12.; 
-        if (i>1){
-            const double rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
-            const double rji  = sqrt(rj2i);
-            const double rj3iM = rji*rj2i*G*eta;
-            temp_pj[i].ax += rj3iM*temp_pj[i].x;
-            temp_pj[i].ay += rj3iM*temp_pj[i].y;
-            temp_pj[i].az += rj3iM*temp_pj[i].z;
-        }
-        p_j[i].x += prefac1 * temp_pj[i].ax;
-        p_j[i].y += prefac1 * temp_pj[i].ay;
-        p_j[i].z += prefac1 * temp_pj[i].az;
-    }
-   
-    // recalculate kick 
-    reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
-    reb_update_acceleration(r);
-    reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
-
-    dt = dt*cc;
-    eta = particles[0].m;
-    for (unsigned int i=1;i<N;i++){
-        const struct reb_particle pji = p_j[i];
-        eta += pji.m;
-        if (i>1){
-            const double rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
-            const double rji  = sqrt(rj2i);
-            const double rj3iM = rji*rj2i*G*eta;
-            p_j[i].ax += rj3iM*pji.x;
-            p_j[i].ay += rj3iM*pji.y;
-            p_j[i].az += rj3iM*pji.z;
-        }
-        // commutator is difference between modified and original kick
-        p_j[i].vx += dt * (p_j[i].ax);
-        p_j[i].vy += dt * (p_j[i].ay);
-        p_j[i].vz += dt * (p_j[i].az);
-        // reset positions
-        p_j[i].x = temp_pj[i].x;
-        p_j[i].y = temp_pj[i].y;
-        p_j[i].z = temp_pj[i].z;
-    }
-
-}
 static void reb_wkm_corrector_Z(struct reb_simulation* r, const double a, const double b){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_particle* restrict const particles = r->particles;
@@ -239,7 +167,6 @@ void reb_integrator_wkm_synchronize(struct reb_simulation* const r){
         if (corrector){
             reb_whfast_apply_corrector(r, -1., 11, reb_wkm_corrector_Z);
             if (corrector>=2){
-                //reb_wkm_corrector_step(r, -1);
                 reb_wkm_apply_corrector2(r, -r->dt);
             }
         }
