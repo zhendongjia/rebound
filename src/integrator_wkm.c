@@ -43,26 +43,6 @@
 #define MAX(a, b) ((a) < (b) ? (b) : (a))   ///< Returns the maximum of a and b
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
 
-// Some coefficients appear multiple times to simplify the for loops below. 
-const static double reb_wkm_c[4][4] = {
-        {0.5, 0., 0., 0.}, // WKM1
-        {0.2113248654051871177454256097490212721762, 0.5773502691896257645091487805019574556476, 0., 0.}, // WKM2
-        {0.1127016653792583114820734600217600389167, 0.3872983346207416885179265399782399610833,  0.3872983346207416885179265399782399610833, 0.}, // WKM3
-        {0.06943184420297371238802675555359524745214, 0.2605776340045981552106403648947824089476, 0.3399810435848562648026657591032446872006, 0.2605776340045981552106403648947824089476}, // WKM4
-}; 
-const static double reb_wkm_d[4][4] = {
-        {1., 0., 0., 0.},
-        {0.5, 0.5, 0., 0.},
-        {0.2777777777777777777777777777777777777778, 0.4444444444444444444444444444444444444444,0.2777777777777777777777777777777777777778, 0.},
-        {0.1739274225687269286865319746109997036177, 0.3260725774312730713134680253890002963823, 0.3260725774312730713134680253890002963823, 0.1739274225687269286865319746109997036177},
-};
-const static double reb_wkm_cc[4] = {
-        0.08333333333333333333333333333333333333333, // WKM1
-        0.01116454968463011276968973577058865137738, // WKM2
-        0.005634593363122809402267823769797538671562, // WKM3
-        0.003396775048208601331532157783492144, // WKM4
-}; 
-    
 
 void reb_wkm_corrector_step(struct reb_simulation* r, double cc){
     double dt = r->dt;
@@ -138,12 +118,8 @@ void reb_wkm_corrector_step(struct reb_simulation* r, double cc){
 }
 
 void reb_integrator_wkm_part1(struct reb_simulation* const r){
-    // If the total step consistes of   AB(BA)^(k-1)[A]
-    // do only                          A                  here in part1, 
-    // and                               B(AB)^(k-1)[A]    in part2.
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_wkm* const ri_wkm = &(r->ri_wkm);
-    const int k = ri_wkm->k;
     const int corrector = ri_wkm->corrector;
     if (r->var_config_N>0 && ri_whfast->coordinates!=REB_WHFAST_COORDINATES_JACOBI){
         reb_error(r, "Variational particles are not supported in the WKM integrator.");
@@ -151,10 +127,6 @@ void reb_integrator_wkm_part1(struct reb_simulation* const r){
     }
     if (ri_whfast->coordinates!=REB_WHFAST_COORDINATES_JACOBI){
         reb_error(r, "WKM integrator requires ri_whfast.coordinates to be set to Jacobi coordinates.");
-        return; 
-    }
-    if (k>4){
-        reb_error(r, "SABA is only implemented up to SABA/4.");
         return; 
     }
     if (reb_integrator_whfast_init(r)){
@@ -167,25 +139,15 @@ void reb_integrator_wkm_part1(struct reb_simulation* const r){
         reb_integrator_whfast_from_inertial(r);
         ri_whfast->recalculate_coordinates_this_timestep = 0;
     }
-    if (corrector){
-        if (ri_wkm->is_synchronized){
-            reb_wkm_corrector_step(r, reb_wkm_cc[k-1]);
-        }else{
-            reb_wkm_corrector_step(r, 2.*reb_wkm_cc[k-1]);
+    if (ri_wkm->is_synchronized){
+        if (corrector){
+            reb_wkm_corrector_step(r, 1.);
         }
-        // First half DRIFT step
-        reb_whfast_kepler_step(r, reb_wkm_c[k-1][0]*r->dt);   
-        reb_whfast_com_step(r, reb_wkm_c[k-1][0]*r->dt);
+        reb_whfast_kepler_step(r, 5./8.*r->dt);   
+        reb_whfast_com_step(r, 5./8.*r->dt);
     }else{
-        if (ri_wkm->is_synchronized){
-            // First half DRIFT step
-            reb_whfast_kepler_step(r, reb_wkm_c[k-1][0]*r->dt);   
-            reb_whfast_com_step(r, reb_wkm_c[k-1][0]*r->dt);
-        }else{
-            // Combined DRIFT step
-            reb_whfast_kepler_step(r, 2.*reb_wkm_c[k-1][0]*r->dt);   
-            reb_whfast_com_step(r, 2.*reb_wkm_c[k-1][0]*r->dt);
-        }
+        reb_whfast_kepler_step(r, r->dt);   
+        reb_whfast_com_step(r, r->dt);
     }
 
     reb_integrator_whfast_to_inertial(r);
@@ -194,7 +156,6 @@ void reb_integrator_wkm_part1(struct reb_simulation* const r){
 void reb_integrator_wkm_synchronize(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_wkm* const ri_wkm = &(r->ri_wkm);
-    int k = ri_wkm->k;
     int corrector = ri_wkm->corrector;
     if (ri_wkm->is_synchronized == 0){
         const int N = r->N;
@@ -203,12 +164,10 @@ void reb_integrator_wkm_synchronize(struct reb_simulation* const r){
             sync_pj = malloc(sizeof(struct reb_particle)*r->N);
             memcpy(sync_pj,r->ri_whfast.p_jh,r->N*sizeof(struct reb_particle));
         }
+        reb_whfast_kepler_step(r, 3./8.*r->dt);
+        reb_whfast_com_step(r, 3./8.*r->dt);
         if (corrector){
-            // DRIFT ALREADY DONE
-            reb_wkm_corrector_step(r, reb_wkm_cc[k-1]);
-        }else{
-            reb_whfast_kepler_step(r, reb_wkm_c[k-1][0]*r->dt);
-            reb_whfast_com_step(r, reb_wkm_c[k-1][0]*r->dt);
+            reb_wkm_corrector_step(r, -1);
         }
         reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N);
         if (ri_whfast->keep_unsynchronized){
@@ -224,8 +183,6 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_wkm* const ri_wkm = &(r->ri_wkm);
     struct reb_particle* restrict const particles = r->particles;
-    int k = ri_wkm->k;
-    int corrector = ri_wkm->corrector;
     const int N = r->N;
     if (ri_whfast->p_jh==NULL){
         // Non recoverable error occured earlier. 
@@ -233,23 +190,50 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         return;
     }
     
-    reb_whfast_interaction_step(r, reb_wkm_d[k-1][0]*r->dt);
+    // -1/6 B
+    reb_whfast_interaction_step(r, -1./6.*r->dt);
   
-    for(int i=1;i<k;i++){
-        reb_whfast_kepler_step(r, reb_wkm_c[k-1][i]*r->dt);   
-        reb_whfast_com_step(r, reb_wkm_c[k-1][i]*r->dt);
+    { // -1/4 A
+        reb_whfast_kepler_step(r, -1./4.*r->dt);   
+        reb_whfast_com_step(r, -1./4.*r->dt);
+    }
+    { // 1/6 B
         reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
         r->gravity_ignore_terms = 1;
         reb_update_acceleration(r);
-        reb_whfast_interaction_step(r, reb_wkm_d[k-1][i]*r->dt);
-    } 
-
-    if (corrector){
-        // Always need to do DRIFT step if correctors are turned on
-        reb_whfast_kepler_step(r, reb_wkm_c[k-1][0]*r->dt);
-        reb_whfast_com_step(r, reb_wkm_c[k-1][0]*r->dt);
+        reb_whfast_interaction_step(r, 1./6.*r->dt);
     }
-
+    { // 1/8 A
+        reb_whfast_kepler_step(r, 1./8.*r->dt);   
+        reb_whfast_com_step(r, 1./8.*r->dt);
+    }
+    { // B
+        reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
+        r->gravity_ignore_terms = 1;
+        reb_update_acceleration(r);
+        reb_whfast_interaction_step(r, r->dt);
+    }
+    { // -1/8 A
+        reb_whfast_kepler_step(r, -1./8.*r->dt);   
+        reb_whfast_com_step(r, -1./8.*r->dt);
+    }
+    { // -1/6 B
+        reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
+        r->gravity_ignore_terms = 1;
+        reb_update_acceleration(r);
+        reb_whfast_interaction_step(r, -1./6.*r->dt);
+    }
+    { // 1/4 A
+        reb_whfast_kepler_step(r, 1./4.*r->dt);   
+        reb_whfast_com_step(r, 1./4.*r->dt);
+    }
+    { // 1/6 B
+        reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
+        r->gravity_ignore_terms = 1;
+        reb_update_acceleration(r);
+        reb_whfast_interaction_step(r, 1./6.*r->dt);
+    }
+    
     ri_wkm->is_synchronized = 0;
     if (ri_wkm->safe_mode){
         reb_integrator_wkm_synchronize(r);
