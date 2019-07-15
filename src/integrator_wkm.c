@@ -43,19 +43,16 @@
 #define MAX(a, b) ((a) < (b) ? (b) : (a))   ///< Returns the maximum of a and b
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
 
-
 static void reb_wkm_corrector_Z(struct reb_simulation* r, const double a, const double b){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_particle* restrict const particles = r->particles;
     const int N_real = r->N;
     reb_whfast_kepler_step(r, a);
     reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
-    r->gravity_ignore_terms = 1;
     reb_update_acceleration(r);
     reb_whfast_interaction_step(r, -b);
     reb_whfast_kepler_step(r, -2.*a);
     reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
-    r->gravity_ignore_terms = 1;
     reb_update_acceleration(r);
     reb_whfast_interaction_step(r, b);
     reb_whfast_kepler_step(r, a);
@@ -68,7 +65,6 @@ void reb_wkm_apply_C(struct reb_simulation* const r, double a, double b){
     struct reb_particle* restrict const particles = r->particles;
     const int N_real = r->N;
     reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
-    r->gravity_ignore_terms = 1;
     reb_update_acceleration(r);
     reb_whfast_interaction_step(r, b);
     
@@ -100,6 +96,7 @@ void reb_integrator_wkm_part1(struct reb_simulation* const r){
     struct reb_simulation_integrator_wkm* const ri_wkm = &(r->ri_wkm);
     const int corrector = ri_wkm->corrector%10;
     const int kernel = ri_wkm->corrector/10;
+    r->gravity_ignore_terms = 1;
     if (r->var_config_N>0 && ri_whfast->coordinates!=REB_WHFAST_COORDINATES_JACOBI){
         reb_error(r, "Variational particles are not supported in the WKM integrator.");
         return; 
@@ -152,6 +149,7 @@ void reb_integrator_wkm_synchronize(struct reb_simulation* const r){
     if (ri_wkm->is_synchronized == 0){
         const int N = r->N;
         struct reb_particle* sync_pj  = NULL;
+        r->gravity_ignore_terms = 1; // needed here in case of SimulationArchive calls
         if (ri_whfast->keep_unsynchronized){
             sync_pj = malloc(sizeof(struct reb_particle)*r->N);
             memcpy(sync_pj,r->ri_whfast.p_jh,r->N*sizeof(struct reb_particle));
@@ -202,7 +200,6 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         }
         { // 1/6 B
             reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
-            r->gravity_ignore_terms = 1;
             reb_update_acceleration(r);
             reb_whfast_interaction_step(r, 1./6.*r->dt);
         }
@@ -212,7 +209,6 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         }
         { // B
             reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
-            r->gravity_ignore_terms = 1;
             reb_update_acceleration(r);
             reb_whfast_interaction_step(r, r->dt);
         }
@@ -222,7 +218,6 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         }
         { // -1/6 B
             reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
-            r->gravity_ignore_terms = 1;
             reb_update_acceleration(r);
             reb_whfast_interaction_step(r, -1./6.*r->dt);
         }
@@ -232,7 +227,6 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         }
         { // 1/6 B
             reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
-            r->gravity_ignore_terms = 1;
             reb_update_acceleration(r);
             reb_whfast_interaction_step(r, 1./6.*r->dt);
         }
