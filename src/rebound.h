@@ -313,6 +313,23 @@ struct reb_simulation_integrator_saba {
 };
 
 /**
+ * @brief This structure contains variables used by the WKM integrator.
+ */
+struct reb_simulation_integrator_wkm {
+    /**
+     * @brief Number of evaluations of the interaction step.
+     * @details
+     * - 1: standard WH 
+     */
+    unsigned int k;
+    unsigned int corrector;
+    unsigned int safe_mode;
+    unsigned int allocated_N;   ///< Space allocated in arrays
+    unsigned int is_synchronized;
+    struct reb_particle* REBOUND_RESTRICT temp_pj;
+};
+
+/**
  * @brief This structure contains variables used by the WHFast integrator.
  */
 struct reb_simulation_integrator_whfast {
@@ -622,6 +639,10 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_SABA_CORRECTOR = 139,
     REB_BINARY_FIELD_TYPE_SABA_SAFEMODE = 140,
     REB_BINARY_FIELD_TYPE_SABA_ISSYNCHRON = 141,
+    REB_BINARY_FIELD_TYPE_WKM_K = 142,
+    REB_BINARY_FIELD_TYPE_WKM_CORRECTOR = 143,
+    REB_BINARY_FIELD_TYPE_WKM_SAFEMODE = 144,
+    REB_BINARY_FIELD_TYPE_WKM_ISSYNCHRON = 145,
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob
     REB_BINARY_FIELD_TYPE_END = 9999,
@@ -882,6 +903,7 @@ struct reb_simulation {
         REB_INTEGRATOR_JANUS = 8,    ///< Bit-wise reversible JANUS integrator.
         REB_INTEGRATOR_MERCURIUS = 9,///< MERCURIUS integrator 
         REB_INTEGRATOR_SABA = 10,    ///< SABA integrator family (Laskar and Robutel 2001)
+        REB_INTEGRATOR_WKM = 11,     ///< Wisdom Kernel Method (Wisdom, Holman, and Touma, 1996)
         } integrator;
 
     /**
@@ -914,6 +936,7 @@ struct reb_simulation {
     struct reb_simulation_integrator_sei ri_sei;        ///< The SEI struct 
     struct reb_simulation_integrator_whfast ri_whfast;  ///< The WHFast struct 
     struct reb_simulation_integrator_saba ri_saba;      ///< The SABA struct 
+    struct reb_simulation_integrator_wkm ri_wkm;      ///< The WKM struct 
     struct reb_simulation_integrator_ias15 ri_ias15;    ///< The IAS15 struct
     struct reb_simulation_integrator_mercurius ri_mercurius;      ///< The MERCURIUS struct
     struct reb_simulation_integrator_janus ri_janus;    ///< The JANUS struct 
