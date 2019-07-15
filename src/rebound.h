@@ -321,7 +321,6 @@ struct reb_simulation_integrator_wkm {
      * @details
      * - 1: standard WH 
      */
-    unsigned int k;
     unsigned int corrector;
     unsigned int safe_mode;
     unsigned int allocated_N;   ///< Space allocated in arrays
@@ -639,7 +638,6 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_SABA_CORRECTOR = 139,
     REB_BINARY_FIELD_TYPE_SABA_SAFEMODE = 140,
     REB_BINARY_FIELD_TYPE_SABA_ISSYNCHRON = 141,
-    REB_BINARY_FIELD_TYPE_WKM_K = 142,
     REB_BINARY_FIELD_TYPE_WKM_CORRECTOR = 143,
     REB_BINARY_FIELD_TYPE_WKM_SAFEMODE = 144,
     REB_BINARY_FIELD_TYPE_WKM_ISSYNCHRON = 145,

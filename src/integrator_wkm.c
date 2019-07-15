@@ -302,8 +302,7 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
     
 void reb_integrator_wkm_reset(struct reb_simulation* const r){
     struct reb_simulation_integrator_wkm* const ri_wkm = &(r->ri_wkm);
-    ri_wkm->k = 1;
-    ri_wkm->corrector = 0;
+    ri_wkm->corrector = 1;
     ri_wkm->safe_mode = 1;
     ri_wkm->is_synchronized = 1;
     reb_integrator_whfast_reset(r);

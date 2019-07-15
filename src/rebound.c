@@ -534,8 +534,7 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_saba.is_synchronized = 1;
     
     // ********** WKM
-    r->ri_wkm.k = 1;
-    r->ri_wkm.corrector = 0;
+    r->ri_wkm.corrector = 1;
     r->ri_wkm.safe_mode = 1;
     r->ri_wkm.is_synchronized = 1;
     

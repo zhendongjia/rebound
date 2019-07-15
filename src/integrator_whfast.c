@@ -664,11 +664,7 @@ void reb_integrator_whfast_to_inertial(struct reb_simulation* const r){
     }
 }
 
-void reb_integrator_whfast_quick_operator_kepler(struct reb_simulation* const r,double dt){
-    struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
-    struct reb_particle* restrict const particles = r->particles;
-    const int N = r->N;
-    const int N_real = N-r->N_var;
+void reb_integrator_whfast_debug_operator_kepler(struct reb_simulation* const r,double dt){
     if (reb_integrator_whfast_init(r)){
         // Non recoverable error occured.
         return;
@@ -679,11 +675,7 @@ void reb_integrator_whfast_quick_operator_kepler(struct reb_simulation* const r,
     reb_integrator_whfast_to_inertial(r);
 }
 
-void reb_integrator_whfast_quick_operator_interaction(struct reb_simulation* const r,double dt){
-    struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
-    struct reb_particle* restrict const particles = r->particles;
-    const int N = r->N;
-    const int N_real = N-r->N_var;
+void reb_integrator_whfast_debug_operator_interaction(struct reb_simulation* const r,double dt){
     if (reb_integrator_whfast_init(r)){
         // Non recoverable error occured.
         return;
