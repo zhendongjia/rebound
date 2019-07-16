@@ -163,10 +163,10 @@ void reb_integrator_wkm_synchronize(struct reb_simulation* const r){
         }
 
         if (corrector){
-            reb_whfast_apply_corrector(r, -1., 11, reb_wkm_corrector_Z);
             if (corrector>=2){
                 reb_wkm_apply_corrector2(r, -r->dt);
             }
+            reb_whfast_apply_corrector(r, -1., 11, reb_wkm_corrector_Z);
         }
         reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N);
         if (ri_whfast->keep_unsynchronized){
