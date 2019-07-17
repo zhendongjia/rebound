@@ -79,36 +79,27 @@ void reb_calculate_acceleration(struct reb_simulation* r){
 				particles[i].az = 0; 
 			}
             // Jacobi term
-            double Rx = particles[0].x; //CoM R
-            double Ry = particles[0].y;
-            double Rz = particles[0].z;
-            double M = particles[0].m;
-            Rx = (Rx*M+particles[1].m*particles[1].x)/(M+particles[1].m);
-            Ry = (Ry*M+particles[1].m*particles[1].y)/(M+particles[1].m);
-            Rz = (Rz*M+particles[1].m*particles[1].z)/(M+particles[1].m);
-            M += particles[1].m;
+            double M = particles[0].m+particles[1].m;
+            double Rx = (particles[0].x*particles[0].m+particles[1].m*particles[1].x)/(particles[0].m+particles[1].m);
+            double Ry = (particles[0].y*particles[0].m+particles[1].m*particles[1].y)/(particles[0].m+particles[1].m);
+            double Rz = (particles[0].z*particles[0].m+particles[1].m*particles[1].z)/(particles[0].m+particles[1].m);
             for (int j=2; j<_N_active; j++){// j=1 term is "included" by ignoring the (j==1 && i==0) || (i==1 && j==0) terms below
                 double rpx = particles[j].x-Rx; //Jacobi rp_j
                 double rpy = particles[j].y-Ry;
                 double rpz = particles[j].z-Rz;
+		        const double _r = sqrt(rpx*rpx + rpy*rpy + rpz*rpz);
                 for (int i=0; i<_N_real; i++){
-					const double _r = sqrt(rpx*rpx + rpy*rpy + rpz*rpz);
-					double prefact = G*M*(particles[j].m)/particles[i].m      /(_r*_r*_r);
-					
-                    if (i==j){
-                        particles[i].ax    += prefact*rpx;
-                        particles[i].ay    += prefact*rpy;
-                        particles[i].az    += prefact*rpz;
-                    }
                     if (i<j){
-					    prefact = G*M*(particles[j].m)/M*particles[i].m/particles[i].m       /(_r*_r*_r);
+					    double prefact = G*M*(particles[j].m)/M*particles[i].m/particles[i].m       /(_r*_r*_r);
                         particles[i].ax    -= prefact*rpx;
                         particles[i].ay    -= prefact*rpy;
                         particles[i].az    -= prefact*rpz;
                     }
-					
-					
 				}
+                double prefact = G*M*(particles[j].m)/particles[j].m      /(_r*_r*_r);
+                particles[j].ax    += prefact*rpx;
+                particles[j].ay    += prefact*rpy;
+                particles[j].az    += prefact*rpz;
                 Rx = (Rx*M+particles[j].m*particles[j].x)/(M+particles[j].m);
                 Ry = (Ry*M+particles[j].m*particles[j].y)/(M+particles[j].m);
                 Rz = (Rz*M+particles[j].m*particles[j].z)/(M+particles[j].m);

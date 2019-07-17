@@ -44,30 +44,14 @@
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
 void reb_wkm_interaction_step(struct reb_simulation* const r, const double _dt){
     const unsigned int N_real = r->N-r->N_var;
-    const double G = r->G;
-    struct reb_particle* particles = r->particles;
-    const double m0 = particles[0].m;
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_particle* const p_j = ri_whfast->p_jh;
     reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N_real);
     for (unsigned int i=0;i<N_real;i++){
-        // Eq 132
         const struct reb_particle pji = p_j[i];
-        static double rj2i;
-        static double rj3iM;
-        static double prefac1;
         p_j[i].vx += _dt * pji.ax;
         p_j[i].vy += _dt * pji.ay;
         p_j[i].vz += _dt * pji.az;
-        //if (i>1){
-        //    rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
-        //    const double rji  = sqrt(rj2i);
-        //    rj3iM = rji*rj2i*G*eta;
-        //    prefac1 = _dt*rj3iM;
-        //    p_j[i].vx += prefac1*pji.x;
-        //    p_j[i].vy += prefac1*pji.y;
-        //    p_j[i].vz += prefac1*pji.z;
-        //}
     }
 }
 
@@ -271,8 +255,6 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         }
         struct reb_particle* temp_pj = ri_wkm->temp_pj;
 
-        const double G = r->G;
-
         // Calculate normal kick
         // Accelertions were already calculated before part2 gets called
         reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
@@ -281,19 +263,8 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         memcpy(temp_pj,p_j,r->N*sizeof(struct reb_particle));
 
         // WHT Eq 10.6
-        double eta = particles[0].m;
         for (unsigned int i=1;i<N;i++){
-            const struct reb_particle pji = p_j[i];
-            eta += pji.m;
             const double prefac1 = dt*dt/12.; 
-            if (i>1){
-                const double rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
-                const double rji  = sqrt(rj2i);
-                const double rj3iM = rji*rj2i*G*eta;
-                temp_pj[i].ax += rj3iM*temp_pj[i].x;
-                temp_pj[i].ay += rj3iM*temp_pj[i].y;
-                temp_pj[i].az += rj3iM*temp_pj[i].z;
-            }
             p_j[i].x += prefac1 * temp_pj[i].ax;
             p_j[i].y += prefac1 * temp_pj[i].ay;
             p_j[i].z += prefac1 * temp_pj[i].az;
