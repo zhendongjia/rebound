@@ -78,47 +78,49 @@ void reb_calculate_acceleration(struct reb_simulation* r){
 				particles[i].ay = 0; 
 				particles[i].az = 0; 
 			}
-            // Jacobi term
-            double M = particles[0].m+particles[1].m;
-            double Rx = (particles[0].x*particles[0].m+particles[1].m*particles[1].x)/(particles[0].m+particles[1].m);
-            double Ry = (particles[0].y*particles[0].m+particles[1].m*particles[1].y)/(particles[0].m+particles[1].m);
-            double Rz = (particles[0].z*particles[0].m+particles[1].m*particles[1].z)/(particles[0].m+particles[1].m);
-            for (int j=2; j<_N_active; j++){// j=1 term is "included" by ignoring the (j==1 && i==0) || (i==1 && j==0) terms below
-                double rpx = particles[j].x-Rx; //Jacobi rp_j
-                double rpy = particles[j].y-Ry;
-                double rpz = particles[j].z-Rz;
-		        const double _r = sqrt(rpx*rpx + rpy*rpy + rpz*rpz);
-                for (int i=0; i<_N_real; i++){
-                    if (i<j){
-					    double prefact = G*M*(particles[j].m)/M*particles[i].m/particles[i].m       /(_r*_r*_r);
+            double M = 0;//particles[0].m+particles[1].m;
+            double Rx = 0;//(particles[0].x*particles[0].m+particles[1].m*particles[1].x)/(particles[0].m+particles[1].m);
+            double Ry = 0;//(particles[0].y*particles[0].m+particles[1].m*particles[1].y)/(particles[0].m+particles[1].m);
+            double Rz = 0;//(particles[0].z*particles[0].m+particles[1].m*particles[1].z)/(particles[0].m+particles[1].m);
+            for (int j=0; j<N; j++){
+                // Jacobi term
+                if (j>1){// j=1 term is "included" by ignoring the i==1 && j==0 term below, this should avoid some round-off error
+                    double rpx = particles[j].x-Rx; //Jacobi rp_j
+                    double rpy = particles[j].y-Ry;
+                    double rpz = particles[j].z-Rz;
+                    const double _r = sqrt(rpx*rpx + rpy*rpy + rpz*rpz);
+                    for (int i=0; i<j; i++){ // jacobi coordinates don't depend on coordinates with i>j
+                        double prefact = G*M*(particles[j].m)/M*particles[i].m/particles[i].m       /(_r*_r*_r);
                         particles[i].ax    -= prefact*rpx;
                         particles[i].ay    -= prefact*rpy;
                         particles[i].az    -= prefact*rpz;
                     }
-				}
-                double prefact = G*M*(particles[j].m)/particles[j].m      /(_r*_r*_r);
-                particles[j].ax    += prefact*rpx;
-                particles[j].ay    += prefact*rpy;
-                particles[j].az    += prefact*rpz;
+                    double prefact = G*M*(particles[j].m)/particles[j].m      /(_r*_r*_r);
+                    particles[j].ax    += prefact*rpx;
+                    particles[j].ay    += prefact*rpy;
+                    particles[j].az    += prefact*rpz;
+                }
                 Rx = (Rx*M+particles[j].m*particles[j].x)/(M+particles[j].m);
                 Ry = (Ry*M+particles[j].m*particles[j].y)/(M+particles[j].m);
                 Rz = (Rz*M+particles[j].m*particles[j].z)/(M+particles[j].m);
                 M += particles[j].m;
-			}
-            // Normal term
-            for (int i=0; i<_N_real; i++){
-				for (int j=0; j<_N_active; j++){
-					if (((j==1 && i==0) || (i==1 && j==0) )) continue;
-					if (i==j) continue;
-					const double dx = particles[i].x - particles[j].x;
-					const double dy = particles[i].y - particles[j].y;
-					const double dz = particles[i].z - particles[j].z;
+                // Normal term
+				for (int i=0; i<j; i++){ // 2x speedup, but non parallelizable 
+					if (j==1 && i==0) continue;
+					const double dx = particles[j].x - particles[i].x;
+					const double dy = particles[j].y - particles[i].y;
+					const double dz = particles[j].z - particles[i].z;
 					const double _r = sqrt(dx*dx + dy*dy + dz*dz);
-					const double prefact = -G/(_r*_r*_r)*particles[j].m;
+					double prefact = -G/(_r*_r*_r)*particles[i].m;
 					
-					particles[i].ax    += prefact*dx;
-					particles[i].ay    += prefact*dy;
-					particles[i].az    += prefact*dz;
+					particles[j].ax    += prefact*dx;
+					particles[j].ay    += prefact*dy;
+					particles[j].az    += prefact*dz;
+				    
+                    prefact = -G/(_r*_r*_r)*particles[j].m;
+					particles[i].ax    -= prefact*dx;
+					particles[i].ay    -= prefact*dy;
+					particles[i].az    -= prefact*dz;
 				}
 			}
 		}
