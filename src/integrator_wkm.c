@@ -42,6 +42,34 @@
 
 #define MAX(a, b) ((a) < (b) ? (b) : (a))   ///< Returns the maximum of a and b
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
+void reb_wkm_interaction_step(struct reb_simulation* const r, const double _dt){
+    const unsigned int N_real = r->N-r->N_var;
+    const double G = r->G;
+    struct reb_particle* particles = r->particles;
+    const double m0 = particles[0].m;
+    struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
+    struct reb_particle* const p_j = ri_whfast->p_jh;
+    reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N_real);
+    for (unsigned int i=0;i<N_real;i++){
+        // Eq 132
+        const struct reb_particle pji = p_j[i];
+        static double rj2i;
+        static double rj3iM;
+        static double prefac1;
+        p_j[i].vx += _dt * pji.ax;
+        p_j[i].vy += _dt * pji.ay;
+        p_j[i].vz += _dt * pji.az;
+        //if (i>1){
+        //    rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
+        //    const double rji  = sqrt(rj2i);
+        //    rj3iM = rji*rj2i*G*eta;
+        //    prefac1 = _dt*rj3iM;
+        //    p_j[i].vx += prefac1*pji.x;
+        //    p_j[i].vy += prefac1*pji.y;
+        //    p_j[i].vz += prefac1*pji.z;
+        //}
+    }
+}
 
 static void reb_wkm_corrector_Z(struct reb_simulation* r, const double a, const double b){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
@@ -50,11 +78,11 @@ static void reb_wkm_corrector_Z(struct reb_simulation* r, const double a, const 
     reb_whfast_kepler_step(r, a);
     reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
     reb_update_acceleration(r);
-    reb_whfast_interaction_step(r, -b);
+    reb_wkm_interaction_step(r, -b);
     reb_whfast_kepler_step(r, -2.*a);
     reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
     reb_update_acceleration(r);
-    reb_whfast_interaction_step(r, b);
+    reb_wkm_interaction_step(r, b);
     reb_whfast_kepler_step(r, a);
 }
 void reb_wkm_apply_C(struct reb_simulation* const r, double a, double b){
@@ -66,7 +94,7 @@ void reb_wkm_apply_C(struct reb_simulation* const r, double a, double b){
     const int N_real = r->N;
     reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
     reb_update_acceleration(r);
-    reb_whfast_interaction_step(r, b);
+    reb_wkm_interaction_step(r, b);
     
     reb_whfast_kepler_step(r, -a);   
     reb_whfast_com_step(r, -a);
@@ -96,7 +124,7 @@ void reb_integrator_wkm_part1(struct reb_simulation* const r){
     struct reb_simulation_integrator_wkm* const ri_wkm = &(r->ri_wkm);
     const int corrector = ri_wkm->corrector%10;
     const int kernel = ri_wkm->corrector/10;
-    r->gravity_ignore_terms = 1;
+    r->gravity = REB_GRAVITY_JACOBI;
     if (r->var_config_N>0 && ri_whfast->coordinates!=REB_WHFAST_COORDINATES_JACOBI){
         reb_error(r, "Variational particles are not supported in the WKM integrator.");
         return; 
@@ -149,7 +177,7 @@ void reb_integrator_wkm_synchronize(struct reb_simulation* const r){
     if (ri_wkm->is_synchronized == 0){
         const int N = r->N;
         struct reb_particle* sync_pj  = NULL;
-        r->gravity_ignore_terms = 1; // needed here in case of SimulationArchive calls
+        r->gravity = REB_GRAVITY_JACOBI; // needed here in case of SimulationArchive calls
         if (ri_whfast->keep_unsynchronized){
             sync_pj = malloc(sizeof(struct reb_particle)*r->N);
             memcpy(sync_pj,r->ri_whfast.p_jh,r->N*sizeof(struct reb_particle));
@@ -192,7 +220,7 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
     if (kernel==0){ // composition
         
         // -1/6 B
-        reb_whfast_interaction_step(r, -1./6.*r->dt);
+        reb_wkm_interaction_step(r, -1./6.*r->dt);
       
         { // -1/4 A
             reb_whfast_kepler_step(r, -1./4.*r->dt);   
@@ -201,7 +229,7 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         { // 1/6 B
             reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
             reb_update_acceleration(r);
-            reb_whfast_interaction_step(r, 1./6.*r->dt);
+            reb_wkm_interaction_step(r, 1./6.*r->dt);
         }
         { // 1/8 A
             reb_whfast_kepler_step(r, 1./8.*r->dt);   
@@ -210,7 +238,7 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         { // B
             reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
             reb_update_acceleration(r);
-            reb_whfast_interaction_step(r, r->dt);
+            reb_wkm_interaction_step(r, r->dt);
         }
         { // -1/8 A
             reb_whfast_kepler_step(r, -1./8.*r->dt);   
@@ -219,7 +247,7 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         { // -1/6 B
             reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
             reb_update_acceleration(r);
-            reb_whfast_interaction_step(r, -1./6.*r->dt);
+            reb_wkm_interaction_step(r, -1./6.*r->dt);
         }
         { // 1/4 A
             reb_whfast_kepler_step(r, 1./4.*r->dt);   
@@ -228,7 +256,7 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         { // 1/6 B
             reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
             reb_update_acceleration(r);
-            reb_whfast_interaction_step(r, 1./6.*r->dt);
+            reb_wkm_interaction_step(r, 1./6.*r->dt);
         }
     } else if (kernel==1){ //lazy implementers method
         double dt = r->dt;
@@ -274,7 +302,7 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
         // recalculate kick 
         reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
         reb_update_acceleration(r);
-        reb_whfast_interaction_step(r, dt);
+        reb_wkm_interaction_step(r, dt);
 
         for (unsigned int i=1;i<N;i++){
             // reset positions

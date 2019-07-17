@@ -70,6 +70,68 @@ void reb_calculate_acceleration(struct reb_simulation* r){
 	switch (r->gravity){
 		case REB_GRAVITY_NONE: // Do nothing.
 		break;
+		case REB_GRAVITY_JACOBI:
+		{
+#pragma omp parallel for 
+			for (int i=0; i<N; i++){
+				particles[i].ax = 0; 
+				particles[i].ay = 0; 
+				particles[i].az = 0; 
+			}
+            // Jacobi term
+            double Rx = particles[0].x; //CoM R
+            double Ry = particles[0].y;
+            double Rz = particles[0].z;
+            double M = particles[0].m;
+            Rx = (Rx*M+particles[1].m*particles[1].x)/(M+particles[1].m);
+            Ry = (Ry*M+particles[1].m*particles[1].y)/(M+particles[1].m);
+            Rz = (Rz*M+particles[1].m*particles[1].z)/(M+particles[1].m);
+            M += particles[1].m;
+            for (int j=2; j<_N_active; j++){// j=1 term is "included" by ignoring the (j==1 && i==0) || (i==1 && j==0) terms below
+                double rpx = particles[j].x-Rx; //Jacobi rp_j
+                double rpy = particles[j].y-Ry;
+                double rpz = particles[j].z-Rz;
+                for (int i=0; i<_N_real; i++){
+					const double _r = sqrt(rpx*rpx + rpy*rpy + rpz*rpz);
+					double prefact = G*M*(particles[j].m)/particles[i].m      /(_r*_r*_r);
+					
+                    if (i==j){
+                        particles[i].ax    += prefact*rpx;
+                        particles[i].ay    += prefact*rpy;
+                        particles[i].az    += prefact*rpz;
+                    }
+                    if (i<j){
+					    prefact = G*M*(particles[j].m)/M*particles[i].m/particles[i].m       /(_r*_r*_r);
+                        particles[i].ax    -= prefact*rpx;
+                        particles[i].ay    -= prefact*rpy;
+                        particles[i].az    -= prefact*rpz;
+                    }
+					
+					
+				}
+                Rx = (Rx*M+particles[j].m*particles[j].x)/(M+particles[j].m);
+                Ry = (Ry*M+particles[j].m*particles[j].y)/(M+particles[j].m);
+                Rz = (Rz*M+particles[j].m*particles[j].z)/(M+particles[j].m);
+                M += particles[j].m;
+			}
+            // Normal term
+            for (int i=0; i<_N_real; i++){
+				for (int j=0; j<_N_active; j++){
+					if (((j==1 && i==0) || (i==1 && j==0) )) continue;
+					if (i==j) continue;
+					const double dx = particles[i].x - particles[j].x;
+					const double dy = particles[i].y - particles[j].y;
+					const double dz = particles[i].z - particles[j].z;
+					const double _r = sqrt(dx*dx + dy*dy + dz*dz);
+					const double prefact = -G/(_r*_r*_r)*particles[j].m;
+					
+					particles[i].ax    += prefact*dx;
+					particles[i].ay    += prefact*dy;
+					particles[i].az    += prefact*dz;
+				}
+			}
+		}
+		break;
 		case REB_GRAVITY_BASIC:
 		{
 			const int nghostx = r->nghostx;

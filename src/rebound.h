@@ -923,6 +923,7 @@ struct reb_simulation {
         REB_GRAVITY_COMPENSATED = 2,    ///< Direct summation algorithm O(N^2) but with compensated summation, slightly slower than BASIC but more accurate
         REB_GRAVITY_TREE = 3,       ///< Use the tree to calculate gravity, O(N log(N)), set opening_angle2 to adjust accuracy.
         REB_GRAVITY_MERCURIUS = 4,  ///< Special gravity routine only for MERCURIUS
+        REB_GRAVITY_JACOBI = 5,     ///< Special gravity routine which includes the Jacobi terms for WH integrators 
         } gravity;
     /** @} */
 
