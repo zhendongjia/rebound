@@ -87,11 +87,11 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                 double rpx = particles[j].x-Rx; //Jacobi rp_j
                 double rpy = particles[j].y-Ry;
                 double rpz = particles[j].z-Rz;
-                const double _r = sqrt(rpx*rpx + rpy*rpy + rpz*rpz);
+                const double rp = sqrt(rpx*rpx + rpy*rpy + rpz*rpz);
                 for (int i=0; i<j; i++){ // jacobi coordinates don't depend on coordinates with i>j
                     // the i<j trick means 2x speedup, but non parallelizable 
                     if (j>1){// j=1 term is "included" by ignoring the i==1 && j==0 term below, this should avoid some round-off error
-                        double prefact = G*particles[j].m*particles[i].m       /(_r*_r*_r);
+                        double prefact = G*particles[j].m*particles[i].m /(rp*rp*rp);
                         particles[i].ax    -= prefact*rpx/particles[i].m; // m factor included here for clarity, think \dot v_i = \dot p_i /m_i 
                         particles[i].ay    -= prefact*rpy/particles[i].m;
                         particles[i].az    -= prefact*rpz/particles[i].m;
@@ -101,21 +101,21 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                         const double dx = particles[j].x - particles[i].x;
                         const double dy = particles[j].y - particles[i].y;
                         const double dz = particles[j].z - particles[i].z;
-                        const double _r = sqrt(dx*dx + dy*dy + dz*dz);
-                        double prefact = -G/(_r*_r*_r)*particles[i].m*particles[j].m;
+                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                        double prefact = G*particles[i].m*particles[j].m /(dr*dr*dr);
                         
-                        particles[j].ax    += prefact*dx/particles[j].m;
-                        particles[j].ay    += prefact*dy/particles[j].m;
-                        particles[j].az    += prefact*dz/particles[j].m;
+                        particles[j].ax    -= prefact*dx/particles[j].m;
+                        particles[j].ay    -= prefact*dy/particles[j].m;
+                        particles[j].az    -= prefact*dz/particles[j].m;
                         
-                        particles[i].ax    -= prefact*dx/particles[i].m;
-                        particles[i].ay    -= prefact*dy/particles[i].m;
-                        particles[i].az    -= prefact*dz/particles[i].m;
+                        particles[i].ax    += prefact*dx/particles[i].m;
+                        particles[i].ay    += prefact*dy/particles[i].m;
+                        particles[i].az    += prefact*dz/particles[i].m;
                     }
                 }
                 // Jacobi term
                 if (j>1){
-                    double prefact = G*M*(particles[j].m)      /(_r*_r*_r);
+                    double prefact = G*M*particles[j].m /(rp*rp*rp);
                     particles[j].ax    += prefact*rpx/particles[j].m;
                     particles[j].ay    += prefact*rpy/particles[j].m;
                     particles[j].az    += prefact*rpz/particles[j].m;
