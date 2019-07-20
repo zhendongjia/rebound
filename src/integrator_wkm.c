@@ -64,7 +64,12 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
         double Akm1x = particles[0].m*particles[0].ax; // Jacobi acceleration
         double Akm1y = particles[0].m*particles[0].ay;
         double Akm1z = particles[0].m*particles[0].az;
-        for (int k=j; k<N; k++){
+        for (int k=1; k<N; k++){
+            if (j<=k){ //else dQkrj = 0.;
+                double dQkrj = 1.; 
+                if (j<k){
+                    dQkrj = -particles[j].m/Mkm1;
+                }
                 double Qkx = particles[k].x - Rkm1x;
                 double Qky = particles[k].y - Rkm1y;
                 double Qkz = particles[k].z - Rkm1z;
@@ -74,10 +79,6 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
                 
                 const double dr = sqrt(Qkx*Qkx + Qky*Qky + Qkz*Qkz);
                 double alphasum = dax*Qkx + day*Qky + daz*Qkz;
-                double dQkrj = 1.;
-                if (j<k){
-                    dQkrj = -particles[j].m/Mkm1;
-                }
                 
                 double prefact1 = G*Mkm1*particles[k].m *dQkrj /(dr*dr*dr*dr*dr);
                 jerk[j].ax    -= 6.* prefact1*alphasum*Qkx; 
@@ -88,6 +89,7 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
                 jerk[j].ax    += 2.*prefact2*dax;
                 jerk[j].ay    += 2.*prefact2*day;
                 jerk[j].az    += 2.*prefact2*daz;
+            }
                 
             Akm1x += particles[k].ax*particles[k].m;
             Akm1y += particles[k].ay*particles[k].m;
