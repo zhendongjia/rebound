@@ -42,6 +42,76 @@
 
 #define MAX(a, b) ((a) < (b) ? (b) : (a))   ///< Returns the maximum of a and b
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
+
+void reb_wkm_jerk_step(struct reb_simulation* r){
+	struct reb_particle* const particles = r->particles;
+	const int N = r->N;
+	const double G = r->G;
+    for (int i=0; i<N; i++){
+        particles[i].ax = 0; 
+        particles[i].ay = 0; 
+        particles[i].az = 0; 
+    }
+    double Mi = 0; // Centre of mass
+    double Rix = 0;
+    double Riy = 0;
+    double Riz = 0;
+    for (int i=0; i<N; i++){
+        double Qix = particles[i].x-Rix; //Jacobi Q_i 
+        double Qiy = particles[i].y-Riy;
+        double Qiz = particles[i].z-Riz;
+        for (int j=0; j<i; j++){
+                const double dx = Qix; 
+                const double dy = Qiy; 
+                const double dz = Qiz; 
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                double prefact = G*particles[j].m /(dr*dr*dr);
+                particles[i].ax    += prefact*dx;
+                particles[i].ay    += prefact*dy;
+                particles[i].az    += prefact*dz;
+        }
+        Rix = (Rix*Mi+particles[i].m*particles[i].x)/(Mi+particles[i].m); // Now R_i
+        Riy = (Riy*Mi+particles[i].m*particles[i].y)/(Mi+particles[i].m);
+        Riz = (Riz*Mi+particles[i].m*particles[i].z)/(Mi+particles[i].m);
+        Mi += particles[i].m;
+        double Rjx = Rix;
+        double Rjy = Riy;
+        double Rjz = Riz;
+        double Mj = Mi;
+        for (int j=i+1; j<N; j++){
+                double Qjx = particles[j].x-Rjx; //Jacobi Q_j 
+                double Qjy = particles[j].y-Rjy;
+                double Qjz = particles[j].z-Rjz;
+                const double dx = Qjx; 
+                const double dy = Qjy; 
+                const double dz = Qjz; 
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                double prefact = G*particles[j].m /(dr*dr*dr);
+                particles[i].ax    -= prefact*dx;
+                particles[i].ay    -= prefact*dy;
+                particles[i].az    -= prefact*dz;
+                Rjx = (Rjx*Mj+particles[j].m*particles[j].x)/(Mj+particles[j].m);
+                Rjy = (Rjy*Mj+particles[j].m*particles[j].y)/(Mj+particles[j].m);
+                Rjz = (Rjz*Mj+particles[j].m*particles[j].z)/(Mj+particles[j].m);
+                Mj += particles[j].m;
+        }
+        for (int j=0; j<N; j++){
+            if (i!=j){
+                const double dx = particles[i].x - particles[j].x;
+                const double dy = particles[i].y - particles[j].y;
+                const double dz = particles[i].z - particles[j].z;
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                double prefact = G*particles[j].m /(dr*dr*dr);
+                
+                particles[i].ax    -= prefact*dx;
+                particles[i].ay    -= prefact*dy;
+                particles[i].az    -= prefact*dz;
+            }
+        }
+    }
+}
+
+
 void reb_wkm_interaction_step(struct reb_simulation* const r, const double _dt){
     const unsigned int N_real = r->N-r->N_var;
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);

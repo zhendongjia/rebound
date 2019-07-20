@@ -78,10 +78,64 @@ void reb_calculate_acceleration(struct reb_simulation* r){
 				particles[i].ay = 0; 
 				particles[i].az = 0; 
 			}
-            double M = 0; // Centre of mass
-            double Rx = 0;
-            double Ry = 0;
-            double Rz = 0;
+            double Mi = 0; // Centre of mass
+            double Rix = 0;
+            double Riy = 0;
+            double Riz = 0;
+			for (int i=0; i<N; i++){
+                double Qix = particles[i].x-Rix; //Jacobi Q_i 
+                double Qiy = particles[i].y-Riy;
+                double Qiz = particles[i].z-Riz;
+                for (int j=0; j<i; j++){
+                        const double dx = Qix; 
+                        const double dy = Qiy; 
+                        const double dz = Qiz; 
+                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                        double prefact = G*particles[j].m /(dr*dr*dr);
+                        particles[i].ax    += prefact*dx;
+                        particles[i].ay    += prefact*dy;
+                        particles[i].az    += prefact*dz;
+                }
+                Rix = (Rix*Mi+particles[i].m*particles[i].x)/(Mi+particles[i].m); // Now R_i
+                Riy = (Riy*Mi+particles[i].m*particles[i].y)/(Mi+particles[i].m);
+                Riz = (Riz*Mi+particles[i].m*particles[i].z)/(Mi+particles[i].m);
+                Mi += particles[i].m;
+                double Rjx = Rix;
+                double Rjy = Riy;
+                double Rjz = Riz;
+                double Mj = Mi;
+                for (int j=i+1; j<N; j++){
+                        double Qjx = particles[j].x-Rjx; //Jacobi Q_j 
+                        double Qjy = particles[j].y-Rjy;
+                        double Qjz = particles[j].z-Rjz;
+                        const double dx = Qjx; 
+                        const double dy = Qjy; 
+                        const double dz = Qjz; 
+                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                        double prefact = G*particles[j].m /(dr*dr*dr);
+                        particles[i].ax    -= prefact*dx;
+                        particles[i].ay    -= prefact*dy;
+                        particles[i].az    -= prefact*dz;
+                        Rjx = (Rjx*Mj+particles[j].m*particles[j].x)/(Mj+particles[j].m);
+                        Rjy = (Rjy*Mj+particles[j].m*particles[j].y)/(Mj+particles[j].m);
+                        Rjz = (Rjz*Mj+particles[j].m*particles[j].z)/(Mj+particles[j].m);
+                        Mj += particles[j].m;
+                }
+                for (int j=0; j<N; j++){
+                    if (i!=j){
+                        const double dx = particles[i].x - particles[j].x;
+                        const double dy = particles[i].y - particles[j].y;
+                        const double dz = particles[i].z - particles[j].z;
+                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                        double prefact = G*particles[j].m /(dr*dr*dr);
+                        
+                        particles[i].ax    -= prefact*dx;
+                        particles[i].ay    -= prefact*dy;
+                        particles[i].az    -= prefact*dz;
+                    }
+                }
+            }
+/*
             for (int j=0; j<N; j++){
                 // Jacobi term
                 double rpx = particles[j].x-Rx; //Jacobi rp_j
@@ -125,6 +179,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                 Rz = (Rz*M+particles[j].m*particles[j].z)/(M+particles[j].m);
                 M += particles[j].m;
 			}
+        */
 		}
 		break;
 		case REB_GRAVITY_BASIC:
