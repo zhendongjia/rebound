@@ -130,9 +130,9 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
 
     ///////////////////
     for (int i=0; i<N; i++){
-        particles[i].ax -= 0.1*r->dt*r->dt/24.*jerk[i].ax/particles[i].m; 
-        particles[i].ay -= 0.1*r->dt*r->dt/24.*jerk[i].ay/particles[i].m; 
-        particles[i].az -= 0.1*r->dt*r->dt/24.*jerk[i].az/particles[i].m; 
+        particles[i].ax -= r->dt*r->dt/24.*jerk[i].ax/particles[i].m; 
+        particles[i].ay -= r->dt*r->dt/24.*jerk[i].ay/particles[i].m; 
+        particles[i].az -= r->dt*r->dt/24.*jerk[i].az/particles[i].m; 
     }
     free(jerk);
 }
