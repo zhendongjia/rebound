@@ -55,7 +55,7 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
         jerk[i].az = 0; 
     }
     /////////////////
-    // A+B Term
+    // D Term
     for (int j=0; j<N; j++){
         for (int i=0; i<N; i++){
             double Rkm1x = particles[0].x;
@@ -85,14 +85,14 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
                 }
                 
                 double prefact1 = G*Mkm1*particles[k].m *dQkrj * dQkri /(dr*dr*dr*dr*dr);
-                jerk[j].ax    += 6.* prefact1*alphasum*Qkx; 
-                jerk[j].ay    += 6.* prefact1*alphasum*Qky;
-                jerk[j].az    += 6.* prefact1*alphasum*Qkz; 
+                jerk[j].ax    -= 6.* prefact1*alphasum*Qkx; 
+                jerk[j].ay    -= 6.* prefact1*alphasum*Qky;
+                jerk[j].az    -= 6.* prefact1*alphasum*Qkz; 
                 
                 double prefact2 = G*Mkm1*particles[k].m *dQkrj * dQkri /(dr*dr*dr);
-                jerk[j].ax    -= 2.*prefact2*particles[i].ax;
-                jerk[j].ay    -= 2.*prefact2*particles[i].ay;
-                jerk[j].az    -= 2.*prefact2*particles[i].az;
+                jerk[j].ax    += 2.*prefact2*particles[i].ax;
+                jerk[j].ay    += 2.*prefact2*particles[i].ay;
+                jerk[j].az    += 2.*prefact2*particles[i].az;
                 
                 Rkm1x = (Rkm1x*Mkm1+particles[k].x*particles[k].m)/(Mkm1+particles[k].m);
                 Rkm1y = (Rkm1y*Mkm1+particles[k].y*particles[k].m)/(Mkm1+particles[k].m);
@@ -130,9 +130,9 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
 
     ///////////////////
     for (int i=0; i<N; i++){
-        particles[i].ax -= r->dt*r->dt/24.*jerk[i].ax/particles[i].m; 
-        particles[i].ay -= r->dt*r->dt/24.*jerk[i].ay/particles[i].m; 
-        particles[i].az -= r->dt*r->dt/24.*jerk[i].az/particles[i].m; 
+        particles[i].ax += r->dt*r->dt/24.*jerk[i].ax/particles[i].m; 
+        particles[i].ay += r->dt*r->dt/24.*jerk[i].ay/particles[i].m; 
+        particles[i].az += r->dt*r->dt/24.*jerk[i].az/particles[i].m; 
     }
     free(jerk);
 }
