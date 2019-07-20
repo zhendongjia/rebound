@@ -44,6 +44,7 @@
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
 
 void reb_wkm_jerk_step(struct reb_simulation* r){
+    // Assume particles.a calculated.
 	struct reb_particle* const particles = r->particles;
 	const int N = r->N;
 	const double G = r->G;
@@ -187,7 +188,7 @@ void reb_integrator_wkm_part1(struct reb_simulation* const r){
         reb_error(r, "WKM integrator requires ri_whfast.coordinates to be set to Jacobi coordinates.");
         return; 
     }
-    if (kernel>1){
+    if (kernel>2){
         reb_error(r, "WKM Kernel not implemented");
         return;
     }
@@ -214,6 +215,9 @@ void reb_integrator_wkm_part1(struct reb_simulation* const r){
         }else if(kernel==1){ // lazy implementers method
             reb_whfast_kepler_step(r, 1./2.*r->dt);   
             reb_whfast_com_step(r, 1./2.*r->dt);
+        }else if(kernel==2){ // jerk method
+            reb_whfast_kepler_step(r, 1./2.*r->dt);   
+            reb_whfast_com_step(r, 1./2.*r->dt);
         }
     }else{
         reb_whfast_kepler_step(r, r->dt);   
@@ -233,13 +237,16 @@ void reb_integrator_wkm_synchronize(struct reb_simulation* const r){
         struct reb_particle* sync_pj  = NULL;
         r->gravity = REB_GRAVITY_JACOBI; // needed here in case of SimulationArchive calls
         if (ri_whfast->keep_unsynchronized){
-            sync_pj = malloc(sizeof(struct reb_particle)*r->N);
-            memcpy(sync_pj,r->ri_whfast.p_jh,r->N*sizeof(struct reb_particle));
+            sync_pj = malloc(sizeof(struct reb_particle)*N);
+            memcpy(sync_pj,r->ri_whfast.p_jh,N*sizeof(struct reb_particle));
         }
         if (kernel==0){ // composition
             reb_whfast_kepler_step(r, 3./8.*r->dt);
             reb_whfast_com_step(r, 3./8.*r->dt);
         }else if (kernel==1){ // lazy implementers method
+            reb_whfast_kepler_step(r, 1./2.*r->dt);
+            reb_whfast_com_step(r, 1./2.*r->dt);
+        }else if (kernel==2){ // jerk method
             reb_whfast_kepler_step(r, 1./2.*r->dt);
             reb_whfast_com_step(r, 1./2.*r->dt);
         }
@@ -252,7 +259,7 @@ void reb_integrator_wkm_synchronize(struct reb_simulation* const r){
         }
         reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N);
         if (ri_whfast->keep_unsynchronized){
-            memcpy(r->ri_whfast.p_jh,sync_pj,r->N*sizeof(struct reb_particle));
+            memcpy(r->ri_whfast.p_jh,sync_pj,N*sizeof(struct reb_particle));
             free(sync_pj);
         }else{
             ri_wkm->is_synchronized = 1;
@@ -351,6 +358,9 @@ void reb_integrator_wkm_part2(struct reb_simulation* const r){
             p_j[i].y = temp_pj[i].y;
             p_j[i].z = temp_pj[i].z;
         }
+    } else if (kernel==2){ //jerk method
+        reb_wkm_jerk_step(r); // adds jerk terms to acceleration
+        reb_wkm_interaction_step(r, r->dt);
     }
     
     ri_wkm->is_synchronized = 0;
