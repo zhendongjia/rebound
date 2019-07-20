@@ -47,11 +47,12 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
     // Assume particles.a calculated.
 	struct reb_particle* const particles = r->particles;
 	const int N = r->N;
+    struct reb_particle* jerk = malloc(sizeof(struct reb_particle)*N);
 	const double G = r->G;
     for (int i=0; i<N; i++){
-        particles[i].ax = 0; 
-        particles[i].ay = 0; 
-        particles[i].az = 0; 
+        jerk[i].ax = 0; 
+        jerk[i].ay = 0; 
+        jerk[i].az = 0; 
     }
     double Mi = 0; // Centre of mass
     double Rix = 0;
@@ -110,6 +111,13 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
             }
         }
     }
+
+    for (int i=0; i<N; i++){
+        particles[i].ax -= r->dt*r->dt/24.*jerk[i].ax; 
+        particles[i].ay -= r->dt*r->dt/24.*jerk[i].ay; 
+        particles[i].az -= r->dt*r->dt/24.*jerk[i].az; 
+    }
+    free(jerk);
 }
 
 
