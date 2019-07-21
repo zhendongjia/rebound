@@ -1035,7 +1035,7 @@ void reb_integrator_whfast_part2(struct reb_simulation* const r){
             // Accelertions were already calculated before part2 gets called
             reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
 
-            // make copy of normal kick, also stores original positions
+            // make copy of original positions
             memcpy(p_temp,p_j,r->N*sizeof(struct reb_particle));
 
             // WHT Eq 10.6

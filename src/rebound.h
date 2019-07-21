@@ -312,9 +312,14 @@ struct reb_simulation_integrator_saba {
      * @brief Turn corrector on/off.
      * @details
      * - 0: corrector off
-     * - 1: corrector on
+     * - 1: normal (modified kick) corrector on
+     * - 2: lazy implementer's corrector on
      */
-    unsigned int corrector;
+    enum {
+        REB_SABA_CORRECTOR_NONE = 0,
+        REB_SABA_CORRECTOR_MODIFIEDKICK = 1,
+        REB_SABA_CORRECTOR_LAZY = 2,
+    } corrector;
 
     /**
      * @brief safe_mode has the same functionality as in WHFast.

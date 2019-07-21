@@ -68,21 +68,69 @@ static void reb_saba_corrector_step(struct reb_simulation* r, double cc){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_particle* const p_j = ri_whfast->p_jh;
 	struct reb_particle* const particles = r->particles;
-	const int N = r->N;
-    
-    // Calculate normal kick
-    reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
-    reb_update_acceleration(r);
-    // Calculate jerk
-    reb_whfast_calculate_jerk(r);
+    const int N = r->N;
+    switch (r->ri_saba.corrector){
+        case REB_SABA_CORRECTOR_MODIFIEDKICK: 
+            // Calculate normal kick
+            reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
+            reb_update_acceleration(r);
+            // Calculate jerk
+            reb_whfast_calculate_jerk(r);
 
-    for (int i=0; i<N; i++){
-        const double prefact = r->dt*r->dt;
-        particles[i].ax = prefact*p_j[i].ax; 
-        particles[i].ay = prefact*p_j[i].ay; 
-        particles[i].az = prefact*p_j[i].az; 
-    }
-    reb_whfast_interaction_step(r,cc*r->dt);
+            for (int i=0; i<N; i++){
+                const double prefact = r->dt*r->dt;
+                particles[i].ax = prefact*p_j[i].ax; 
+                particles[i].ay = prefact*p_j[i].ay; 
+                particles[i].az = prefact*p_j[i].az; 
+            }
+            reb_whfast_interaction_step(r,cc*r->dt);
+            break;
+        case REB_SABA_CORRECTOR_LAZY: 
+            {
+            // Need temporary array to store old positions
+            if (ri_whfast->allocated_Ntemp != N){
+                ri_whfast->allocated_Ntemp = N;
+                ri_whfast->p_temp = realloc(ri_whfast->p_temp,sizeof(struct reb_particle)*N);
+            }
+            struct reb_particle* p_temp = ri_whfast->p_temp;
+
+            // Calculate normal kick
+            reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
+            reb_update_acceleration(r);
+            reb_transformations_inertial_to_jacobi_acc(particles, p_j, particles, N);
+
+            // make copy of original positions and accelerations
+            memcpy(p_temp,p_j,r->N*sizeof(struct reb_particle));
+
+            // WHT96 Eq 10.6
+            const double prefac1 = r->dt*r->dt/12.; 
+            for (unsigned int i=1;i<N;i++){
+                p_j[i].x += prefac1 * p_temp[i].ax;
+                p_j[i].y += prefac1 * p_temp[i].ay;
+                p_j[i].z += prefac1 * p_temp[i].az;
+            }
+           
+            // recalculate kick 
+            reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
+            reb_update_acceleration(r);
+            reb_transformations_inertial_to_jacobi_acc(particles, p_j, particles, N);
+
+            const double prefact = cc*r->dt*12.;
+            for (unsigned int i=1;i<N;i++){
+                // Lazy implementer's commutator
+                p_j[i].vx += prefact*(p_j[i].ax - p_temp[i].ax);
+                p_j[i].vy += prefact*(p_j[i].ay - p_temp[i].ay);
+                p_j[i].vz += prefact*(p_j[i].az - p_temp[i].az);
+                // reset positions
+                p_j[i].x = p_temp[i].x;
+                p_j[i].y = p_temp[i].y;
+                p_j[i].z = p_temp[i].z;
+            }
+            }
+            break;
+        default:
+            return;
+    };
 }
 
 void reb_integrator_saba_part1(struct reb_simulation* const r){
@@ -98,8 +146,12 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
         reb_error(r, "SABA integrator requires ri_whfast.coordinates to be set to Jacobi coordinates.");
         return; 
     }
-    if (k>4){
+    if (k>4 || k==0){
         reb_error(r, "SABA is only implemented up to SABA4.");
+        return; 
+    }
+    if (corrector>2){
+        reb_error(r, "SABA corrector setting needs to be 0 (off), 1 (modified kick), or 2 (lazy implementer's method).");
         return; 
     }
     if (corrector){
@@ -201,7 +253,7 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
 void reb_integrator_saba_reset(struct reb_simulation* const r){
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     ri_saba->k = 1;
-    ri_saba->corrector = 0;
+    ri_saba->corrector = REB_SABA_CORRECTOR_NONE;
     ri_saba->safe_mode = 1;
     ri_saba->is_synchronized = 1;
     reb_integrator_whfast_reset(r);
