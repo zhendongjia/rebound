@@ -4,6 +4,7 @@
  * @author  Hanno Rein <hanno@hanno-rein.de>
  * @details This file implements the WHFast integration scheme.  
  * Described in Rein & Tamayo 2015, Rein et al. 2019.
+ * See also Wisdom et al. 1996.
  * 
  * @section LICENSE
  * Copyright (c) 2015 Hanno Rein, Daniel Tamayo
@@ -70,7 +71,7 @@ const static double reb_whfast_corrector_b_175 = -0.0120717608223422910624497517
 const static double reb_whfast_corrector_b_174 = 0.0033132577069380655655490196833451994080066801611459; 
 const static double reb_whfast_corrector_b_173 = -0.00063599983075817658983166881625078545864140848560259; 
 const static double reb_whfast_corrector_b_172 = 0.000076436355227935738363241846979413475106795392377415; 
-const static double reb_whfast_corrector_b_171 = -0.0000043347415473373580190650223498124944896789841432241; // -? 
+const static double reb_whfast_corrector_b_171 = -0.0000043347415473373580190650223498124944896789841432241; 
 const static double reb_whfast_corrector2_b = 0.03486083443891981449909050107438281205803;
 
 // Fast inverse factorial lookup table
