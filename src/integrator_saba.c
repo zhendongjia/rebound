@@ -43,7 +43,7 @@
 #define MAX(a, b) ((a) < (b) ? (b) : (a))   ///< Returns the maximum of a and b
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
 
-// Some coefficients appear multiple times to simplify the for loops below. 
+// Some coefficients appear multiple times to simplify the loop structures. 
 const static double reb_saba_c[4][4] = {
         {0.5, 0., 0., 0.}, // SABA1
         {0.2113248654051871177454256097490212721762, 0.5773502691896257645091487805019574556476, 0., 0.}, // SABA2
@@ -64,66 +64,28 @@ const static double reb_saba_cc[4] = {
 }; 
     
 
-void reb_saba_corrector_step(struct reb_simulation* r, double cc){
-    double dt = r->dt;
+static void reb_saba_corrector_step(struct reb_simulation* r, double cc){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_particle* const p_j = ri_whfast->p_jh;
 	struct reb_particle* const particles = r->particles;
-    struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
 	const int N = r->N;
-    if (ri_saba->allocated_N != N){
-        // Needed here because it might be calles from synchronize after loading from Simulation Archive
-        ri_saba->allocated_N = N;
-        ri_saba->temp_pj = realloc(ri_saba->temp_pj,sizeof(struct reb_particle)*N);
-    }
-    struct reb_particle* temp_pj = ri_saba->temp_pj;
-
-	const double G = r->G;
-
+    
     // Calculate normal kick
     reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
     reb_update_acceleration(r);
-    reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
+    // Calculate jerk
+    reb_whfast_calculate_jerk(r);
 
-    // make copy of normal kick, also stores original positions
-    memcpy(temp_pj,p_j,r->N*sizeof(struct reb_particle));
-
-    double eta = particles[0].m;
-    for (unsigned int i=1;i<N;i++){
-        const struct reb_particle pji = p_j[i];
-        eta += pji.m;
-        const double prefac1 = dt*dt/12.; 
-        p_j[i].x += prefac1 * temp_pj[i].ax;
-        p_j[i].y += prefac1 * temp_pj[i].ay;
-        p_j[i].z += prefac1 * temp_pj[i].az;
+    for (int i=0; i<N; i++){
+        const double prefact = r->dt*r->dt;
+        particles[i].ax = prefact*p_j[i].ax; 
+        particles[i].ay = prefact*p_j[i].ay; 
+        particles[i].az = prefact*p_j[i].az; 
     }
-   
-    // recalculate kick 
-    reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
-    reb_update_acceleration(r);
-    reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
-
-    dt = 12.*dt*cc;
-    eta = particles[0].m;
-    for (unsigned int i=1;i<N;i++){
-        const struct reb_particle pji = p_j[i];
-        eta += pji.m;
-        // commutator is difference between modified and original kick
-        p_j[i].vx += dt * (p_j[i].ax - temp_pj[i].ax);
-        p_j[i].vy += dt * (p_j[i].ay - temp_pj[i].ay);
-        p_j[i].vz += dt * (p_j[i].az - temp_pj[i].az);
-        // reset positions
-        p_j[i].x = temp_pj[i].x;
-        p_j[i].y = temp_pj[i].y;
-        p_j[i].z = temp_pj[i].z;
-    }
-
+    reb_whfast_interaction_step(r,cc*r->dt);
 }
 
 void reb_integrator_saba_part1(struct reb_simulation* const r){
-    // If the total step consistes of   AB(BA)^(k-1)[A]
-    // do only                          A                  here in part1, 
-    // and                               B(AB)^(k-1)[A]    in part2.
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     const int k = ri_saba->k;
@@ -185,11 +147,9 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     int k = ri_saba->k;
-    int corrector = ri_saba->corrector;
     if (ri_saba->is_synchronized == 0){
         const int N = r->N;
-        struct reb_particle* sync_pj  = NULL;
-        if (corrector){
+        if (ri_saba->corrector){
             // Drift already done, just need corrector
             reb_saba_corrector_step(r, reb_saba_cc[k-1]);
         }else{
@@ -206,7 +166,6 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     struct reb_particle* restrict const particles = r->particles;
     int k = ri_saba->k;
-    int corrector = ri_saba->corrector;
     const int N = r->N;
     if (ri_whfast->p_jh==NULL){
         // Non recoverable error occured earlier. 
@@ -224,8 +183,8 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
         reb_whfast_interaction_step(r, reb_saba_d[k-1][i]*r->dt);
     } 
 
-    if (corrector){
-        // Always do drift step if correctors are turned on
+    if (ri_saba->corrector){
+        // Always need to do drift step if correctors are turned on
         reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);
         reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
     }
@@ -246,9 +205,4 @@ void reb_integrator_saba_reset(struct reb_simulation* const r){
     ri_saba->safe_mode = 1;
     ri_saba->is_synchronized = 1;
     reb_integrator_whfast_reset(r);
-    if (ri_saba->temp_pj){
-        free(ri_saba->temp_pj);
-        ri_saba->temp_pj = NULL;
-    }
-    ri_saba->allocated_N = 0;
 }

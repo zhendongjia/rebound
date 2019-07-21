@@ -303,13 +303,24 @@ struct reb_simulation_integrator_saba {
      * @brief Number of evaluations of the interaction step.
      * @details
      * - 1: standard WH 
+     * - 2: SABA2/SABAC2 
+     * - 3: SABA3/SABAC3 
+     * - 4: SABA4/SABAC4 
      */
     unsigned int k;
+    /**
+     * @brief Turn corrector on/off.
+     * @details
+     * - 0: corrector off
+     * - 1: corrector on
+     */
     unsigned int corrector;
+
+    /**
+     * @brief safe_mode has the same functionality as in WHFast.
+     */
     unsigned int safe_mode;
-    unsigned int allocated_N;   ///< Space allocated in arrays
     unsigned int is_synchronized;
-    struct reb_particle* REBOUND_RESTRICT temp_pj;
 };
 
 /**

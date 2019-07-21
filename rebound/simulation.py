@@ -128,13 +128,18 @@ class reb_simulation_integrator_ias15(Structure):
 class reb_simulation_integrator_saba(Structure):
     """
     This class is an abstraction of the C-struct reb_simulation_integrator_saba.
+    It controls the behaviour of the SABA / SABAC integrator family. 
+
+    :ivar int k:      
+        Sets the number of evalutations. k=1 is SABA1/SABAC1, k=2 is SABA2/SABAC2
+        and so forth.
+    :ivar int corrector:      
+        Turns correctors on (1) or off (0)
     """
     _fields_ = [("k", c_uint),
                 ("corrector", c_uint),
                 ("safe_mode", c_uint),
-                ("_allocated_N", c_uint),
                 ("is_synchronized", c_uint),
-                ("temp_pj", POINTER(Particle)),
             ]
 
 class reb_simulation_integrator_whfast(Structure):
