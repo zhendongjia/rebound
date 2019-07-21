@@ -340,6 +340,7 @@ struct reb_simulation_integrator_whfast {
      * - 5: uses fifth order (four-stage) first corrector 
      * - 7: uses seventh order (six-stage) first corrector 
      * - 11: uses eleventh order (ten-stage) first corrector 
+     * - 17: uses 17th order (16-stage) first corrector 
      */
     unsigned int corrector;
     

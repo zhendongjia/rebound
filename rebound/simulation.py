@@ -158,7 +158,7 @@ class reb_simulation_integrator_whfast(Structure):
     :ivar int corrector:      
         The order of the symplectic corrector in the WHFast integrator.
         By default the symplectic correctors are turned off (=0). For high
-        accuracy simulation set this value to 11. For more details read 
+        accuracy simulation set this value to 11 or 17. For more details read 
         Rein and Tamayo (2015).
     :ivar int corrector2:      
         Second correctors (C2 of Wisdom et al 1996).

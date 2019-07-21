@@ -12,7 +12,15 @@ whfastsettings = [ # corrector, corrector2, kernel, relative error
         [5,0,"default",1e-9], 
         [7,0,"default",1e-9], 
         [11,0,"default",1e-9], 
-        [11,0,"modifiedkick",1e-19], 
+        [17,0,"default",1e-9], 
+        [0,0,"modifiedkick",2e-7], 
+        [3,0,"modifiedkick",1e-9], 
+        [5,0,"modifiedkick",1e-11], 
+        [7,0,"modifiedkick",1e-12], 
+        [11,0,"modifiedkick",1e-12], 
+        [17,0,"modifiedkick",1e-12], 
+        [17,0,"composition",1e-12], 
+        [17,0,"lazy",1e-12], 
         ]
 class TestSequenceMetaWHFastAdvanced(type):
     def __new__(mcs, name, bases, dct):
