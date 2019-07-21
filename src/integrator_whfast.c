@@ -60,6 +60,7 @@ const static double reb_whfast_corrector_b_112 = -0.0023487215292295354188307328
 const static double reb_whfast_corrector_b_113 = 0.012309078592019946317544564763237909911330686448336;
 const static double reb_whfast_corrector_b_114 = -0.038121613681288650508647613260247372125243616270670;
 const static double reb_whfast_corrector_b_115 = 0.072593394748842738674253180742744961827622366521517;
+const static double reb_whfast_corrector2_b = 0.03486083443891981449909050107438281205803;
 
 // Fast inverse factorial lookup table
 static const double invfactorial[35] = {1., 1., 1./2., 1./6., 1./24., 1./120., 1./720., 1./5040., 1./40320., 1./362880., 1./3628800., 1./39916800., 1./479001600., 1./6227020800., 1./87178291200., 1./1307674368000., 1./20922789888000., 1./355687428096000., 1./6402373705728000., 1./121645100408832000., 1./2432902008176640000., 1./51090942171709440000., 1./1124000727777607680000., 1./25852016738884976640000., 1./620448401733239439360000., 1./15511210043330985984000000., 1./403291461126605635584000000., 1./10888869450418352160768000000., 1./304888344611713860501504000000., 1./8841761993739701954543616000000., 1./265252859812191058636308480000000., 1./8222838654177922817725562880000000., 1./263130836933693530167218012160000000., 1./8683317618811886495518194401280000000., 1./295232799039604140847618609643520000000.};
@@ -590,12 +591,12 @@ static void reb_whfast_operator_U(struct reb_simulation* const r, double a, doub
 }
 static void reb_whfast_apply_corrector2(struct reb_simulation* r, double inv){
     double a = 0.5 * inv * r->dt;
-    double b = 0.03486083443891981449909050107438281205803 * inv * r->dt;
+    double b = reb_whfast_corrector2_b * inv * r->dt;
     reb_whfast_operator_U(r, a, b); 
     reb_whfast_operator_U(r, -a, b);
 }
 
-static void reb_whfast_jerk_operator(struct reb_simulation* r, double dt){
+static void reb_whfast_modifiedkick_operator(struct reb_simulation* r, double dt){
     // Assume particles.a calculated.
 	struct reb_particle* const particles = r->particles;
 	const int N = r->N;
@@ -988,7 +989,7 @@ void reb_integrator_whfast_part2(struct reb_simulation* const r){
             reb_whfast_jump_step(r,dt/2.);
             break;
         case REB_WHFAST_KERNEL_MODIFIEDKICK: 
-            reb_whfast_jerk_operator(r, dt);
+            reb_whfast_modifiedkick_operator(r, dt);
             reb_whfast_interaction_step(r, dt);
             break;
         case REB_WHFAST_KERNEL_COMPOSITION:

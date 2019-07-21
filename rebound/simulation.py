@@ -25,7 +25,8 @@ BOUNDARIES = {"none": 0, "open": 1, "periodic": 2, "shear": 3}
 GRAVITIES = {"none": 0, "basic": 1, "compensated": 2, "tree": 3, "mercurius": 4}
 COLLISIONS = {"none": 0, "direct": 1, "tree": 2, "mercurius": 3, "line": 4}
 VISUALIZATIONS = {"none": 0, "opengl": 1, "webgl": 2}
-COORDINATES = {"jacobi": 0, "democraticheliocentric": 1, "whds": 2}
+WHFAST_KERNELS = {"default": 0, "modifiedkick": 1, "composition": 2, "lazy": 3}
+WHFAST_COORDINATES = {"jacobi": 0, "democraticheliocentric": 1, "whds": 2}
 
 # Format: Majorerror, id, message
 BINARY_WARNINGS = [
@@ -154,6 +155,13 @@ class reb_simulation_integrator_whfast(Structure):
         By default the symplectic correctors are turned off (=0). For high
         accuracy simulation set this value to 11. For more details read 
         Rein and Tamayo (2015).
+    :ivar int corrector2:      
+        Second correctors (C2 of Wisdom et al 1996).
+        By default the second symplectic correctors are turned off (=0). 
+        Set to 1 to turn them on.
+    :ivar int kernel:      
+        Kernel option. Set to 0 for the default WH kernel (standard kick step).
+        Other options are "modifiedkick" (1), "composition" (2), "lazy" (3).
     :ivar int recalculate_coordinates_this_timestep:
         Sets a flag that tells WHFast that the particles have changed.
         Setting this flag to 1 (default 0) triggers the WHFast integrator
@@ -176,11 +184,12 @@ class reb_simulation_integrator_whfast(Structure):
     """
     _fields_ = [("corrector", c_uint),
                 ("corrector2", c_uint),
-                ("kernel", c_uint),
+                ("_kernel", c_uint),
                 ("_coordinates", c_uint),
                 ("recalculate_coordinates_this_timestep", c_uint),
                 ("safe_mode", c_uint),
                 ("p_jh", POINTER(Particle)),
+                ("p_temp", POINTER(Particle)),
                 ("keep_unsynchronized", c_uint),
                 ("is_synchronized", c_uint),
                 ("allocatedN", c_uint),
@@ -198,7 +207,7 @@ class reb_simulation_integrator_whfast(Structure):
         - ``'whds'``
         """
         i = self._coordinates
-        for name, _i in COORDINATES.items():
+        for name, _i in WHFAST_COORDINATES.items():
             if i==_i:
                 return name
         return i
@@ -208,10 +217,37 @@ class reb_simulation_integrator_whfast(Structure):
             self._coordinates = c_uint(value)
         elif isinstance(value, basestring):
             value = value.lower()
-            if value in COORDINATES: 
-                self._coordinates = COORDINATES[value]
+            if value in WHFAST_COORDINATES: 
+                self._coordinates = WHFAST_COORDINATES[value]
             else:
                 raise ValueError("Warning. Coordinate system not found.")
+    @property
+    def kernel(self):
+        """
+        Get or set the WHFast Kernel.
+
+        Available integrators are:
+
+        - ``'default'`` (standard WH kernel, kick)
+        - ``'modifiedkick'`` (modified kick for newtonian gravity)
+        - ``'composition'`` (Wisdom's composition method)
+        - ``'lazy'`` (Lazy implementer's method)
+        """
+        i = self._kernel
+        for name, _i in WHFAST_KERNELS.items():
+            if i==_i:
+                return name
+        return i
+    @kernel.setter
+    def kernel(self, value):
+        if isinstance(value, int):
+            self._kernel = c_uint(value)
+        elif isinstance(value, basestring):
+            value = value.lower()
+            if value in WHFAST_KERNELS: 
+                self._kernel = WHFAST_KERNELS[value]
+            else:
+                raise ValueError("Warning. Kernel not found.")
 
 class Orbit(Structure):
     """
