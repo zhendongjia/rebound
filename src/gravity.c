@@ -72,19 +72,18 @@ void reb_calculate_acceleration(struct reb_simulation* r){
 		break;
 		case REB_GRAVITY_JACOBI:
 		{
-#pragma omp parallel for 
-			for (int i=0; i<N; i++){
-				particles[i].ax = 0; 
-				particles[i].ay = 0; 
-				particles[i].az = 0; 
-			}
             double Rjx = 0.;
             double Rjy = 0.;
             double Rjz = 0.;
             double Mj = 0.;
             for (int j=0; j<N; j++){
+				particles[j].ax = 0; 
+				particles[j].ay = 0; 
+				particles[j].az = 0; 
                 for (int i=0; i<j+1; i++){
                     if (j>0){
+                        ////////////////
+                        // Jacobi Term
                         const double Qjx = particles[j].x - Rjx/Mj; 
                         const double Qjy = particles[j].y - Rjy/Mj;
                         const double Qjz = particles[j].z - Rjz/Mj;
@@ -93,24 +92,28 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                         if (i<j){
                             dQjdri = -particles[j].m; //rearranged such that m==0 does not diverge
                         }
-                        double prefact = G*dQjdri/(dr*dr*dr);
+                        const double prefact = G*dQjdri/(dr*dr*dr);
                         particles[i].ax    += prefact*Qjx;
                         particles[i].ay    += prefact*Qjy;
                         particles[i].az    += prefact*Qjz;
                     }
                     if (i!=j){
+                        ////////////////
+                        // Direct Term
                         const double dx = particles[i].x - particles[j].x;
                         const double dy = particles[i].y - particles[j].y;
                         const double dz = particles[i].z - particles[j].z;
                         const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                        double prefact = G /(dr*dr*dr);
+                        const double prefact = G /(dr*dr*dr);
+                        const double prefacti = prefact*particles[i].m;
+                        const double prefactj = prefact*particles[j].m;
                         
-                        particles[i].ax    -= prefact*particles[j].m*dx;
-                        particles[i].ay    -= prefact*particles[j].m*dy;
-                        particles[i].az    -= prefact*particles[j].m*dz;
-                        particles[j].ax    += prefact*particles[i].m*dx;
-                        particles[j].ay    += prefact*particles[i].m*dy;
-                        particles[j].az    += prefact*particles[i].m*dz;
+                        particles[i].ax    -= prefactj*dx;
+                        particles[i].ay    -= prefactj*dy;
+                        particles[i].az    -= prefactj*dz;
+                        particles[j].ax    += prefacti*dx;
+                        particles[j].ay    += prefacti*dy;
+                        particles[j].az    += prefacti*dz;
                     }
                 }
                 Rjx += particles[j].m*particles[j].x;
