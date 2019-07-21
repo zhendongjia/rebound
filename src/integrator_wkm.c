@@ -54,77 +54,77 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
         jerk[i].ay = 0; 
         jerk[i].az = 0; 
     }
-    /////////////////
-    // D Term
+    double Rkm1x = 0.; // com
+    double Rkm1y = 0.;
+    double Rkm1z = 0.;
+    double Mkm1 = 0.;
+    double Akm1x = 0.; // sort of Jacobi acceleration
+    double Akm1y = 0.;
+    double Akm1z = 0.;
     for (int j=0; j<N; j++){
-        double Rkm1x = particles[0].x;
-        double Rkm1y = particles[0].y;
-        double Rkm1z = particles[0].z;
-        double Mkm1 = particles[0].m;
-        double Akm1x = particles[0].m*particles[0].ax; // Jacobi acceleration
-        double Akm1y = particles[0].m*particles[0].ay;
-        double Akm1z = particles[0].m*particles[0].az;
-        for (int k=1; k<N; k++){
-            if (j<=k){ //else dQkrj = 0.;
-                double dQkrj = 1.; 
-                if (j<k){
-                    dQkrj = -particles[j].m/Mkm1;
+        for (int i=0; i<j+1; i++){
+            if (j>0){
+                // if (i<=j) dQkrj = 0.;
+                double dQkrj = -particles[i].m/Mkm1;
+                if (i==j){
+                    dQkrj = 1.;
                 }
-                double Qkx = particles[k].x - Rkm1x;
-                double Qky = particles[k].y - Rkm1y;
-                double Qkz = particles[k].z - Rkm1z;
-                double dax = particles[k].ax - Akm1x/Mkm1;
-                double day = particles[k].ay - Akm1y/Mkm1;
-                double daz = particles[k].az - Akm1z/Mkm1;
+                const double Qkx = particles[j].x - Rkm1x/Mkm1;
+                const double Qky = particles[j].y - Rkm1y/Mkm1;
+                const double Qkz = particles[j].z - Rkm1z/Mkm1;
+                const double dax = particles[j].ax - Akm1x/Mkm1;
+                const double day = particles[j].ay - Akm1y/Mkm1;
+                const double daz = particles[j].az - Akm1z/Mkm1;
                 
                 const double dr = sqrt(Qkx*Qkx + Qky*Qky + Qkz*Qkz);
-                double alphasum = dax*Qkx + day*Qky + daz*Qkz;
+                const double alphasum = dax*Qkx + day*Qky + daz*Qkz;
                 
-                double prefact1 = G*Mkm1*particles[k].m *dQkrj /(dr*dr*dr*dr*dr);
-                jerk[j].ax    -= 6.* prefact1*alphasum*Qkx; 
-                jerk[j].ay    -= 6.* prefact1*alphasum*Qky;
-                jerk[j].az    -= 6.* prefact1*alphasum*Qkz; 
+                const double prefact2 = 2.*G*Mkm1*particles[j].m *dQkrj /(dr*dr*dr);
+                jerk[i].ax    += prefact2*dax;
+                jerk[i].ay    += prefact2*day;
+                jerk[i].az    += prefact2*daz;
                 
-                double prefact2 = G*Mkm1*particles[k].m *dQkrj /(dr*dr*dr);
-                jerk[j].ax    += 2.*prefact2*dax;
-                jerk[j].ay    += 2.*prefact2*day;
-                jerk[j].az    += 2.*prefact2*daz;
+                const double prefact1 = 3.*prefact2/(dr*dr);
+                jerk[i].ax    -= prefact1*alphasum*Qkx; 
+                jerk[i].ay    -= prefact1*alphasum*Qky;
+                jerk[i].az    -= prefact1*alphasum*Qkz; 
             }
-                
-            Akm1x += particles[k].ax*particles[k].m;
-            Akm1y += particles[k].ay*particles[k].m;
-            Akm1z += particles[k].az*particles[k].m;
-            Rkm1x = (Rkm1x*Mkm1+particles[k].x*particles[k].m)/(Mkm1+particles[k].m);
-            Rkm1y = (Rkm1y*Mkm1+particles[k].y*particles[k].m)/(Mkm1+particles[k].m);
-            Rkm1z = (Rkm1z*Mkm1+particles[k].z*particles[k].m)/(Mkm1+particles[k].m);
-            Mkm1 += particles[k].m;
         }
-    }
-    /////////////////
-    // C Term
-    for (int j=0; j<N; j++){
-        for (int i=0; i<N; i++){
-            if (i!=j){
-                const double dx = particles[j].x - particles[i].x; 
-                const double dy = particles[j].y - particles[i].y; 
-                const double dz = particles[j].z - particles[i].z; 
-                
-                const double dax = particles[j].ax - particles[i].ax; 
-                const double day = particles[j].ay - particles[i].ay; 
-                const double daz = particles[j].az - particles[i].az; 
+        /////////////////
+        // C Term
+        for (int i=0; i<j; i++){
+            const double dx = particles[j].x - particles[i].x; 
+            const double dy = particles[j].y - particles[i].y; 
+            const double dz = particles[j].z - particles[i].z; 
+            
+            const double dax = particles[j].ax - particles[i].ax; 
+            const double day = particles[j].ay - particles[i].ay; 
+            const double daz = particles[j].az - particles[i].az; 
 
-                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                double prefact1 = G*particles[j].m*particles[i].m /(dr*dr*dr*dr*dr);
-                double alphasum = dax*dx+day*dy+daz*dz;
-                jerk[j].ax    += 6.*alphasum*dx*prefact1;
-                jerk[j].ay    += 6.*alphasum*dy*prefact1;
-                jerk[j].az    += 6.*alphasum*dz*prefact1;
-                double prefact2 = G*particles[j].m*particles[i].m /(dr*dr*dr);
-                jerk[j].ax    -= 2.*dax*prefact2;
-                jerk[j].ay    -= 2.*day*prefact2;
-                jerk[j].az    -= 2.*daz*prefact2;
-            }
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+            const double alphasum = dax*dx+day*dy+daz*dz;
+            const double prefact2 = 2.*G*particles[j].m*particles[i].m /(dr*dr*dr);
+            jerk[j].ax    -= dax*prefact2;
+            jerk[j].ay    -= day*prefact2;
+            jerk[j].az    -= daz*prefact2;
+            jerk[i].ax    += dax*prefact2;
+            jerk[i].ay    += day*prefact2;
+            jerk[i].az    += daz*prefact2;
+            const double prefact1 = 3.*alphasum*prefact2 /(dr*dr);
+            jerk[j].ax    += dx*prefact1;
+            jerk[j].ay    += dy*prefact1;
+            jerk[j].az    += dz*prefact1;
+            jerk[i].ax    -= dx*prefact1;
+            jerk[i].ay    -= dy*prefact1;
+            jerk[i].az    -= dz*prefact1;
         }
+        Akm1x += particles[j].ax*particles[j].m;
+        Akm1y += particles[j].ay*particles[j].m;
+        Akm1z += particles[j].az*particles[j].m;
+        Rkm1x += particles[j].x*particles[j].m;
+        Rkm1y += particles[j].y*particles[j].m;
+        Rkm1z += particles[j].z*particles[j].m;
+        Mkm1 += particles[j].m;
     }
 
     ///////////////////
