@@ -49,6 +49,9 @@ const static double reb_whfast_corrector_a_2 = 0.8366600265340755479781720257851
 const static double reb_whfast_corrector_a_3 = 1.2549900398011133219672580386777812340892230539480;
 const static double reb_whfast_corrector_a_4 = 1.6733200530681510959563440515703749787856307385973;
 const static double reb_whfast_corrector_a_5 = 2.0916500663351888699454300644629687234820384232467;
+const static double reb_whfast_corrector_a_6 = 2.5099800796022266439345160773555624681784461078960; 
+const static double reb_whfast_corrector_a_7 = 2.9283100928692644179236020902481562128748537925454;
+const static double reb_whfast_corrector_a_8 = 3.3466401061363021919126881031407499575712614771947;
 const static double reb_whfast_corrector_b_31 = -0.024900596027799867499350357910273437184309981229127;
 const static double reb_whfast_corrector_b_51 = -0.0083001986759332891664501193034244790614366604097090;
 const static double reb_whfast_corrector_b_52 = 0.041500993379666445832250596517122395307183302048545;
@@ -60,6 +63,14 @@ const static double reb_whfast_corrector_b_112 = -0.0023487215292295354188307328
 const static double reb_whfast_corrector_b_113 = 0.012309078592019946317544564763237909911330686448336;
 const static double reb_whfast_corrector_b_114 = -0.038121613681288650508647613260247372125243616270670;
 const static double reb_whfast_corrector_b_115 = 0.072593394748842738674253180742744961827622366521517;
+const static double reb_whfast_corrector_b_178 = 0.093056103771425958591541059067553547100903397724386; 
+const static double reb_whfast_corrector_b_177 = -0.065192863576377893658290760803725762027864651086787; 
+const static double reb_whfast_corrector_b_176 = 0.032422198864713580293681523029577130832258806467604; 
+const static double reb_whfast_corrector_b_175 = -0.012071760822342291062449751726959664253913904872527; 
+const static double reb_whfast_corrector_b_174 = 0.0033132577069380655655490196833451994080066801611459; 
+const static double reb_whfast_corrector_b_173 = -0.00063599983075817658983166881625078545864140848560259; 
+const static double reb_whfast_corrector_b_172 = 0.000076436355227935738363241846979413475106795392377415; 
+const static double reb_whfast_corrector_b_171 = -0.0000043347415473373580190650223498124944896789841432241; // -? 
 const static double reb_whfast_corrector2_b = 0.03486083443891981449909050107438281205803;
 
 // Fast inverse factorial lookup table
@@ -560,6 +571,25 @@ void reb_whfast_apply_corrector(struct reb_simulation* r, double inv, int order)
         reb_whfast_corrector_Z(r, reb_whfast_corrector_a_4*dt,inv*reb_whfast_corrector_b_112*dt);
         reb_whfast_corrector_Z(r, reb_whfast_corrector_a_5*dt,inv*reb_whfast_corrector_b_111*dt);
     }
+    if (order==17){
+        // Seventeenth order corrector
+        reb_whfast_corrector_Z(r, -reb_whfast_corrector_a_8*dt,-inv*reb_whfast_corrector_b_171*dt);
+        reb_whfast_corrector_Z(r, -reb_whfast_corrector_a_7*dt,-inv*reb_whfast_corrector_b_172*dt);
+        reb_whfast_corrector_Z(r, -reb_whfast_corrector_a_6*dt,-inv*reb_whfast_corrector_b_173*dt);
+        reb_whfast_corrector_Z(r, -reb_whfast_corrector_a_5*dt,-inv*reb_whfast_corrector_b_174*dt);
+        reb_whfast_corrector_Z(r, -reb_whfast_corrector_a_4*dt,-inv*reb_whfast_corrector_b_175*dt);
+        reb_whfast_corrector_Z(r, -reb_whfast_corrector_a_3*dt,-inv*reb_whfast_corrector_b_176*dt);
+        reb_whfast_corrector_Z(r, -reb_whfast_corrector_a_2*dt,-inv*reb_whfast_corrector_b_177*dt);
+        reb_whfast_corrector_Z(r, -reb_whfast_corrector_a_1*dt,-inv*reb_whfast_corrector_b_178*dt);
+        reb_whfast_corrector_Z(r, reb_whfast_corrector_a_1*dt,inv*reb_whfast_corrector_b_178*dt);
+        reb_whfast_corrector_Z(r, reb_whfast_corrector_a_2*dt,inv*reb_whfast_corrector_b_177*dt);
+        reb_whfast_corrector_Z(r, reb_whfast_corrector_a_3*dt,inv*reb_whfast_corrector_b_176*dt);
+        reb_whfast_corrector_Z(r, reb_whfast_corrector_a_4*dt,inv*reb_whfast_corrector_b_175*dt);
+        reb_whfast_corrector_Z(r, reb_whfast_corrector_a_5*dt,inv*reb_whfast_corrector_b_174*dt);
+        reb_whfast_corrector_Z(r, reb_whfast_corrector_a_6*dt,inv*reb_whfast_corrector_b_173*dt);
+        reb_whfast_corrector_Z(r, reb_whfast_corrector_a_7*dt,inv*reb_whfast_corrector_b_172*dt);
+        reb_whfast_corrector_Z(r, reb_whfast_corrector_a_8*dt,inv*reb_whfast_corrector_b_171*dt);
+    }
 }
 
 static void reb_whfast_operator_C(struct reb_simulation* const r, double a, double b){
@@ -725,8 +755,8 @@ int reb_integrator_whfast_init(struct reb_simulation* const r){
         reb_error(r, "Symplectic correctors are only compatible with Jacobi coordinates.");
         return 1; // Error
     }
-    if (ri_whfast->corrector!=0 && ri_whfast->corrector!=3 && ri_whfast->corrector!=5  && ri_whfast->corrector!=7 && ri_whfast->corrector!=11 ){
-        reb_error(r, "First symplectic correctors are only available in the following orders: 0, 3, 5, 7, 11.");
+    if (ri_whfast->corrector!=0 && ri_whfast->corrector!=3 && ri_whfast->corrector!=5  && ri_whfast->corrector!=7 && ri_whfast->corrector!=11 && ri_whfast->corrector!=17 ){
+        reb_error(r, "First symplectic correctors are only available in the following orders: 0, 3, 5, 7, 11, 17.");
         return 1; // Error
     }
     if (ri_whfast->keep_unsynchronized==1 && ri_whfast->safe_mode==1){
