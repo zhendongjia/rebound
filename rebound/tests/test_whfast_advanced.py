@@ -33,6 +33,7 @@ whfastsettings2 = [ # corrector, corrector2, kernel, relative error
         [3, 0,"modifiedkick",1e-9], 
         [3, 0,"composition",1e-12], 
         [3, 0,"lazy",1e-12], 
+        [3, 1,"lazy",1e-12], 
         ]
 
 class TestSequenceMetaWHFastAdvanced(type):
