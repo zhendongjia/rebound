@@ -6,20 +6,33 @@ import warnings
 from future.utils import with_metaclass
     
 whfastsettings = [ # corrector, corrector2, kernel, relative error
-        [0,0,"default",2e-7], 
-        [3,0,"default",1e-9], 
-        [5,0,"default",1e-9], 
-        [7,0,"default",1e-9], 
+        [0, 0,"default",2e-7], 
+        [3, 0,"default",1e-9], 
+        [5, 0,"default",1e-9], 
+        [7, 0,"default",1e-9], 
         [11,0,"default",1e-9], 
         [17,0,"default",1e-9], 
-        [0,0,"modifiedkick",2e-7], 
-        [3,0,"modifiedkick",1e-9], 
-        [5,0,"modifiedkick",1e-11], 
-        [7,0,"modifiedkick",1e-12], 
+        [0, 0,"modifiedkick",2e-7], 
+        [3, 0,"modifiedkick",1e-9], 
+        [5, 0,"modifiedkick",1e-11], 
+        [7, 0,"modifiedkick",1e-12], 
         [11,0,"modifiedkick",1e-12], 
         [17,0,"modifiedkick",1e-12], 
         [17,0,"composition",1e-12], 
         [17,0,"lazy",1e-12], 
+        [11,1,"modifiedkick",1e-12], 
+        ]
+
+whfastsettings2 = [ # corrector, corrector2, kernel, relative error
+        [0, 0,"default",2e-7], 
+        [3, 0,"default",1e-9], 
+        [3, 0,"modifiedkick",1e-9], 
+        [3, 0,"composition",1e-12], 
+        [3, 0,"lazy",1e-12], 
+        [3, 0,"default",1e-9], 
+        [3, 0,"modifiedkick",1e-9], 
+        [3, 0,"composition",1e-12], 
+        [3, 0,"lazy",1e-12], 
         ]
 
 class TestSequenceMetaWHFastAdvanced(type):
@@ -34,6 +47,7 @@ class TestSequenceMetaWHFastAdvanced(type):
                 sim.ri_whfast.corrector = corrector 
                 sim.ri_whfast.corrector2 = corrector2
                 sim.ri_whfast.kernel = kernel
+                sim.ri_whfast.safe_mode = False
                 sim.dt = 0.0123235235*sim.particles[1].P  
                 e0 = sim.calculate_energy()
                 sim.integrate(1000.*2.*3.1415)
@@ -64,6 +78,8 @@ class TestSequenceMetaWHFastAdvanced(type):
                 corrector, corrector2, kernel, maxerror = s
                 sim = rebound.Simulation()
                 rebound.data.add_outer_solar_system(sim)
+                for p in sim.particles:
+                    p.vx += 1050. # move out of com to make it harder
                 sim.integrator = "whfast"
                 sim.ri_whfast.corrector = corrector 
                 sim.ri_whfast.corrector2 = corrector2
@@ -74,6 +90,8 @@ class TestSequenceMetaWHFastAdvanced(type):
                 simi = rebound.Simulation()
                 simi.integrator = "ias15"
                 rebound.data.add_outer_solar_system(simi)
+                for p in simi.particles:
+                    p.vx += 1050.
                 simi.integrate(sim.t,exact_finish_time=True)
                 
                 for i in range(sim.N):
@@ -82,6 +100,34 @@ class TestSequenceMetaWHFastAdvanced(type):
                     else: # less accurate
                        self.assertLess(math.fabs(simi.particles[i].x-sim.particles[i].x),2e-7)
             return test
+        
+        def backandforth(s):
+            def test(self):
+                corrector, corrector2, kernel, maxerror = s
+                sim = rebound.Simulation()
+                rebound.data.add_outer_solar_system(sim)
+                for p in sim.particles:
+                    p.vx += 1.
+                sim0=sim.copy()
+                sim.integrator = "whfast"
+                sim.ri_whfast.corrector = corrector 
+                sim.ri_whfast.corrector2 = corrector2
+                sim.ri_whfast.kernel = kernel
+                sim.dt = 0.0123235235*sim.particles[1].P  
+                steps = 10
+                for i in range(steps):
+                    sim.step()
+                sim.dt *= -1
+                for i in range(steps):
+                    sim.step()
+                for i in range(sim.N):
+                    if corrector:
+                        self.assertLess(math.fabs(sim0.particles[i].x-sim.particles[i].x),1e-13)
+            return test
+        
+        for s in whfastsettings2:
+            test_name = "test_backandforth_WHFastAdvanced_c_%02d_c2_%d_kernel_%s" % (s[0], s[1], s[2])
+            dct[test_name] = backandforth(s)
 
         for s in whfastsettings:
             test_name = "test_energy_WHFastAdvanced_c_%02d_c2_%d_kernel_%s" % (s[0], s[1], s[2])
