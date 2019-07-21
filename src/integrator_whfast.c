@@ -348,7 +348,6 @@ void reb_whfast_kepler_solver(const struct reb_simulation* const r, struct reb_p
 
 /***************************** 
  * Interaction Hamiltonian  */
-
 void reb_whfast_interaction_step(struct reb_simulation* const r, const double _dt){
     const unsigned int N_real = r->N-r->N_var;
     const double G = r->G;

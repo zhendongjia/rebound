@@ -63,6 +63,7 @@ class TestSequenceMetaWHFastAdvanced(type):
                 rebound.data.add_outer_solar_system(sim)
                 for p in sim.particles:
                     p.vx += 1.
+                com = sim.calculate_com()
                 sim.integrator = "whfast"
                 sim.ri_whfast.corrector = corrector 
                 sim.ri_whfast.corrector2 = corrector2
@@ -72,6 +73,9 @@ class TestSequenceMetaWHFastAdvanced(type):
                 sim.integrate(1000.*2.*3.1415)
                 e1 = sim.calculate_energy()
                 self.assertLess(math.fabs((e0-e1)/e1),maxerror)
+                com1 = sim.calculate_com()
+                self.assertLess(math.fabs((com.x+com.vx*sim.t-com1.x)/(com1.x+com1.y)),1e-12)
+                self.assertLess(math.fabs((com.y+com.vy*sim.t-com1.y)/(com1.x+com1.y)),1e-12)
             return test
         
         def compias(s):
@@ -123,7 +127,7 @@ class TestSequenceMetaWHFastAdvanced(type):
                     sim.step()
                 for i in range(sim.N):
                     if corrector:
-                        self.assertLess(math.fabs(sim0.particles[i].x-sim.particles[i].x),1e-13)
+                        self.assertLess(math.fabs(sim0.particles[i].x-sim.particles[i].x),2e-11)
             return test
         
         for s in whfastsettings2:
