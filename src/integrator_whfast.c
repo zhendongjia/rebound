@@ -596,7 +596,7 @@ static void reb_whfast_apply_corrector2(struct reb_simulation* r, double inv){
     reb_whfast_operator_U(r, -a, b);
 }
 
-static void reb_whfast_modifiedkick_operator(struct reb_simulation* r, double dt){
+void reb_whfast_calculate_jerk(struct reb_simulation* r){
     // Assume particles.a calculated.
 	struct reb_particle* const particles = r->particles;
 	const int N = r->N;
@@ -681,14 +681,6 @@ static void reb_whfast_modifiedkick_operator(struct reb_simulation* r, double dt
         Rjy += particles[j].y*particles[j].m;
         Rjz += particles[j].z*particles[j].m;
         Mj += particles[j].m;
-    }
-
-    ///////////////////
-    for (int i=0; i<N; i++){
-        const double prefact = dt*dt/12.;
-        particles[i].ax += prefact*jerk[i].ax; 
-        particles[i].ay += prefact*jerk[i].ay; 
-        particles[i].az += prefact*jerk[i].az; 
     }
 }
 
@@ -989,7 +981,14 @@ void reb_integrator_whfast_part2(struct reb_simulation* const r){
             reb_whfast_jump_step(r,dt/2.);
             break;
         case REB_WHFAST_KERNEL_MODIFIEDKICK: 
-            reb_whfast_modifiedkick_operator(r, dt);
+            // p_jh used as a temporary buffer for "jerk"
+            reb_whfast_calculate_jerk(r);
+            for (int i=0; i<N; i++){
+                const double prefact = dt*dt/12.;
+                particles[i].ax += prefact*p_j[i].ax; 
+                particles[i].ay += prefact*p_j[i].ay; 
+                particles[i].az += prefact*p_j[i].az; 
+            }
             reb_whfast_interaction_step(r, dt);
             break;
         case REB_WHFAST_KERNEL_COMPOSITION:
