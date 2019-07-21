@@ -63,13 +63,12 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
     double Akm1z = 0.;
     for (int j=0; j<N; j++){
         for (int i=0; i<j+1; i++){
+            //////////////////
+            // D Term
             if (j>0){
-                //////////////////
-                // D Term
-                // if (i<=j) dQkrj = 0.;
-                double dQkrj = -particles[i].m/Mkm1;
-                if (i==j){
-                    dQkrj = 1.;
+                double dQkrj = Mkm1;
+                if (i<j){
+                    dQkrj = -particles[j].m;
                 }
                 const double Qkx = particles[j].x - Rkm1x/Mkm1;
                 const double Qky = particles[j].y - Rkm1y/Mkm1;
@@ -81,7 +80,7 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
                 const double dr = sqrt(Qkx*Qkx + Qky*Qky + Qkz*Qkz);
                 const double alphasum = dax*Qkx + day*Qky + daz*Qkz;
                 
-                const double prefact2 = 2.*G*Mkm1*particles[j].m *dQkrj /(dr*dr*dr);
+                const double prefact2 = 2.*G*dQkrj /(dr*dr*dr);
                 jerk[i].ax    += prefact2*dax;
                 jerk[i].ay    += prefact2*day;
                 jerk[i].az    += prefact2*daz;
@@ -104,20 +103,20 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
 
                 const double dr = sqrt(dx*dx + dy*dy + dz*dz);
                 const double alphasum = dax*dx+day*dy+daz*dz;
-                const double prefact2 = 2.*G*particles[j].m*particles[i].m /(dr*dr*dr);
-                jerk[j].ax    -= dax*prefact2;
-                jerk[j].ay    -= day*prefact2;
-                jerk[j].az    -= daz*prefact2;
-                jerk[i].ax    += dax*prefact2;
-                jerk[i].ay    += day*prefact2;
-                jerk[i].az    += daz*prefact2;
+                const double prefact2 = 2.*G /(dr*dr*dr);
+                jerk[j].ax    -= dax*prefact2*particles[i].m;
+                jerk[j].ay    -= day*prefact2*particles[i].m;
+                jerk[j].az    -= daz*prefact2*particles[i].m;
+                jerk[i].ax    += dax*prefact2*particles[j].m;
+                jerk[i].ay    += day*prefact2*particles[j].m;
+                jerk[i].az    += daz*prefact2*particles[j].m;
                 const double prefact1 = 3.*alphasum*prefact2 /(dr*dr);
-                jerk[j].ax    += dx*prefact1;
-                jerk[j].ay    += dy*prefact1;
-                jerk[j].az    += dz*prefact1;
-                jerk[i].ax    -= dx*prefact1;
-                jerk[i].ay    -= dy*prefact1;
-                jerk[i].az    -= dz*prefact1;
+                jerk[j].ax    += dx*prefact1*particles[i].m;
+                jerk[j].ay    += dy*prefact1*particles[i].m;
+                jerk[j].az    += dz*prefact1*particles[i].m;
+                jerk[i].ax    -= dx*prefact1*particles[j].m;
+                jerk[i].ay    -= dy*prefact1*particles[j].m;
+                jerk[i].az    -= dz*prefact1*particles[j].m;
             }
         }
         Akm1x += particles[j].ax*particles[j].m;
@@ -131,9 +130,9 @@ void reb_wkm_jerk_step(struct reb_simulation* r){
 
     ///////////////////
     for (int i=0; i<N; i++){
-        particles[i].ax += r->dt*r->dt/24.*jerk[i].ax/particles[i].m; 
-        particles[i].ay += r->dt*r->dt/24.*jerk[i].ay/particles[i].m; 
-        particles[i].az += r->dt*r->dt/24.*jerk[i].az/particles[i].m; 
+        particles[i].ax += r->dt*r->dt/24.*jerk[i].ax; 
+        particles[i].ay += r->dt*r->dt/24.*jerk[i].ay; 
+        particles[i].az += r->dt*r->dt/24.*jerk[i].az; 
     }
     free(jerk);
 }
