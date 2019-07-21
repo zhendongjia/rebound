@@ -82,7 +82,6 @@ void reb_saba_corrector_step(struct reb_simulation* r, double cc){
 
     // Calculate normal kick
     reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
-    r->gravity_ignore_terms = 1;
     reb_update_acceleration(r);
     reb_transformations_inertial_to_jacobi_acc(r->particles, p_j, r->particles, N);
 
@@ -94,14 +93,6 @@ void reb_saba_corrector_step(struct reb_simulation* r, double cc){
         const struct reb_particle pji = p_j[i];
         eta += pji.m;
         const double prefac1 = dt*dt/12.; 
-        if (i>1){
-            const double rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
-            const double rji  = sqrt(rj2i);
-            const double rj3iM = rji*rj2i*G*eta;
-            temp_pj[i].ax += rj3iM*temp_pj[i].x;
-            temp_pj[i].ay += rj3iM*temp_pj[i].y;
-            temp_pj[i].az += rj3iM*temp_pj[i].z;
-        }
         p_j[i].x += prefac1 * temp_pj[i].ax;
         p_j[i].y += prefac1 * temp_pj[i].ay;
         p_j[i].z += prefac1 * temp_pj[i].az;
@@ -117,14 +108,6 @@ void reb_saba_corrector_step(struct reb_simulation* r, double cc){
     for (unsigned int i=1;i<N;i++){
         const struct reb_particle pji = p_j[i];
         eta += pji.m;
-        if (i>1){
-            const double rj2i = 1./(pji.x*pji.x + pji.y*pji.y + pji.z*pji.z);
-            const double rji  = sqrt(rj2i);
-            const double rj3iM = rji*rj2i*G*eta;
-            p_j[i].ax += rj3iM*pji.x;
-            p_j[i].ay += rj3iM*pji.y;
-            p_j[i].az += rj3iM*pji.z;
-        }
         // commutator is difference between modified and original kick
         p_j[i].vx += dt * (p_j[i].ax - temp_pj[i].ax);
         p_j[i].vy += dt * (p_j[i].ay - temp_pj[i].ay);
@@ -145,8 +128,8 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     const int k = ri_saba->k;
     const int corrector = ri_saba->corrector;
-    if (r->var_config_N>0 && ri_whfast->coordinates!=REB_WHFAST_COORDINATES_JACOBI){
-        reb_error(r, "Variational particles are not supported in the SABA inttegrator.");
+    if (r->var_config_N>0){
+        reb_error(r, "Variational particles are not supported in the SABA integrator.");
         return; 
     }
     if (ri_whfast->coordinates!=REB_WHFAST_COORDINATES_JACOBI){
@@ -156,6 +139,13 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
     if (k>4){
         reb_error(r, "SABA is only implemented up to SABA4.");
         return; 
+    }
+    if (corrector){
+        // Force Jacobi terms to be calculated in reb_update_acceleration if corrector is used
+        r->gravity = REB_GRAVITY_JACOBI;
+    }else{
+        // Otherwise can do either way
+        r->gravity_ignore_terms = 1;
     }
     if (reb_integrator_whfast_init(r)){
         // Non recoverable error occured.
@@ -199,24 +189,15 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
     if (ri_saba->is_synchronized == 0){
         const int N = r->N;
         struct reb_particle* sync_pj  = NULL;
-        if (ri_whfast->keep_unsynchronized){
-            sync_pj = malloc(sizeof(struct reb_particle)*r->N);
-            memcpy(sync_pj,r->ri_whfast.p_jh,r->N*sizeof(struct reb_particle));
-        }
         if (corrector){
-            // DRIFT ALREADY DONE
+            // Drift already done, just need corrector
             reb_saba_corrector_step(r, reb_saba_cc[k-1]);
         }else{
             reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);
             reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
         }
         reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N);
-        if (ri_whfast->keep_unsynchronized){
-            memcpy(r->ri_whfast.p_jh,sync_pj,r->N*sizeof(struct reb_particle));
-            free(sync_pj);
-        }else{
-            ri_saba->is_synchronized = 1;
-        }
+        ri_saba->is_synchronized = 1;
     }
 }
 
@@ -239,13 +220,12 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
         reb_whfast_kepler_step(r, reb_saba_c[k-1][i]*r->dt);   
         reb_whfast_com_step(r, reb_saba_c[k-1][i]*r->dt);
         reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
-        r->gravity_ignore_terms = 1;
         reb_update_acceleration(r);
         reb_whfast_interaction_step(r, reb_saba_d[k-1][i]*r->dt);
     } 
 
     if (corrector){
-        // Always need to do DRIFT step if correctors are turned on
+        // Always do drift step if correctors are turned on
         reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);
         reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
     }
