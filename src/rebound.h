@@ -343,7 +343,12 @@ struct reb_simulation_integrator_whfast {
      * - 2: uses the composition kernel  
      * - 3: uses the lazy implementer's modified kick   
      */
-    unsigned int kernel;
+    enum {
+        REB_WHFAST_KERNEL_DEFAULT = 0,
+        REB_WHFAST_KERNEL_MODIFIEDKICK = 1,
+        REB_WHFAST_KERNEL_COMPOSITION = 2,
+        REB_WHFAST_KERNEL_LAZY = 3,
+    }kernel;
     
     
     /**
@@ -387,6 +392,11 @@ struct reb_simulation_integrator_whfast {
     struct reb_particle* REBOUND_RESTRICT p_jh;
     
     /**
+     * @brief Internal temporary array used for lazy implementer's kernel method
+     */
+    struct reb_particle* REBOUND_RESTRICT p_temp;
+    
+    /**
      * @brief Generate inertial coordinates at the end of the integration, but do not change the Jacobi/heliocentric coordinates
      * @details Danger zone! Only use this flag if you are absolutely sure
      * what you are doing. This is intended for
@@ -400,7 +410,8 @@ struct reb_simulation_integrator_whfast {
      */
 
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
-    unsigned int allocated_N;   ///< Space allocated in arrays
+    unsigned int allocated_N;       ///< Space allocated in p_jh array
+    unsigned int allocated_Ntemp;   ///< Space allocated in p_temp array
     unsigned int timestep_warning;  ///< Counter of timestep warnings
     unsigned int recalculate_coordinates_but_not_synchronized_warning;   ///< Counter of Jacobi synchronization errors
     /**

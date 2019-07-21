@@ -337,7 +337,9 @@ void reb_reset_temporary_pointers(struct reb_simulation* const r){
     r->allocatedN_lookup = 0;
     // ********** WHFAST
     r->ri_whfast.allocated_N    = 0;
+    r->ri_whfast.allocated_Ntemp= 0;
     r->ri_whfast.p_jh           = NULL;
+    r->ri_whfast.p_temp         = NULL;
     r->ri_whfast.keep_unsynchronized = 0;
     // ********** SABA
     r->ri_saba.allocated_N    = 0;
