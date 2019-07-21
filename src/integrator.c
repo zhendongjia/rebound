@@ -39,7 +39,6 @@
 #include "integrator.h"
 #include "integrator_whfast.h"
 #include "integrator_saba.h"
-#include "integrator_wkm.h"
 #include "integrator_ias15.h"
 #include "integrator_mercurius.h"
 #include "integrator_leapfrog.h"
@@ -62,9 +61,6 @@ void reb_integrator_part1(struct reb_simulation* r){
 			break;
 		case REB_INTEGRATOR_SABA:
 			reb_integrator_saba_part1(r);
-			break;
-		case REB_INTEGRATOR_WKM:
-			reb_integrator_wkm_part1(r);
 			break;
 		case REB_INTEGRATOR_MERCURIUS:
 			reb_integrator_mercurius_part1(r);
@@ -93,9 +89,6 @@ void reb_integrator_part2(struct reb_simulation* r){
 			break;
 		case REB_INTEGRATOR_SABA:
 			reb_integrator_saba_part2(r);
-			break;
-		case REB_INTEGRATOR_WKM:
-			reb_integrator_wkm_part2(r);
 			break;
 		case REB_INTEGRATOR_MERCURIUS:
 			reb_integrator_mercurius_part2(r);
@@ -129,9 +122,6 @@ void reb_integrator_synchronize(struct reb_simulation* r){
 		case REB_INTEGRATOR_SABA:
 			reb_integrator_saba_synchronize(r);
 			break;
-        case REB_INTEGRATOR_WKM:
-			reb_integrator_wkm_synchronize(r);
-			break;
 		case REB_INTEGRATOR_MERCURIUS:
 			reb_integrator_mercurius_synchronize(r);
 			break;
@@ -162,7 +152,6 @@ void reb_integrator_reset(struct reb_simulation* r){
 	reb_integrator_sei_reset(r);
 	reb_integrator_whfast_reset(r);
 	reb_integrator_saba_reset(r);
-	reb_integrator_wkm_reset(r);
 	reb_integrator_janus_reset(r);
 }
 

@@ -350,9 +350,8 @@ void reb_output_binary_to_stream(struct reb_simulation* r, char** bufp, size_t* 
     WRITE_FIELD(SABA_CORRECTOR,     &r->ri_saba.corrector,              sizeof(unsigned int));
     WRITE_FIELD(SABA_SAFEMODE,      &r->ri_saba.safe_mode,              sizeof(unsigned int));
     WRITE_FIELD(SABA_ISSYNCHRON,    &r->ri_saba.is_synchronized,        sizeof(unsigned int));
-    WRITE_FIELD(WKM_CORRECTOR,      &r->ri_wkm.corrector,               sizeof(unsigned int));
-    WRITE_FIELD(WKM_SAFEMODE,       &r->ri_wkm.safe_mode,               sizeof(unsigned int));
-    WRITE_FIELD(WKM_ISSYNCHRON,     &r->ri_wkm.is_synchronized,         sizeof(unsigned int));
+    WRITE_FIELD(WHFAST_CORRECTOR2,  &r->ri_whfast.corrector2,           sizeof(unsigned int));
+    WRITE_FIELD(WHFAST_KERNEL,      &r->ri_whfast.kernel,               sizeof(unsigned int));
     int functionpointersused = 0;
     if (r->coefficient_of_restitution ||
         r->collision_resolve ||

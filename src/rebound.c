@@ -37,7 +37,6 @@
 #include "rebound.h"
 #include "integrator.h"
 #include "integrator_saba.h"
-#include "integrator_wkm.h"
 #include "integrator_whfast.h"
 #include "integrator_ias15.h"
 #include "integrator_mercurius.h"
@@ -343,9 +342,6 @@ void reb_reset_temporary_pointers(struct reb_simulation* const r){
     // ********** SABA
     r->ri_saba.allocated_N    = 0;
     r->ri_saba.temp_pj        = NULL;
-    // ********** WKM
-    r->ri_wkm.allocated_N    = 0;
-    r->ri_wkm.temp_pj        = NULL;
     // ********** IAS15
     r->ri_ias15.allocatedN      = 0;
     set_dp7_null(&(r->ri_ias15.g));
@@ -520,6 +516,8 @@ void reb_init_simulation(struct reb_simulation* r){
     // the defaults below are chosen to safeguard the user against spurious results, but
     // will be slower and less accurate
     r->ri_whfast.corrector = 0;
+    r->ri_whfast.corrector2 = 0;
+    r->ri_whfast.kernel = 0;
     r->ri_whfast.coordinates = REB_WHFAST_COORDINATES_JACOBI;
     r->ri_whfast.safe_mode = 1;
     r->ri_whfast.recalculate_coordinates_this_timestep = 0;
@@ -532,12 +530,6 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_saba.corrector = 0;
     r->ri_saba.safe_mode = 1;
     r->ri_saba.is_synchronized = 1;
-    
-    // ********** WKM
-    r->ri_wkm.corrector = 1;
-    r->ri_wkm.safe_mode = 1;
-    r->ri_wkm.is_synchronized = 1;
-    
     
     // ********** IAS15
     r->ri_ias15.epsilon         = 1e-9;

@@ -313,35 +313,38 @@ struct reb_simulation_integrator_saba {
 };
 
 /**
- * @brief This structure contains variables used by the WKM integrator.
- */
-struct reb_simulation_integrator_wkm {
-    /**
-     * @brief Number of evaluations of the interaction step.
-     * @details
-     * - 1: standard WH 
-     */
-    unsigned int corrector;
-    unsigned int safe_mode;
-    unsigned int allocated_N;   ///< Space allocated in arrays
-    unsigned int is_synchronized;
-    struct reb_particle* REBOUND_RESTRICT temp_pj;
-};
-
-/**
  * @brief This structure contains variables used by the WHFast integrator.
  */
 struct reb_simulation_integrator_whfast {
     /**
-     * @brief This variable turns on/off different symplectic correctors for WHFast. See Rein & Tamayo 2015 and Wisdom 2006 for a discussion.
-     * @details 
-     * - 0 (default): turns off all correctors
-     * - 3: uses third order (two-stage) corrector 
-     * - 5: uses fifth order (four-stage) corrector 
-     * - 7: uses seventh order (six-stage) corrector 
-     * - 11: uses eleventh order (ten-stage) corrector 
+     * @brief This variable turns on/off different first symplectic correctors for WHFast.
+     * @details These correctors remove terms of order O(eps*dt^2) 
+     * - 0 (default): turns off all first correctors
+     * - 3: uses third order (two-stage) first corrector 
+     * - 5: uses fifth order (four-stage) first corrector 
+     * - 7: uses seventh order (six-stage) first corrector 
+     * - 11: uses eleventh order (ten-stage) first corrector 
      */
     unsigned int corrector;
+    
+    /**
+     * @brief This variable turns on/off the second symplectic correctors for WHFast.
+     * @details 
+     * - 0 (default): turns off second correctors
+     * - 1: uses second corrector 
+     */
+    unsigned int corrector2;
+    
+    /**
+     * @brief This variable determines the kernel of the WHFast integrator.
+     * @details 
+     * - 0 (default): Uses a standard WH kick step 
+     * - 1: uses the exact modified kick (for Newtonian gravity) 
+     * - 2: uses the composition kernel  
+     * - 3: uses the lazy implementer's modified kick   
+     */
+    unsigned int kernel;
+    
     
     /**
      * @brief Chooses the coordinate system for the WHFast algorithm. Default is Jacobi Coordinates.
@@ -638,9 +641,8 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_SABA_CORRECTOR = 139,
     REB_BINARY_FIELD_TYPE_SABA_SAFEMODE = 140,
     REB_BINARY_FIELD_TYPE_SABA_ISSYNCHRON = 141,
-    REB_BINARY_FIELD_TYPE_WKM_CORRECTOR = 143,
-    REB_BINARY_FIELD_TYPE_WKM_SAFEMODE = 144,
-    REB_BINARY_FIELD_TYPE_WKM_ISSYNCHRON = 145,
+    REB_BINARY_FIELD_TYPE_WHFAST_CORRECTOR2 = 143,
+    REB_BINARY_FIELD_TYPE_WHFAST_KERNEL = 144,
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob
     REB_BINARY_FIELD_TYPE_END = 9999,
@@ -901,7 +903,6 @@ struct reb_simulation {
         REB_INTEGRATOR_JANUS = 8,    ///< Bit-wise reversible JANUS integrator.
         REB_INTEGRATOR_MERCURIUS = 9,///< MERCURIUS integrator 
         REB_INTEGRATOR_SABA = 10,    ///< SABA integrator family (Laskar and Robutel 2001)
-        REB_INTEGRATOR_WKM = 11,     ///< Wisdom Kernel Method (Wisdom, Holman, and Touma, 1996)
         } integrator;
 
     /**
@@ -935,7 +936,6 @@ struct reb_simulation {
     struct reb_simulation_integrator_sei ri_sei;        ///< The SEI struct 
     struct reb_simulation_integrator_whfast ri_whfast;  ///< The WHFast struct 
     struct reb_simulation_integrator_saba ri_saba;      ///< The SABA struct 
-    struct reb_simulation_integrator_wkm ri_wkm;      ///< The WKM struct 
     struct reb_simulation_integrator_ias15 ri_ias15;    ///< The IAS15 struct
     struct reb_simulation_integrator_mercurius ri_mercurius;      ///< The MERCURIUS struct
     struct reb_simulation_integrator_janus ri_janus;    ///< The JANUS struct 
