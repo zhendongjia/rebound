@@ -81,9 +81,10 @@ void reb_calculate_acceleration(struct reb_simulation* r){
 				particles[j].ay = 0; 
 				particles[j].az = 0; 
                 for (int i=0; i<j+1; i++){
-                    if (j>0){
+                    if (j>1){
                         ////////////////
                         // Jacobi Term
+                        // Note: ignoring j==1 term here and below as they cancel
                         const double Qjx = particles[j].x - Rjx/Mj; 
                         const double Qjy = particles[j].y - Rjy/Mj;
                         const double Qjz = particles[j].z - Rjz/Mj;
@@ -97,9 +98,10 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                         particles[i].ay    += prefact*Qjy;
                         particles[i].az    += prefact*Qjz;
                     }
-                    if (i!=j){
+                    if (i!=j && (i!=0 || j!=1)){
                         ////////////////
                         // Direct Term
+                        // Note: ignoring i==0 && j==1 term here and above as they cancel 
                         const double dx = particles[i].x - particles[j].x;
                         const double dy = particles[i].y - particles[j].y;
                         const double dz = particles[i].z - particles[j].z;

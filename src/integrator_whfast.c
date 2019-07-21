@@ -645,7 +645,8 @@ void reb_whfast_calculate_jerk(struct reb_simulation* r){
         for (int i=0; i<j+1; i++){
             //////////////////
             // Jacobi Term
-            if (j>0){
+            // Note: ignoring j==1 term here and below as they cancel
+            if (j>1){
                 double dQkrj = Mj;
                 if (i<j){
                     dQkrj = -particles[j].m;
@@ -672,7 +673,8 @@ void reb_whfast_calculate_jerk(struct reb_simulation* r){
             }
             /////////////////
             // Direct Term
-            if (j!=i){
+            // Note: ignoring i==0 && j==1 term here and above as they cancel
+            if (j!=i && (i!=0 || j!=1)){
                 const double dx = particles[j].x - particles[i].x; 
                 const double dy = particles[j].y - particles[i].y; 
                 const double dz = particles[j].z - particles[i].z; 
