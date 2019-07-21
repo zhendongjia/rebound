@@ -3,7 +3,7 @@
  * @brief   WHFAST integration scheme.
  * @author  Hanno Rein <hanno@hanno-rein.de>
  * @details This file implements the WHFast integration scheme.  
- * Described in Rein & Tamayo 2015.
+ * Described in Rein & Tamayo 2015, Rein et al. 2019.
  * 
  * @section LICENSE
  * Copyright (c) 2015 Hanno Rein, Daniel Tamayo
