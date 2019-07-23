@@ -27,6 +27,7 @@ COLLISIONS = {"none": 0, "direct": 1, "tree": 2, "mercurius": 3, "line": 4}
 VISUALIZATIONS = {"none": 0, "opengl": 1, "webgl": 2}
 WHFAST_KERNELS = {"default": 0, "modifiedkick": 1, "composition": 2, "lazy": 3}
 WHFAST_COORDINATES = {"jacobi": 0, "democraticheliocentric": 1, "whds": 2}
+SABA_CORRECTORS = {"none": 0, "modifiedkick": 1, "lazy": 2}
 
 # Format: Majorerror, id, message
 BINARY_WARNINGS = [
@@ -137,10 +138,36 @@ class reb_simulation_integrator_saba(Structure):
         Turns correctors on (1) or off (0)
     """
     _fields_ = [("k", c_uint),
-                ("corrector", c_uint),
+                ("_corrector", c_uint),
                 ("safe_mode", c_uint),
                 ("is_synchronized", c_uint),
             ]
+    @property
+    def corrector(self):
+        """
+        Get or set the SABA Corrector.
+
+        Available correctors are:
+
+        - ``'none'`` (no corrector used, SABA)
+        - ``'modifiedkick'`` (modified kick, SABAC)
+        - ``'lazy'`` (Lazy implementer's method, SABACL)
+        """
+        i = self._corrector
+        for name, _i in SABA_CORRECTORS.items():
+            if i==_i:
+                return name
+        return i
+    @corrector.setter
+    def corrector(self, value):
+        if isinstance(value, int):
+            self._corrector = c_uint(value)
+        elif isinstance(value, basestring):
+            value = value.lower().replace(" ", "")
+            if value in SABA_CORRECTORS: 
+                self._corrector = SABA_CORRECTORS[value]
+            else:
+                raise ValueError("Warning. Kernel not found.")
 
 class reb_simulation_integrator_whfast(Structure):
     """
@@ -231,7 +258,7 @@ class reb_simulation_integrator_whfast(Structure):
         """
         Get or set the WHFast Kernel.
 
-        Available integrators are:
+        Available kernels are:
 
         - ``'default'`` (standard WH kernel, kick)
         - ``'modifiedkick'`` (modified kick for newtonian gravity)
@@ -248,7 +275,7 @@ class reb_simulation_integrator_whfast(Structure):
         if isinstance(value, int):
             self._kernel = c_uint(value)
         elif isinstance(value, basestring):
-            value = value.lower()
+            value = value.lower().replace(" ", "")
             if value in WHFAST_KERNELS: 
                 self._kernel = WHFAST_KERNELS[value]
             else:

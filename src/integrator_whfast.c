@@ -594,17 +594,15 @@ void reb_whfast_apply_corrector(struct reb_simulation* r, double inv, int order)
 
 static void reb_whfast_operator_C(struct reb_simulation* const r, double a, double b){
     reb_whfast_kepler_step(r, a);   
-    reb_whfast_com_step(r, a);
     
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_particle* restrict const particles = r->particles;
-    const int N_real = r->N;
-    reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N_real);
+    const int N = r->N;
+    reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
     reb_update_acceleration(r);
     reb_whfast_interaction_step(r, b);
     
     reb_whfast_kepler_step(r, -a);   
-    reb_whfast_com_step(r, -a);
 }
 
 static void reb_whfast_operator_Y(struct reb_simulation* const r, double a, double b){
@@ -613,11 +611,9 @@ static void reb_whfast_operator_Y(struct reb_simulation* const r, double a, doub
 }
 static void reb_whfast_operator_U(struct reb_simulation* const r, double a, double b){
     reb_whfast_kepler_step(r, a);   
-    reb_whfast_com_step(r, a);
     reb_whfast_operator_Y(r, a, b); 
     reb_whfast_operator_Y(r, a, -b); 
     reb_whfast_kepler_step(r, -a);   
-    reb_whfast_com_step(r, -a);
 }
 static void reb_whfast_apply_corrector2(struct reb_simulation* r, double inv){
     double a = 0.5 * inv * r->dt;
