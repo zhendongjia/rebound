@@ -915,21 +915,9 @@ class Simulation(Structure):
         if isinstance(value, int):
             self._integrator = c_int(value)
         elif isinstance(value, basestring):
-            debug.integrator_fullname = value
-            debug.integrator_package = "REBOUND"
             value = value.lower()
             if value in INTEGRATORS: 
                 self._integrator = INTEGRATORS[value]
-            elif value.lower() == "mercury":
-                debug.integrator_package = "MERCURY"
-            elif value.lower() == "swifter-whm":
-                debug.integrator_package = "SWIFTER"
-            elif value.lower() == "swifter-symba":
-                debug.integrator_package = "SWIFTER"
-            elif value.lower() == "swifter-helio":
-                debug.integrator_package = "SWIFTER"
-            elif value.lower() == "swifter-tu4":
-                debug.integrator_package = "SWIFTER"
             else:
                 raise ValueError("Warning. Integrator not found.")
     
@@ -1628,26 +1616,23 @@ class Simulation(Structure):
         >>>     perform_output(sim)
         
         """
-        if debug.integrator_package =="REBOUND":
-            self.exact_finish_time = c_int(exact_finish_time)
-            ret_value = clibrebound.reb_integrate(byref(self), c_double(tmax))
-            if ret_value == 1:
-                self.process_messages()
-                raise SimulationError("An error occured during the integration.")
-            if ret_value == 2:
-                raise NoParticles("No more particles left in simulation.")
-            if ret_value == 3:
-                raise Encounter("Two particles had a close encounter (d<exit_min_distance).")
-            if ret_value == 4:
-                raise Escape("A particle escaped (r>exit_max_distance).")
-            if ret_value == 5:
-                raise Escape("User caused exit. Simulation did not finish.") # should not occur in python
-            if ret_value == 6:
-                raise KeyboardInterrupt
-            if ret_value == 7:
-                raise Collision("Two particles collided (d < r1+r2)")
-        else:
-            debug.integrate_other_package(tmax,exact_finish_time)
+        self.exact_finish_time = c_int(exact_finish_time)
+        ret_value = clibrebound.reb_integrate(byref(self), c_double(tmax))
+        if ret_value == 1:
+            self.process_messages()
+            raise SimulationError("An error occured during the integration.")
+        if ret_value == 2:
+            raise NoParticles("No more particles left in simulation.")
+        if ret_value == 3:
+            raise Encounter("Two particles had a close encounter (d<exit_min_distance).")
+        if ret_value == 4:
+            raise Escape("A particle escaped (r>exit_max_distance).")
+        if ret_value == 5:
+            raise Escape("User caused exit. Simulation did not finish.") # should not occur in python
+        if ret_value == 6:
+            raise KeyboardInterrupt
+        if ret_value == 7:
+            raise Collision("Two particles collided (d < r1+r2)")
         self.process_messages()
 
     def integrator_reset(self):
@@ -2038,5 +2023,4 @@ class Particles(MutableMapping):
 
 # Import at the end to avoid circular dependence
 from . import horizons
-from . import debug
 from .simulationarchive import SimulationArchive
