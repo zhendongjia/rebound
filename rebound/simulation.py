@@ -900,7 +900,7 @@ class Simulation(Structure):
         - ``'leapfrog'``
         - ``'janus'``
         - ``'mercurius'``
-        - ``'bs'``
+        - ``'WHCKL'`` (a wrapper which uses and configures WHFAST)
         - ``'none'``
         
         Check the online documentation for a full description of each of the integrators. 
@@ -918,8 +918,12 @@ class Simulation(Structure):
             value = value.lower()
             if value in INTEGRATORS: 
                 self._integrator = INTEGRATORS[value]
+            elif value=="whckl":
+                self.integrator = "whfast"
+                self.ri_whfast.corrector = 17
+                self.ri_whfast.kernel = "lazy"
             else:
-                raise ValueError("Warning. Integrator not found.")
+                raise ValueError("Integrator not found.")
     
     @property
     def boundary(self):
