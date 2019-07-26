@@ -47,6 +47,10 @@ class TestIntegratorWHFastAdvanced(unittest.TestCase):
         for s in whfastsettings2:
             test_name = "test_backandforth_WHFastAdvanced_c_%02d_c2_%d_kernel_%s" % (s[0], s[1], s[2])
             self.backandforth(s)
+    def test_whfastrestart(self):
+        for s in whfastsettings2:
+            test_name = "test_restart_WHFastAdvanced_c_%02d_c2_%d_kernel_%s" % (s[0], s[1], s[2])
+            self.restart(s)
 
     def energy(self, s):
         corrector, corrector2, kernel, maxerror = s
@@ -130,6 +134,20 @@ class TestIntegratorWHFastAdvanced(unittest.TestCase):
         for i in range(sim.N):
             if corrector:
                 self.assertLess(math.fabs(sim0.particles[i].x-sim.particles[i].x),2e-11)
+    
+    def restart(self, s):
+        corrector, corrector2, kernel, maxerror = s
+        sim = rebound.Simulation()
+        rebound.data.add_outer_solar_system(sim)
+        sim.integrator = "whfast"
+        sim.ri_whfast.corrector = corrector 
+        sim.ri_whfast.corrector2 = corrector2
+        sim.ri_whfast.kernel = kernel
+        sim.step()
+        sim2 = sim.copy()
+        sim.step()
+        sim2.step()
+        self.assertEqual(sim,sim2)
 
 if __name__ == "__main__":
     unittest.main()
