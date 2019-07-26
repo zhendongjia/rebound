@@ -48,6 +48,7 @@
 #include "tools.h"
 #include "particle.h"
 #include "input.h"
+#include "binarydiff.h"
 #include "simulationarchive.h"
 #ifdef MPI
 #include "communication_mpi.h"
@@ -423,6 +424,19 @@ void _reb_copy_simulation_with_messages(struct reb_simulation* r_copy,  struct r
     while(reb_input_field(r_copy, NULL, warnings, &bufp)){ }
     free(bufp_beginning);
     
+}
+void reb_diff_simulations(struct reb_simulation* r1, struct reb_simulation* r2){
+    char* bufp1;
+    size_t sizep1;
+    reb_output_binary_to_stream(r1, &bufp1,&sizep1);
+    char* bufp2;
+    size_t sizep2;
+    reb_output_binary_to_stream(r2, &bufp2,&sizep2);
+
+    reb_binary_diff_print(bufp1, sizep1, bufp2, sizep2, NULL, NULL, 1);
+    
+    free(bufp1);
+    free(bufp2);
 }
 
 struct reb_simulation* reb_copy_simulation(struct reb_simulation* r){

@@ -25,4 +25,6 @@
 #ifndef _BINARYDIFF_H
 #define _BINARYDIFF_H
 
+void reb_binary_diff_print(char* buf1, size_t size1, char* buf2, size_t size2, char** bufp, size_t* sizep, int printdiff);
+
 #endif // _BINARYDIFF_H
