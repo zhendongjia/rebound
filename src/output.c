@@ -224,7 +224,7 @@ void static inline reb_save_dp7(struct reb_dp7* dp7, const int N3, char** bufp, 
     reb_output_stream_write(bufp, allocatedsize, sizep, dp7->p2,sizeof(double)*N3);
     reb_output_stream_write(bufp, allocatedsize, sizep, dp7->p3,sizeof(double)*N3);
     reb_output_stream_write(bufp, allocatedsize, sizep, dp7->p4,sizeof(double)*N3);
-    reb_output_stream_write(bufp, allocatedsize, sizep, dp7->p4,sizeof(double)*N3);
+    reb_output_stream_write(bufp, allocatedsize, sizep, dp7->p5,sizeof(double)*N3);
     reb_output_stream_write(bufp, allocatedsize, sizep, dp7->p6,sizeof(double)*N3);
 }
 
@@ -258,6 +258,7 @@ void reb_output_binary_to_stream(struct reb_simulation* r, char** bufp, size_t* 
     WRITE_FIELD(G,                  &r->G,                              sizeof(double));
     WRITE_FIELD(SOFTENING,          &r->softening,                      sizeof(double));
     WRITE_FIELD(DT,                 &r->dt,                             sizeof(double));
+    WRITE_FIELD(DTLASTDONE,         &r->dt_last_done,                   sizeof(double));
     WRITE_FIELD(N,                  &r->N,                              sizeof(int));
     WRITE_FIELD(NVAR,               &r->N_var,                          sizeof(int));
     WRITE_FIELD(VARCONFIGN,         &r->var_config_N,                   sizeof(int));
