@@ -1055,8 +1055,9 @@ struct reb_simulation* reb_copy_simulation(struct reb_simulation* r);
  * the REBOUND struct is ignored in this comparison.
  * @param r1 The first REBOUND simulation to be compared.
  * @param r2 The second REBOUND simulation to be compared.
+ * @param output_option Is set to 1, then the output is printed on the screen. If set to 2, only the return value indicates if the simulations are different. 
  */
-int reb_diff_simulations(struct reb_simulation* r1, struct reb_simulation* r2);
+int reb_diff_simulations(struct reb_simulation* r1, struct reb_simulation* r2, int output_option);
 
 /**
  * @brief Initialize reb_simulation structure.
