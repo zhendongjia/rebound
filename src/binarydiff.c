@@ -36,15 +36,20 @@
 #include "binarydiff.h"
 
 
-
 void reb_binary_diff(char* buf1, size_t size1, char* buf2, size_t size2, char** bufp, size_t* sizep){
+    reb_binary_diff_print(buf1, size1, buf2, size2, bufp, sizep, 0);
+}
+
+void reb_binary_diff_print(char* buf1, size_t size1, char* buf2, size_t size2, char** bufp, size_t* sizep, int printdiff){
     if (!buf1 || !buf2 || size1<64 || size2<64){
         printf("Cannot read input buffers.\n");
         return;
     }
     
-    *bufp = NULL;
-    *sizep = 0;
+    if (!printdiff){
+        *bufp = NULL;
+        *sizep = 0;
+    }
     size_t allocatedsize = 0;
 
     // Header.
@@ -94,7 +99,11 @@ void reb_binary_diff(char* buf1, size_t size1, char* buf2, size_t size2, char** 
                 pos1 += field1.size; // For next search
                 pos2 = 64; // For next search
                 field1.size = 0;
-                reb_output_stream_write(bufp, &allocatedsize, sizep, &field1,sizeof(struct reb_binary_field));
+                if (printdiff){
+                    printf("Field %d not in simulation 2.\n",field1.type);
+                }else{
+                    reb_output_stream_write(bufp, &allocatedsize, sizep, &field1,sizeof(struct reb_binary_field));
+                }
                 continue;
             }
         }
@@ -110,8 +119,12 @@ void reb_binary_diff(char* buf1, size_t size1, char* buf2, size_t size2, char** 
             fields_differ = 1;
         }
         if(fields_differ){
-            reb_output_stream_write(bufp, &allocatedsize, sizep, &field2,sizeof(struct reb_binary_field));
-            reb_output_stream_write(bufp, &allocatedsize, sizep, buf2+pos2,field2.size);
+            if (printdiff){
+                printf("Field %d differs.\n",field1.type);
+            }else{
+                reb_output_stream_write(bufp, &allocatedsize, sizep, &field2,sizeof(struct reb_binary_field));
+                reb_output_stream_write(bufp, &allocatedsize, sizep, buf2+pos2,field2.size);
+            }
         }
         pos1 += field1.size;
         pos2 += field2.size;
@@ -165,8 +178,12 @@ void reb_binary_diff(char* buf1, size_t size1, char* buf2, size_t size2, char** 
             continue;
         }
 
-        reb_output_stream_write(bufp, &allocatedsize, sizep, &field2,sizeof(struct reb_binary_field));
-        reb_output_stream_write(bufp, &allocatedsize, sizep, buf2+pos2,field2.size);
+        if (printdiff){
+            printf("Field %d not in simulation 1.\n",field2.type);
+        }else{
+            reb_output_stream_write(bufp, &allocatedsize, sizep, &field2,sizeof(struct reb_binary_field));
+            reb_output_stream_write(bufp, &allocatedsize, sizep, buf2+pos2,field2.size);
+        }
         pos1 = 64;
         pos2 += field2.size;
     }
