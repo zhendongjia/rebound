@@ -1050,6 +1050,15 @@ struct reb_simulation* reb_create_simulation(void);
 struct reb_simulation* reb_copy_simulation(struct reb_simulation* r);
 
 /**
+ * @brief Compares to REBOUND simulations bit by bit.
+ * @return If r1 and r2 are exactly equal to each other then 0 is returned, otherwise 1. The walltime parameter in 
+ * the REBOUND struct is ignored in this comparison.
+ * @param r1 The first REBOUND simulation to be compared.
+ * @param r2 The second REBOUND simulation to be compared.
+ */
+int reb_diff_simulations(struct reb_simulation* r1, struct reb_simulation* r2);
+
+/**
  * @brief Initialize reb_simulation structure.
  *
  * @details Same as reb_create_simulation() but does not allocate memory for structure itself.
@@ -1420,7 +1429,21 @@ void reb_output_orbits(struct reb_simulation* r, char* filename);
  */
 void reb_output_binary(struct reb_simulation* r, const char* filename);
 
+/**
+ * @brief This function compares two REBOUND simulations and records the difference in a buffer.
+ * @details This is used for taking a SimulationArchive Snapshot.
+ * @param buf1 The buffer corresponding to the first rebound simulation to be compared
+ * @param buf2 The buffer corresponding to the second rebound simulation to be compared
+ * @param bufp The buffer which will contain the differences. 
+ */
 void reb_binary_diff(char* buf1, size_t size1, char* buf2, size_t size2, char** bufp, size_t* sizep);
+
+/**
+ * @brief Same as reb_binary_diff but with more options.
+ * @param output_option If set to 0, the differences are written to bufp. If set to 1, printed on the screen. If set to 2, then only the return value indicates any differences.
+ * @return 0 is returned if the simulations do not differ (are equal). 1 is return if they differ.
+ */
+int reb_binary_diff_with_options(char* buf1, size_t size1, char* buf2, size_t size2, char** bufp, size_t* sizep, int output_option);
 
 /**
  * @brief Append the positions and velocities of all particles to an ASCII file.
