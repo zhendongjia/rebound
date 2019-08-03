@@ -97,7 +97,7 @@ void reb_integrator_part2(struct reb_simulation* r){
 			reb_integrator_janus_part2(r);
 			break;
         case REB_INTEGRATOR_NONE:
-            r->t += r->dt;
+            reb_integrator_advance_t(r, r->dt);
             r->dt_last_done = r->dt;
             break;
 		default:
@@ -194,3 +194,9 @@ void reb_update_acceleration(struct reb_simulation* r){
 	PROFILING_START()
 }
 
+void reb_integrator_advance_t(struct reb_simulation* r, double dt_done){
+    double ty = dt_done - r->t_cs;
+    double tt = r->t + ty;
+    r->t_cs = (tt - r->t) - ty;
+    r->t  = tt;
+}

@@ -620,8 +620,7 @@ static int reb_integrator_ias15_step(struct reb_simulation* r) {
             add_cs(&(v0[k]), &(csv[k]), a0[k]*dt_done);
         }
     }
-
-    r->t += dt_done;
+    reb_integrator_advance_t(r, dt_done);
     r->dt_last_done = dt_done;
 
     if (r->calculate_megno){

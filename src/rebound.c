@@ -463,6 +463,7 @@ void reb_init_simulation(struct reb_simulation* r){
     reb_reset_temporary_pointers(r);
     reb_reset_function_pointers(r);
     r->t        = 0; 
+    r->t_cs     = 0; 
     r->G        = 1;
     r->softening    = 0;
     r->dt       = 0.001;

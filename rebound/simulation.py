@@ -1893,6 +1893,7 @@ class reb_display_data(Structure):
 # Setting up fields after class definition (because of self-reference)
 Simulation._fields_ = [
                 ("t", c_double),
+                ("t_cs", c_double),
                 ("G", c_double),
                 ("softening", c_double),
                 ("dt", c_double),

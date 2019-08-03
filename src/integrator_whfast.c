@@ -929,7 +929,7 @@ void reb_integrator_whfast_part1(struct reb_simulation* const r){
         }
     }
 
-    r->t+=r->dt/2.;
+    reb_integrator_advance_t(r, r->dt/2.);
 }
 
 void reb_integrator_whfast_synchronize(struct reb_simulation* const r){
@@ -1096,7 +1096,7 @@ void reb_integrator_whfast_part2(struct reb_simulation* const r){
         reb_integrator_whfast_synchronize(r);
     }
     
-    r->t+=r->dt/2.;
+    reb_integrator_advance_t(r, r->dt/2.);
     r->dt_last_done = r->dt;
 
     

@@ -51,4 +51,10 @@ void reb_integrator_part2(struct reb_simulation* r);
  * set before a binary file is outputted.
  */
 void reb_integrator_init(struct reb_simulation* r);
+
+/**
+ * @brief This function advances the simulation time by dt. It uses
+ * compensated summation to achieve a greater accuracy.
+ */
+void reb_integrator_advance_t(struct reb_simulation* r, double dt_done);
 #endif

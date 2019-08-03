@@ -670,6 +670,7 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_WHFAST_CORRECTOR2 = 143,
     REB_BINARY_FIELD_TYPE_WHFAST_KERNEL = 144,
     REB_BINARY_FIELD_TYPE_DTLASTDONE = 145,
+    REB_BINARY_FIELD_TYPE_TCS = 146,
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob
     REB_BINARY_FIELD_TYPE_END = 9999,
@@ -768,6 +769,7 @@ struct reb_simulation {
      * @{
      */
     double  t;                      ///< Current simulation time. 
+    double  t_cs;                   ///< Additional bits of the current simulation time (using compensated summation). 
     double  G;                      ///< Gravitational constant. Default: 1. 
     double  softening;              ///< Gravitational softening parameter. Default: 0. 
     double  dt;                     ///< Current timestep. 

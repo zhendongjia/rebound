@@ -166,6 +166,7 @@ int reb_input_field(struct reb_simulation* r, FILE* inf, enum reb_input_binary_m
     }
     switch (field.type){
         CASE(T,                  &r->t);
+        CASE(TCS ,               &r->t_cs);
         CASE(G,                  &r->G);
         CASE(SOFTENING,          &r->softening);
         CASE(DT,                 &r->dt);

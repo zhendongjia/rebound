@@ -255,6 +255,7 @@ void reb_output_binary_to_stream(struct reb_simulation* r, char** bufp, size_t* 
     reb_output_stream_write(bufp, &allocatedsize, sizep, header,sizeof(char)*64);
    
     WRITE_FIELD(T,                  &r->t,                              sizeof(double));
+    WRITE_FIELD(TCS,                &r->t_cs,                           sizeof(double));
     WRITE_FIELD(G,                  &r->G,                              sizeof(double));
     WRITE_FIELD(SOFTENING,          &r->softening,                      sizeof(double));
     WRITE_FIELD(DT,                 &r->dt,                             sizeof(double));

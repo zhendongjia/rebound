@@ -47,7 +47,7 @@ void reb_integrator_leapfrog_part1(struct reb_simulation* r){
 		particles[i].y  += 0.5* dt * particles[i].vy;
 		particles[i].z  += 0.5* dt * particles[i].vz;
 	}
-	r->t+=dt/2.;
+    reb_integrator_advance_t(r, r->dt/2.);
 }
 void reb_integrator_leapfrog_part2(struct reb_simulation* r){
 	const int N = r->N;
@@ -62,7 +62,7 @@ void reb_integrator_leapfrog_part2(struct reb_simulation* r){
 		particles[i].y  += 0.5* dt * particles[i].vy;
 		particles[i].z  += 0.5* dt * particles[i].vz;
 	}
-	r->t+=dt/2.;
+    reb_integrator_advance_t(r, r->dt/2.);
 	r->dt_last_done = r->dt;
 }
 	

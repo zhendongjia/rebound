@@ -246,7 +246,7 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
         reb_integrator_saba_synchronize(r);
     }
     
-    r->t+=r->dt;
+    reb_integrator_advance_t(r, r->dt);
     r->dt_last_done = r->dt;
 }
     
