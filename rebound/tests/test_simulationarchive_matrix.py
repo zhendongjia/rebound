@@ -82,7 +82,7 @@ for integrator in ["ias15","whfast","leapfrog","janus","mercurius"]:
         for G in [1.,0.9]:
             for testparticle in [0,1,2]: # no test particle, passive, semi-active
                 for keep_unsynchronized in [1,0]:
-                    for simulationarchive_version in [1,2]:
+                    for simulationarchive_version in [2]:
                         params = {'safe_mode':safe_mode,
                                 'integrator':integrator,
                                 'G':G, 
