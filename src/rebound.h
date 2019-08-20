@@ -302,14 +302,16 @@ struct reb_simulation_integrator_saba {
      * @brief Number of evaluations of the interaction step.
      * @details
      * - 1: standard WH 
-     * - 2: SABA2/SABAC2 
+     * - 2: SABA2/SABAC2, using 2 (3) force evaluations
      * - 3: SABA3/SABAC3 
      * - 4: SABA4/SABAC4 
+     * - 8: ABA(10,6,4), using 8 force evaluations 
      */
     unsigned int k;
     /**
      * @brief Turn corrector on/off.
      * @details
+     * Only available for SABA,SABA2,SABA3,SABA4
      * - 0: corrector off
      * - 1: normal (modified kick) corrector on
      * - 2: lazy implementer's corrector on
