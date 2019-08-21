@@ -47,20 +47,20 @@
 static int reb_saba_stages(const int type){
     switch(type){
         case REB_SABA_1:
-        case REB_SABA_1CM:
-        case REB_SABA_1CL:
+        case REB_SABA_CM_1:
+        case REB_SABA_CL_1:
             return 1;
         case REB_SABA_2:
-        case REB_SABA_2CM:
-        case REB_SABA_2CL:
+        case REB_SABA_CM_2:
+        case REB_SABA_CL_2:
             return 2;
         case REB_SABA_3:
-        case REB_SABA_3CM:
-        case REB_SABA_3CL:
+        case REB_SABA_CM_3:
+        case REB_SABA_CL_3:
             return 3;
         case REB_SABA_4:
-        case REB_SABA_4CM:
-        case REB_SABA_4CL:
+        case REB_SABA_CM_4:
+        case REB_SABA_CL_4:
             return 4;
         case REB_SABA_10_4:
         case REB_SABA_8_6_4:
@@ -102,10 +102,10 @@ const static double reb_saba_d[7][4] = {
          0.2170703479789911017143385924306336714532, -0.01737538195906509300561788011852699719871, }, //ABA(10,6,4)
 };
 const static double reb_saba_cc[4] = {
-        0.08333333333333333333333333333333333333333,  // SABA1C
-        0.01116454968463011276968973577058865137738,  // SABA2C
-        0.005634593363122809402267823769797538671562, // SABA3C
-        0.003396775048208601331532157783492144,       // SABA4C
+        0.08333333333333333333333333333333333333333,  // SABAC1
+        0.01116454968463011276968973577058865137738,  // SABAC2
+        0.005634593363122809402267823769797538671562, // SABAC3
+        0.003396775048208601331532157783492144,       // SABAC4
 }; 
     
 

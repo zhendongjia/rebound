@@ -29,8 +29,8 @@ WHFAST_KERNELS = {"default": 0, "modifiedkick": 1, "composition": 2, "lazy": 3}
 WHFAST_COORDINATES = {"jacobi": 0, "democraticheliocentric": 1, "whds": 2}
 SABA_TYPES = {
         "1": 0x0, "2": 0x1, "3": 0x2, "4": 0x3,
-        "1cm": 0x100, "2cm": 0x101, "3cm": 0x102, "4cm": 0x103,
-        "1cl": 0x200, "2cl": 0x201, "3cl": 0x202, "4cl": 0x203,
+        "cm1": 0x100, "cm2": 0x101, "cm3": 0x102, "cm4": 0x103,
+        "cl1": 0x200, "cl2": 0x201, "cl3": 0x202, "cl4": 0x203,
         "10,4": 0x4, "8,6,4": 0x5, "10,6,4": 0x6,
         }
 
