@@ -154,20 +154,33 @@ class reb_simulation_integrator_ias15(Structure):
 class reb_simulation_integrator_saba(Structure):
     """
     This class is an abstraction of the C-struct reb_simulation_integrator_saba.
-    It controls the behaviour of the SABA / SABAC / SABACL integrator family.
+    It controls the behaviour of the SABA integrator family.
     See Rein, Tamayo, and Brown (2019) for more details.
 
-    :ivar int k:      
-        Sets the number of evalutations. k=1 is SABA1/SABAC1, k=2 is SABA2/SABAC2
-        and so forth.
-    :ivar int corrector:      
-        Turns correctors off (0), or specifices which corrector to use. Options are
-        "modifiedkick" (1) or "lazy" (2)
+    :ivar str type:      
+        Set the type of SABA integrator manually. The type can also be set by setting
+        the integrator field in the REBOUND simulation. 
+
+    :ivar int safe_mode:      
+        This variable acts the same as for WHFast.
+        If safe_mode is 1 (default) particles can be modified between
+        timesteps and particle velocities and positions are always synchronised.
+        If you set safe_mode to 0, the speed and accuracy of the integrator will improve.
+        However, make sure you are aware of the consequences. Read the iPython tutorial
+        on advanced WHFast usage to learn more.
    
     Example usage:
     
     >>> sim = rebound.Simulation()
     >>> sim.integrator = "SABA(10,6,4)"
+    
+    >>> sim = rebound.Simulation()
+    >>> sim.integrator = "SABA"
+    >>> sim.ri_saba.type = "(10,6,4)"
+    
+    >>> sim = rebound.Simulation()
+    >>> sim.integrator = "SABACL4"
+    >>> sim.ri_saba.safe_mode = 0
 
     """
     _fields_ = [("_type", c_uint),
@@ -187,7 +200,7 @@ class reb_simulation_integrator_saba(Structure):
     @type.setter
     def type(self, value):
         if isinstance(value, int):
-            raise ValueError("SABA needs to be a string.")
+            self._type = value
         elif isinstance(value, basestring):
             value = value.lower().replace(" ", "").replace("(", "").replace(")", "")
             if value in SABA_TYPES: 
@@ -916,16 +929,21 @@ class Simulation(Structure):
         """
         Get or set the intergrator module.
 
-        Available integrators are:
+        Available integrators include:
 
-        - ``'ias15'`` (default)
-        - ``'whfast'``
-        - ``'saba'``
-        - ``'sei'``
-        - ``'leapfrog'``
-        - ``'janus'``
-        - ``'mercurius'``
-        - ``'WHCKL'`` (a wrapper which uses and configures WHFAST)
+        - ``'IAS15'`` (default)
+        - ``'WHFast'``
+        - ``'SEI'``
+        - ``'LEAPFROG'``
+        - ``'JANUS'``
+        - ``'MERCURIUS'``
+        - ``'WHCKL'`` 
+        - ``'WHCKM'`` 
+        - ``'WHCKC'`` 
+        - ``'SABA4'`` 
+        - ``'SABA4CL'`` 
+        - ``'SABA4CM'`` 
+        - ``'SABA(10,6,4)'`` 
         - ``'none'``
         
         Check the online documentation for a full description of each of the integrators. 
