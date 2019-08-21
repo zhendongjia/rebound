@@ -1,9 +1,9 @@
 /**
  * @file    integrator_saba.c
- * @brief   SABA integrator family (Laskar and Robutel 2001).
+ * @brief   SABA integrator family (Laskar and Robutel 2001, Blanes et al 2013).
  * @author  Hanno Rein <hanno@hanno-rein.de>
  * @details This file implements the family of symplectic integrators
- * of Laskar and Robutel (2001). 
+ * of Laskar and Robutel (2001), Blanes et al (2013), Farres et al (2013).
  * 
  * @section LICENSE
  * Copyright (c) 2019 Hanno Rein
