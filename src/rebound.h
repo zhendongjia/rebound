@@ -306,9 +306,11 @@ struct reb_simulation_integrator_saba {
         REB_SABA_2 = 1, // SABA2
         REB_SABA_3 = 2, // SABA3
         REB_SABA_4 = 3, // SABA4
+        REB_SABA_1CM = 100, // SABA1CM (Modified kick corrector)
         REB_SABA_2CM = 101, // SABA2CM (Modified kick corrector)
         REB_SABA_3CM = 102, // SABA3CM (Modified kick corrector)
         REB_SABA_4CM = 103, // SABA4CM (Modified kick corrector)
+        REB_SABA_1CL = 200, // SABA1CL (lazy corrector)
         REB_SABA_2CL = 201, // SABA2CL (lazy corrector)
         REB_SABA_3CL = 202, // SABA3CL (lazy corrector)
         REB_SABA_4CL = 203, // SABA4CL (lazy corrector)

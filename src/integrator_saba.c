@@ -43,13 +43,42 @@
 #define MAX(a, b) ((a) < (b) ? (b) : (a))   ///< Returns the maximum of a and b
 #define MIN(a, b) ((a) > (b) ? (b) : (a))   ///< Returns the minimum of a and b
 
+// Returns the number of stages for a given type of integrator (not including corrector)
+static int reb_saba_stages(const int type){
+    switch(type){
+        case REB_SABA_1:
+        case REB_SABA_1CM:
+        case REB_SABA_1CL:
+            return 1;
+        case REB_SABA_2:
+        case REB_SABA_2CM:
+        case REB_SABA_2CL:
+            return 2;
+        case REB_SABA_3:
+        case REB_SABA_3CM:
+        case REB_SABA_3CL:
+            return 3;
+        case REB_SABA_4:
+        case REB_SABA_4CM:
+        case REB_SABA_4CL:
+            return 4;
+        case REB_SABA_10_4:
+        case REB_SABA_8_6_4:
+            return 7;
+        case REB_SABA_10_6_4:
+            return 8;
+        default:
+            return 0;
+    }
+}
+
+
 // Some coefficients appear multiple times to simplify the loop structures. 
 const static double reb_saba_c[8][8] = {
         {0.5, 0., 0., 0.}, // SABA1
         {0.2113248654051871177454256097490212721762, 0.5773502691896257645091487805019574556476, 0., 0.}, // SABA2
         {0.1127016653792583114820734600217600389167, 0.3872983346207416885179265399782399610833,  0.3872983346207416885179265399782399610833, 0.}, // SABA3
         {0.06943184420297371238802675555359524745214, 0.2605776340045981552106403648947824089476, 0.3399810435848562648026657591032446872006, 0.2605776340045981552106403648947824089476}, // SABA4
-        {0},
         {
          0.04706710064597250612947887637243678556564,
          0.1847569354170881069247376193702560968574,
@@ -84,7 +113,6 @@ const static double reb_saba_d[8][8] = {
         {0.5, 0.5, 0., 0.},
         {0.2777777777777777777777777777777777777778, 0.4444444444444444444444444444444444444444,0.2777777777777777777777777777777777777778, 0.},
         {0.1739274225687269286865319746109997036177, 0.3260725774312730713134680253890002963823, 0.3260725774312730713134680253890002963823, 0.1739274225687269286865319746109997036177},
-        {0},
         {
          0.1188819173681970199453503950853885936957,
          0.2410504605515015657441667865901651105675,
@@ -115,10 +143,10 @@ const static double reb_saba_d[8][8] = {
         }, //ABA(10,6,4)
 };
 const static double reb_saba_cc[4] = {
-        0.08333333333333333333333333333333333333333, // SABA1
-        0.01116454968463011276968973577058865137738, // SABA2
-        0.005634593363122809402267823769797538671562, // SABA3
-        0.003396775048208601331532157783492144, // SABA4
+        0.08333333333333333333333333333333333333333,  // SABA1C
+        0.01116454968463011276968973577058865137738,  // SABA2C
+        0.005634593363122809402267823769797538671562, // SABA3C
+        0.003396775048208601331532157783492144,       // SABA4C
 }; 
     
 
@@ -127,7 +155,7 @@ static void reb_saba_corrector_step(struct reb_simulation* r, double cc){
     struct reb_particle* const p_j = ri_whfast->p_jh;
 	struct reb_particle* const particles = r->particles;
     const int N = r->N;
-    switch (r->ri_saba.type/100){
+    switch (r->ri_saba.type/0x100){
         case 1: // modified kick
             // Calculate normal kick
             reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
@@ -194,7 +222,6 @@ static void reb_saba_corrector_step(struct reb_simulation* r, double cc){
 void reb_integrator_saba_part1(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
-    const int k = ri_saba->k;
     const int type = ri_saba->type;
     if (r->var_config_N>0){
         reb_error(r, "Variational particles are not supported in the SABA integrator.");
@@ -204,11 +231,14 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
         reb_error(r, "SABA integrator requires ri_whfast.coordinates to be set to Jacobi coordinates.");
         return; 
     }
-    if (k>4 || k==0){
-        //reb_error(r, "SABA is only implemented up to SABA4.");
-        //return; 
+    if (type!=0x0 && type!=0x1 && type!=0x2 && type!=0x3 &&
+            type!=0x100 && type!=0x101 && type!=0x102 && type!=0x103 &&
+            type!=0x200 && type!=0x201 && type!=0x202 && type!=0x203 &&
+            type!=0x4 && type!=0x5 && type!=0x6 ){
+        reb_error(r, "Invalid SABA integrator type used.");
+        return; 
     }
-    if (type>=100){
+    if (type>=0x100){
         // Force Jacobi terms to be calculated in reb_update_acceleration if corrector is used
         r->gravity = REB_GRAVITY_JACOBI;
     }else{
@@ -225,24 +255,24 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
         reb_integrator_whfast_from_inertial(r);
         ri_whfast->recalculate_coordinates_this_timestep = 0;
     }
-    if (type>=100){ // Correctors on
+    if (type>=0x100){ // Correctors on
         if (ri_saba->is_synchronized){
-            reb_saba_corrector_step(r, reb_saba_cc[k-1]);
+            reb_saba_corrector_step(r, reb_saba_cc[type%0x100]);
         }else{
-            reb_saba_corrector_step(r, 2.*reb_saba_cc[k-1]);
+            reb_saba_corrector_step(r, 2.*reb_saba_cc[type%0x100]);
         }
         // First half DRIFT step
-        reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);   
-        reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
+        reb_whfast_kepler_step(r, reb_saba_c[type%0x100][0]*r->dt);   
+        reb_whfast_com_step(r, reb_saba_c[type%0x100][0]*r->dt);
     }else{ // Correctors off
         if (ri_saba->is_synchronized){
             // First half DRIFT step
-            reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);   
-            reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
+            reb_whfast_kepler_step(r, reb_saba_c[type%0x100][0]*r->dt);   
+            reb_whfast_com_step(r, reb_saba_c[type%0x100][0]*r->dt);
         }else{
             // Combined DRIFT step
-            reb_whfast_kepler_step(r, 2.*reb_saba_c[k-1][0]*r->dt);   
-            reb_whfast_com_step(r, 2.*reb_saba_c[k-1][0]*r->dt);
+            reb_whfast_kepler_step(r, 2.*reb_saba_c[type%0x100][0]*r->dt);   
+            reb_whfast_com_step(r, 2.*reb_saba_c[type%0x100][0]*r->dt);
         }
     }
 
@@ -252,15 +282,15 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
 void reb_integrator_saba_synchronize(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
-    int k = ri_saba->k;
+    int type = ri_saba->type;
     if (ri_saba->is_synchronized == 0){
         const int N = r->N;
-        if (ri_saba->type>=100){ // correctors on
+        if (type>=0x100){ // correctors on
             // Drift already done, just need corrector
-            reb_saba_corrector_step(r, reb_saba_cc[k-1]);
+            reb_saba_corrector_step(r, reb_saba_cc[type%0x100]);
         }else{
-            reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);
-            reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
+            reb_whfast_kepler_step(r, reb_saba_c[type%0x100][0]*r->dt);
+            reb_whfast_com_step(r, reb_saba_c[type%0x100][0]*r->dt);
         }
         reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N);
         ri_saba->is_synchronized = 1;
@@ -271,7 +301,8 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     struct reb_particle* restrict const particles = r->particles;
-    int k = ri_saba->k;
+    const int type = ri_saba->type;
+    const int stages = reb_saba_stages(type);
     const int N = r->N;
     if (ri_whfast->p_jh==NULL){
         // Non recoverable error occured earlier. 
@@ -279,20 +310,21 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
         return;
     }
     
-    reb_whfast_interaction_step(r, reb_saba_d[k-1][0]*r->dt);
+    reb_whfast_interaction_step(r, reb_saba_d[type%0x100][0]*r->dt);
   
-    for(int i=1;i<k;i++){
-        reb_whfast_kepler_step(r, reb_saba_c[k-1][i]*r->dt);   
-        reb_whfast_com_step(r, reb_saba_c[k-1][i]*r->dt);
+    for(int j=1;j<stages;j++){
+        int i = j;
+        reb_whfast_kepler_step(r, reb_saba_c[type%0x100][i]*r->dt);   
+        reb_whfast_com_step(r, reb_saba_c[type%0x100][i]*r->dt);
         reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
         reb_update_acceleration(r);
-        reb_whfast_interaction_step(r, reb_saba_d[k-1][i]*r->dt);
+        reb_whfast_interaction_step(r, reb_saba_d[type%0x100][i]*r->dt);
     } 
 
-    if (ri_saba->type>=100){ // correctors on
+    if (ri_saba->type>=0x100){ // correctors on
         // Always need to do drift step if correctors are turned on
-        reb_whfast_kepler_step(r, reb_saba_c[k-1][0]*r->dt);
-        reb_whfast_com_step(r, reb_saba_c[k-1][0]*r->dt);
+        reb_whfast_kepler_step(r, reb_saba_c[type%0x100][0]*r->dt);
+        reb_whfast_com_step(r, reb_saba_c[type%0x100][0]*r->dt);
     }
 
     ri_saba->is_synchronized = 0;
