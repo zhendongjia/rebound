@@ -186,6 +186,7 @@ class reb_simulation_integrator_saba(Structure):
     _fields_ = [("_type", c_uint),
                 ("safe_mode", c_uint),
                 ("is_synchronized", c_uint),
+                ("keep_unsynchronized", c_uint),
             ]
     @property
     def type(self):

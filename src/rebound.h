@@ -299,7 +299,10 @@ struct reb_simulation_integrator_sei {
  */
 struct reb_simulation_integrator_saba {
     /**
-     * @brief SABA type. 
+     * @brief SABA type.
+     * @details Available types include: SABA1, SABA2, SABA3, SABA4, SABACM1, 
+     * SABACM2, SABACM3, SABACM4, SABACL1, SABACL2, SABACL3, SABACL4, 
+     * SABA(10,4), SABA(8,6,4), SABA(10,6,4)
      */
     enum {
         REB_SABA_1 = 0x0, // WH
@@ -314,15 +317,19 @@ struct reb_simulation_integrator_saba {
         REB_SABA_CL_2 = 0x201, // SABACL2 (lazy corrector)
         REB_SABA_CL_3 = 0x202, // SABACL3 (lazy corrector)
         REB_SABA_CL_4 = 0x203, // SABACL4 (lazy corrector)
-        REB_SABA_10_4 = 0x4,  // ABA(10,4), 7 stage
-        REB_SABA_8_6_4 = 0x5, // ABA(8,6,4), 7 stage
-        REB_SABA_10_6_4 = 0x6,// ABA(10,6,4), 8 stage, default
+        REB_SABA_10_4 = 0x4,   // SABA(10,4), 7 stages
+        REB_SABA_8_6_4 = 0x5,  // SABA(8,6,4), 7 stages
+        REB_SABA_10_6_4 = 0x6, // SABA(10,6,4), 8 stages, default
     } type;
+    unsigned int safe_mode;       ///< Safe_mode has the same functionality as in WHFast.
+    unsigned int is_synchronized; ///< Flag to determine if current particle structure is synchronized
     /**
-     * @brief safe_mode has the same functionality as in WHFast.
+     * @brief Flaf that determines if the inertial coordinates generated are discared in subsequent timesteps (Jacobi coordinates are used instead).
+     * @details Danger zone! Only use this flag if you are absolutely sure
+     * what you are doing. This is intended for
+     * simulation which have to be reproducible on a bit by bit basis.
      */
-    unsigned int safe_mode;
-    unsigned int is_synchronized;
+    unsigned int keep_unsynchronized;
 };
 
 /**
@@ -667,6 +674,7 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_WHFAST_KERNEL = 144,
     REB_BINARY_FIELD_TYPE_DTLASTDONE = 145,
     REB_BINARY_FIELD_TYPE_SABA_TYPE = 146,
+    REB_BINARY_FIELD_TYPE_SABA_KEEPUNSYNC = 147,
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob
     REB_BINARY_FIELD_TYPE_END = 9999,

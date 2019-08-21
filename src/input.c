@@ -259,6 +259,7 @@ int reb_input_field(struct reb_simulation* r, FILE* inf, enum reb_input_binary_m
         CASE(SAAUTOSTEP,         &r->simulationarchive_auto_step);
         CASE(SANEXTSTEP,         &r->simulationarchive_next_step);
         CASE(SABA_TYPE,          &r->ri_saba.type);
+        CASE(SABA_KEEPUNSYNC,    &r->ri_saba.keep_unsynchronized);
         // temporary solution for depreciated SABA k and corrector variables.
         // can be removed in future versions
         case 138: 

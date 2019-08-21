@@ -190,6 +190,9 @@ void reb_integrator_saba_part1(struct reb_simulation* const r){
         reb_error(r, "SABA integrator requires ri_whfast.coordinates to be set to Jacobi coordinates.");
         return; 
     }
+    if (ri_saba->keep_unsynchronized==1 && ri_saba->safe_mode==1){
+        reb_error(r, "ri_saba->keep_unsynchronized == 1 is not compatible with safe_mode. Must set ri_saba->safe_mode = 0.");
+    }
     if (type!=0x0 && type!=0x1 && type!=0x2 && type!=0x3 &&
             type!=0x100 && type!=0x101 && type!=0x102 && type!=0x103 &&
             type!=0x200 && type!=0x201 && type!=0x202 && type!=0x203 &&
@@ -242,6 +245,11 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
     struct reb_simulation_integrator_whfast* const ri_whfast = &(r->ri_whfast);
     struct reb_simulation_integrator_saba* const ri_saba = &(r->ri_saba);
     int type = ri_saba->type;
+        struct reb_particle* sync_pj  = NULL;
+        if (ri_saba->keep_unsynchronized){
+            sync_pj = malloc(sizeof(struct reb_particle)*r->N);
+            memcpy(sync_pj,r->ri_whfast.p_jh,r->N*sizeof(struct reb_particle));
+        }
     if (ri_saba->is_synchronized == 0){
         const int N = r->N;
         if (type>=0x100){ // correctors on
@@ -253,6 +261,12 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
         }
         reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N);
         ri_saba->is_synchronized = 1;
+        if (ri_saba->keep_unsynchronized){
+            memcpy(r->ri_whfast.p_jh,sync_pj,r->N*sizeof(struct reb_particle));
+            free(sync_pj);
+        }else{
+            ri_saba->is_synchronized = 1;
+        }
     }
 }
 
@@ -311,5 +325,6 @@ void reb_integrator_saba_reset(struct reb_simulation* const r){
     ri_saba->type = REB_SABA_10_6_4;
     ri_saba->safe_mode = 1;
     ri_saba->is_synchronized = 1;
+    ri_saba->keep_unsynchronized = 0;
     reb_integrator_whfast_reset(r);
 }
