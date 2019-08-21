@@ -167,9 +167,7 @@ class reb_simulation_integrator_saba(Structure):
     Example usage:
     
     >>> sim = rebound.Simulation()
-    >>> sim.integrator = "saba"
-    >>> sim.ri_saba.corrector =  "lazy"
-    >>> sim.ri_saba.type = "10,6,4"
+    >>> sim.integrator = "SABA(10,6,4)"
 
     """
     _fields_ = [("_type", c_uint),
@@ -191,7 +189,7 @@ class reb_simulation_integrator_saba(Structure):
         if isinstance(value, int):
             raise ValueError("SABA needs to be a string.")
         elif isinstance(value, basestring):
-            value = value.lower().replace(" ", "")
+            value = value.lower().replace(" ", "").replace("(", "").replace(")", "")
             if value in SABA_TYPES: 
                 self._type = SABA_TYPES[value]
             else:
