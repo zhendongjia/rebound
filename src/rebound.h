@@ -299,29 +299,23 @@ struct reb_simulation_integrator_sei {
  */
 struct reb_simulation_integrator_saba {
     /**
-     * @brief Number of evaluations of the interaction step.
-     * @details
-     * - 1: standard WH 
-     * - 2: SABA2/SABAC2, using 2 (3) force evaluations
-     * - 3: SABA3/SABAC3 
-     * - 4: SABA4/SABAC4 
-     * - 8: ABA(10,6,4), using 8 force evaluations 
-     */
-    unsigned int k;
-    /**
-     * @brief Turn corrector on/off.
-     * @details
-     * Only available for SABA,SABA2,SABA3,SABA4
-     * - 0: corrector off
-     * - 1: normal (modified kick) corrector on
-     * - 2: lazy implementer's corrector on
+     * @brief SABA type. 
      */
     enum {
-        REB_SABA_CORRECTOR_NONE = 0,
-        REB_SABA_CORRECTOR_MODIFIEDKICK = 1,
-        REB_SABA_CORRECTOR_LAZY = 2,
-    } corrector;
-
+        REB_SABA_1 = 0, // WH
+        REB_SABA_2 = 1, // SABA2
+        REB_SABA_3 = 2, // SABA3
+        REB_SABA_4 = 3, // SABA4
+        REB_SABA_2CM = 101, // SABA2CM (Modified kick corrector)
+        REB_SABA_3CM = 102, // SABA3CM (Modified kick corrector)
+        REB_SABA_4CM = 103, // SABA4CM (Modified kick corrector)
+        REB_SABA_2CL = 201, // SABA2CL (lazy corrector)
+        REB_SABA_3CL = 202, // SABA3CL (lazy corrector)
+        REB_SABA_4CL = 203, // SABA4CL (lazy corrector)
+        REB_SABA_10_4 = 4,  // ABA(10,4), 7 stage
+        REB_SABA_8_6_4 = 5, // ABA(8,6,4), 7 stage
+        REB_SABA_10_6_4 = 6,// ABA(10,6,4), 8 stage, default
+    } type;
     /**
      * @brief safe_mode has the same functionality as in WHFast.
      */
