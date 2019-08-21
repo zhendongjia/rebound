@@ -13,6 +13,9 @@ sabasettings1 = [ # type, relative error
         ["SABA4",2e-11], 
         ["SABA4CM",2e-11], 
         ["SABA4CL",2e-11], 
+        ["SABA10,4",5e-13], 
+        ["SABA8,6,4",5e-13], 
+        ["SABA10,6,4",5e-13], 
         ]
 sabasettings2 = [ # type, relative error
         ["SABA1",2e-14], 
@@ -27,6 +30,9 @@ sabasettings2 = [ # type, relative error
         ["SABA4",4e-14], 
         ["SABA4CM",4e-14], 
         ["SABA4CL",4e-14], 
+        ["SABA10,4",3e-14], 
+        ["SABA8,6,4",3e-14], 
+        ["SABA10,6,4",3e-14], 
         ]
 
 class TestIntegratorSABA(unittest.TestCase):
