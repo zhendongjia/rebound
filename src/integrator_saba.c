@@ -313,12 +313,23 @@ void reb_integrator_saba_part2(struct reb_simulation* const r){
     reb_whfast_interaction_step(r, reb_saba_d[type%0x100][0]*r->dt);
   
     for(int j=1;j<stages;j++){
-        int i = j;
-        reb_whfast_kepler_step(r, reb_saba_c[type%0x100][i]*r->dt);   
-        reb_whfast_com_step(r, reb_saba_c[type%0x100][i]*r->dt);
-        reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
-        reb_update_acceleration(r);
-        reb_whfast_interaction_step(r, reb_saba_d[type%0x100][i]*r->dt);
+        {
+            int i = j;
+            if (j>stages/2){
+                i = stages-j;
+            }
+            reb_whfast_kepler_step(r, reb_saba_c[type%0x100][i]*r->dt);   
+            reb_whfast_com_step(r, reb_saba_c[type%0x100][i]*r->dt);
+        }
+        {
+            int i = j;
+            if (j>(stages-1)/2){
+                i = stages-j-1;
+            }
+            reb_transformations_jacobi_to_inertial_pos(particles, ri_whfast->p_jh, particles, N);
+            reb_update_acceleration(r);
+            reb_whfast_interaction_step(r, reb_saba_d[type%0x100][i]*r->dt);
+        }
     } 
 
     if (ri_saba->type>=0x100){ // correctors on

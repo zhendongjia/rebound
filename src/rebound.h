@@ -302,21 +302,21 @@ struct reb_simulation_integrator_saba {
      * @brief SABA type. 
      */
     enum {
-        REB_SABA_1 = 0, // WH
-        REB_SABA_2 = 1, // SABA2
-        REB_SABA_3 = 2, // SABA3
-        REB_SABA_4 = 3, // SABA4
-        REB_SABA_1CM = 100, // SABA1CM (Modified kick corrector)
-        REB_SABA_2CM = 101, // SABA2CM (Modified kick corrector)
-        REB_SABA_3CM = 102, // SABA3CM (Modified kick corrector)
-        REB_SABA_4CM = 103, // SABA4CM (Modified kick corrector)
-        REB_SABA_1CL = 200, // SABA1CL (lazy corrector)
-        REB_SABA_2CL = 201, // SABA2CL (lazy corrector)
-        REB_SABA_3CL = 202, // SABA3CL (lazy corrector)
-        REB_SABA_4CL = 203, // SABA4CL (lazy corrector)
-        REB_SABA_10_4 = 4,  // ABA(10,4), 7 stage
-        REB_SABA_8_6_4 = 5, // ABA(8,6,4), 7 stage
-        REB_SABA_10_6_4 = 6,// ABA(10,6,4), 8 stage, default
+        REB_SABA_1 = 0x0, // WH
+        REB_SABA_2 = 0x1, // SABA2
+        REB_SABA_3 = 0x2, // SABA3
+        REB_SABA_4 = 0x3, // SABA4
+        REB_SABA_1CM = 0x100, // SABA1CM (Modified kick corrector)
+        REB_SABA_2CM = 0x101, // SABA2CM (Modified kick corrector)
+        REB_SABA_3CM = 0x102, // SABA3CM (Modified kick corrector)
+        REB_SABA_4CM = 0x103, // SABA4CM (Modified kick corrector)
+        REB_SABA_1CL = 0x200, // SABA1CL (lazy corrector)
+        REB_SABA_2CL = 0x201, // SABA2CL (lazy corrector)
+        REB_SABA_3CL = 0x202, // SABA3CL (lazy corrector)
+        REB_SABA_4CL = 0x203, // SABA4CL (lazy corrector)
+        REB_SABA_10_4 = 0x4,  // ABA(10,4), 7 stage
+        REB_SABA_8_6_4 = 0x5, // ABA(8,6,4), 7 stage
+        REB_SABA_10_6_4 = 0x6,// ABA(10,6,4), 8 stage, default
     } type;
     /**
      * @brief safe_mode has the same functionality as in WHFast.
@@ -661,13 +661,12 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_SAAUTOSTEP = 135,
     REB_BINARY_FIELD_TYPE_SANEXTSTEP = 136,
     REB_BINARY_FIELD_TYPE_STEPSDONE = 137,
-    REB_BINARY_FIELD_TYPE_SABA_K = 138,
-    REB_BINARY_FIELD_TYPE_SABA_CORRECTOR = 139,
     REB_BINARY_FIELD_TYPE_SABA_SAFEMODE = 140,
     REB_BINARY_FIELD_TYPE_SABA_ISSYNCHRON = 141,
     REB_BINARY_FIELD_TYPE_WHFAST_CORRECTOR2 = 143,
     REB_BINARY_FIELD_TYPE_WHFAST_KERNEL = 144,
     REB_BINARY_FIELD_TYPE_DTLASTDONE = 145,
+    REB_BINARY_FIELD_TYPE_SABA_TYPE = 146,
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob
     REB_BINARY_FIELD_TYPE_END = 9999,

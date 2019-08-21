@@ -27,7 +27,12 @@ COLLISIONS = {"none": 0, "direct": 1, "tree": 2, "mercurius": 3, "line": 4}
 VISUALIZATIONS = {"none": 0, "opengl": 1, "webgl": 2}
 WHFAST_KERNELS = {"default": 0, "modifiedkick": 1, "composition": 2, "lazy": 3}
 WHFAST_COORDINATES = {"jacobi": 0, "democraticheliocentric": 1, "whds": 2}
-SABA_CORRECTORS = {"none": 0, "modifiedkick": 1, "lazy": 2}
+SABA_TYPES = {
+        "1": 0x0, "2": 0x1, "3": 0x2, "4": 0x3,
+        "1cm": 0x100, "2cm": 0x101, "3cm": 0x102, "4cm": 0x103,
+        "1cl": 0x200, "2cl": 0x201, "3cl": 0x202, "4cl": 0x203,
+        "10,4": 0x4, "8,6,4": 0x5, "10,6,4": 0x6,
+        }
 
 # Format: Majorerror, id, message
 BINARY_WARNINGS = [
@@ -164,40 +169,33 @@ class reb_simulation_integrator_saba(Structure):
     >>> sim = rebound.Simulation()
     >>> sim.integrator = "saba"
     >>> sim.ri_saba.corrector =  "lazy"
-    >>> sim.ri_saba.k = 4
+    >>> sim.ri_saba.type = "10,6,4"
 
     """
-    _fields_ = [("k", c_uint),
-                ("_corrector", c_uint),
+    _fields_ = [("_type", c_uint),
                 ("safe_mode", c_uint),
                 ("is_synchronized", c_uint),
             ]
     @property
-    def corrector(self):
+    def type(self):
         """
-        Get or set the SABA Corrector.
-
-        Available correctors are:
-
-        - ``'none'`` (no corrector used, SABA)
-        - ``'modifiedkick'`` (modified kick, SABAC)
-        - ``'lazy'`` (Lazy implementer's method, SABACL)
+        Get or set the type of SABA integrator.
         """
-        i = self._corrector
-        for name, _i in SABA_CORRECTORS.items():
+        i = self._type
+        for name, _i in SABA_TYPES.items():
             if i==_i:
                 return name
         return i
-    @corrector.setter
-    def corrector(self, value):
+    @type.setter
+    def type(self, value):
         if isinstance(value, int):
-            self._corrector = c_uint(value)
+            raise ValueError("SABA needs to be a string.")
         elif isinstance(value, basestring):
             value = value.lower().replace(" ", "")
-            if value in SABA_CORRECTORS: 
-                self._corrector = SABA_CORRECTORS[value]
+            if value in SABA_TYPES: 
+                self._type = SABA_TYPES[value]
             else:
-                raise ValueError("Warning. Kernel not found.")
+                raise ValueError("Warning. SABA type not found.")
 
 class reb_simulation_integrator_whfast(Structure):
     """
@@ -951,6 +949,17 @@ class Simulation(Structure):
                 self.integrator = "whfast"
                 self.ri_whfast.corrector = 17
                 self.ri_whfast.kernel = "lazy"
+            elif value=="whckm":
+                self.integrator = "whfast"
+                self.ri_whfast.corrector = 17
+                self.ri_whfast.kernel = "modifiedkick"
+            elif value=="whckc":
+                self.integrator = "whfast"
+                self.ri_whfast.corrector = 17
+                self.ri_whfast.kernel = "composition"
+            elif value[0:4]=="saba" and len(value)>4:
+                self.integrator = "saba"
+                self.ri_saba.type = value[4:]
             else:
                 raise ValueError("Integrator not found.")
     
