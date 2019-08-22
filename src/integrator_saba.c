@@ -260,7 +260,6 @@ void reb_integrator_saba_synchronize(struct reb_simulation* const r){
             reb_whfast_com_step(r, reb_saba_c[type%0x100][0]*r->dt);
         }
         reb_transformations_jacobi_to_inertial_posvel(r->particles, ri_whfast->p_jh, r->particles, N);
-        ri_saba->is_synchronized = 1;
         if (ri_saba->keep_unsynchronized){
             memcpy(r->ri_whfast.p_jh,sync_pj,r->N*sizeof(struct reb_particle));
             free(sync_pj);
