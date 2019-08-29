@@ -302,7 +302,8 @@ struct reb_simulation_integrator_saba {
      * @brief SABA type.
      * @details Available types include: SABA1, SABA2, SABA3, SABA4, SABACM1, 
      * SABACM2, SABACM3, SABACM4, SABACL1, SABACL2, SABACL3, SABACL4, 
-     * SABA(10,4), SABA(8,6,4), SABA(10,6,4)
+     * SABA(10,4), SABA(8,6,4), SABA(10,6,4), SABAH(8,4,4), SABAH(8,6,4), 
+     * and SABAH(10,6,4).
      */
     enum {
         REB_SABA_1 = 0x0, // WH
@@ -320,6 +321,9 @@ struct reb_simulation_integrator_saba {
         REB_SABA_10_4 = 0x4,   // SABA(10,4), 7 stages
         REB_SABA_8_6_4 = 0x5,  // SABA(8,6,4), 7 stages
         REB_SABA_10_6_4 = 0x6, // SABA(10,6,4), 8 stages, default
+        REB_SABA_H_8_4_4 = 0x7,// SABAH(8,4,4), 6 stages
+        REB_SABA_H_8_6_4 = 0x8,// SABAH(8,6,4), 8 stages
+        REB_SABA_H_10_6_4 = 0x9,// SABAH(10,6,4), 9 stages
     } type;
     unsigned int safe_mode;       ///< Safe_mode has the same functionality as in WHFast.
     unsigned int is_synchronized; ///< Flag to determine if current particle structure is synchronized
