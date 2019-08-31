@@ -963,6 +963,15 @@ class Simulation(Structure):
             value = value.lower()
             if value in INTEGRATORS: 
                 self._integrator = INTEGRATORS[value]
+            # Shortcuts
+            elif value=="wh":
+                self.integrator = "whfast"
+                self.ri_whfast.corrector = 0
+                self.ri_whfast.kernel = "default"
+            elif value=="whc":
+                self.integrator = "whfast"
+                self.ri_whfast.corrector = 17
+                self.ri_whfast.kernel = "default"
             elif value=="whckl":
                 self.integrator = "whfast"
                 self.ri_whfast.corrector = 17
