@@ -745,7 +745,7 @@ int reb_integrator_whfast_init(struct reb_simulation* const r){
         reb_error(r, "Variational particles are only compatible with the standard kernel.");
         return 1; // Error
     }
-    if (ri_whfast->kernel>3){
+    if (ri_whfast->kernel>4){
         reb_error(r, "Kernel method must be 0 (default), 1 (exact modified kick), 2 (composition kernel), or 3 (lazy implementer's modified kick). ");
         return 1; // Error
     }
@@ -890,18 +890,18 @@ void reb_integrator_whfast_part1(struct reb_simulation* const r){
         if (ri_whfast->kernel==REB_WHFAST_KERNEL_764){
             struct reb_particle* const p_j = ri_whfast->p_jh;
             const double dt = r->dt;
-            double z1 = 0.3346222298730800;
-            double z4 = 0.6234776317921379;
-            double y1 = 1.6218101180868010;
-            double y4 = 0.0511253369989315;
+            double z1 = -0.3346222298730800;
             double z2 = 1.0975679907321640;
-            double z5 = 1.1027532063031910;
+            double z3 = -1.0380887460967830;
+            double z4 = 0.6234776317921379;
+            double z5 = -1.1027532063031910;
+            double z6 = -0.0141183222088869;
+            double y1 = -1.6218101180868010;
             double y2 = 0.0061709468110142;
-            double y5 = 0.5633782670698199; 
-            double z3 = 1.0380887460967830;
-            double z6 = 0.0141183222088869;
             double y3 = 0.8348493592472594;
-            double y6 = 0.5;
+            double y4 = -0.0511253369989315;
+            double y5 = 0.5633782670698199; 
+            double y6 = -0.5;
                 
             reb_whfast_kepler_step(r, z1*dt);   
             reb_whfast_com_step(r, z1*dt);
@@ -1055,18 +1055,18 @@ void reb_integrator_whfast_synchronize(struct reb_simulation* const r){
             const double dt = r->dt;
             struct reb_particle* restrict const particles = r->particles;
             const int N = r->N;
-            double z1 = 0.3346222298730800;
-            double z4 = 0.6234776317921379;
-            double y1 = 1.6218101180868010;
-            double y4 = 0.0511253369989315;
+            double z1 = -0.3346222298730800;
             double z2 = 1.0975679907321640;
-            double z5 = 1.1027532063031910;
+            double z3 = -1.0380887460967830;
+            double z4 = 0.6234776317921379;
+            double z5 = -1.1027532063031910;
+            double z6 = -0.0141183222088869;
+            double y1 = -1.6218101180868010;
             double y2 = 0.0061709468110142;
-            double y5 = 0.5633782670698199; 
-            double z3 = 1.0380887460967830;
-            double z6 = 0.0141183222088869;
             double y3 = 0.8348493592472594;
-            double y6 = 0.5;
+            double y4 = -0.0511253369989315;
+            double y5 = 0.5633782670698199; 
+            double y6 = -0.5;
                 
             reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
             reb_update_acceleration(r);
