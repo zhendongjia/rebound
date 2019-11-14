@@ -745,7 +745,7 @@ int reb_integrator_whfast_init(struct reb_simulation* const r){
         reb_error(r, "Variational particles are only compatible with the standard kernel.");
         return 1; // Error
     }
-    if (ri_whfast->kernel>4){
+    if (ri_whfast->kernel>5){
         reb_error(r, "Kernel method must be 0 (default), 1 (exact modified kick), 2 (composition kernel), or 3 (lazy implementer's modified kick). ");
         return 1; // Error
     }
@@ -760,7 +760,7 @@ int reb_integrator_whfast_init(struct reb_simulation* const r){
     if (ri_whfast->keep_unsynchronized==1 && ri_whfast->safe_mode==1){
         reb_error(r, "ri_whfast->keep_unsynchronized == 1 is not compatible with safe_mode. Must set ri_whfast->safe_mode = 0.");
     }
-    if (ri_whfast->kernel == REB_WHFAST_KERNEL_MODIFIEDKICK || ri_whfast->kernel == REB_WHFAST_KERNEL_LAZY){ 
+    if (ri_whfast->kernel == REB_WHFAST_KERNEL_MODIFIEDKICK || ri_whfast->kernel == REB_WHFAST_KERNEL_6ABA363 || ri_whfast->kernel == REB_WHFAST_KERNEL_LAZY){ 
         r->gravity = REB_GRAVITY_JACOBI;
     }else{
         if (ri_whfast->coordinates==REB_WHFAST_COORDINATES_JACOBI){
@@ -888,6 +888,7 @@ void reb_integrator_whfast_part1(struct reb_simulation* const r){
             reb_whfast_apply_corrector(r, 1., ri_whfast->corrector);
         }
         if (ri_whfast->kernel==REB_WHFAST_KERNEL_764){
+            // Preprocessor
             struct reb_particle* const p_j = ri_whfast->p_jh;
             const double dt = r->dt;
             double z1 = -0.3346222298730800;
@@ -945,6 +946,33 @@ void reb_integrator_whfast_part1(struct reb_simulation* const r){
             reb_update_acceleration(r);
             reb_whfast_interaction_step(r, y6*dt);
         }
+        if (ri_whfast->kernel==REB_WHFAST_KERNEL_6ABA363){
+            // Preprocessor
+            struct reb_particle* const p_j = ri_whfast->p_jh;
+            const double dt = r->dt;
+            double z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.};
+            z[5] = -(z[0]+z[1]+z[2]+z[3]+z[4]);
+            double y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, 0.};
+            y[5] = -(y[0]+y[1]+y[2]+y[3]+y[4]);
+            double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
+            for (int i=0;i<6;i++){
+                reb_whfast_kepler_step(r, r->dt*z[i]);    
+                reb_whfast_com_step(r, r->dt*z[i]);
+                
+                reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
+                reb_update_acceleration(r);
+                reb_whfast_calculate_jerk(r);
+                // JERK
+                for (int j=0; j<N; j++){
+                    const double prefact = dt*dt*v[i]/y[i]*2.;
+                    particles[j].ax += prefact*p_j[j].ax; 
+                    particles[j].ay += prefact*p_j[j].ay; 
+                    particles[j].az += prefact*p_j[j].az; 
+                }
+                reb_whfast_interaction_step(r, dt*y[i]);
+            }
+
+        }
         if (ri_whfast->corrector2){
             reb_whfast_apply_corrector2(r, 1.);
         }
@@ -966,6 +994,13 @@ void reb_integrator_whfast_part1(struct reb_simulation* const r){
                     reb_whfast_com_step(r, a1*r->dt);
                 }
                 break;
+            case REB_WHFAST_KERNEL_6ABA363:
+                {
+                    double a1 = -0.0682610383918630;
+                    reb_whfast_kepler_step(r, a1*r->dt);   
+                    reb_whfast_com_step(r, a1*r->dt);
+                }
+                break;
             default:
                 reb_error(r, "WHFast kernel not implemented.");
                 return;
@@ -976,6 +1011,13 @@ void reb_integrator_whfast_part1(struct reb_simulation* const r){
             case REB_WHFAST_KERNEL_764:
                 {
                     double a1 = 2.*0.5600879810924619;
+                    reb_whfast_kepler_step(r, a1*r->dt);   
+                    reb_whfast_com_step(r, a1*r->dt);
+                }
+                break;
+            case REB_WHFAST_KERNEL_6ABA363:
+                {
+                    double a1 = -2.*0.0682610383918630;
                     reb_whfast_kepler_step(r, a1*r->dt);   
                     reb_whfast_com_step(r, a1*r->dt);
                 }
@@ -1036,6 +1078,13 @@ void reb_integrator_whfast_synchronize(struct reb_simulation* const r){
             case REB_WHFAST_KERNEL_764:
                 {
                     double a1 = 0.5600879810924619;
+                    reb_whfast_kepler_step(r, a1*r->dt);   
+                    reb_whfast_com_step(r, a1*r->dt);
+                }
+                break;
+            case REB_WHFAST_KERNEL_6ABA363:
+                {
+                    double a1 = -0.0682610383918630;
                     reb_whfast_kepler_step(r, a1*r->dt);   
                     reb_whfast_com_step(r, a1*r->dt);
                 }
@@ -1110,6 +1159,36 @@ void reb_integrator_whfast_synchronize(struct reb_simulation* const r){
             reb_whfast_kepler_step(r, -z1*dt);   
             reb_whfast_com_step(r, -z1*dt);
             
+        }
+        if (ri_whfast->kernel==REB_WHFAST_KERNEL_6ABA363){
+            //Post processor
+            struct reb_particle* const p_j = ri_whfast->p_jh;
+            const double dt = r->dt;
+            struct reb_particle* restrict const particles = r->particles;
+            const int N = r->N;
+            
+            double z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.};
+            z[5] = -(z[0]+z[1]+z[2]+z[3]+z[4]);
+            double y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, 0.};
+            y[5] = -(y[0]+y[1]+y[2]+y[3]+y[4]);
+            double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
+            for (int i=5;i>=0;i--){
+                reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
+                reb_update_acceleration(r);
+                reb_whfast_calculate_jerk(r);
+                // JERK
+                for (int j=0; j<N; j++){
+                    const double prefact = dt*dt*v[i]/y[i]*2.;
+                    particles[j].ax += prefact*p_j[j].ax; 
+                    particles[j].ay += prefact*p_j[j].ay; 
+                    particles[j].az += prefact*p_j[j].az; 
+                }
+                reb_whfast_interaction_step(r, -dt*y[i]);
+                
+                reb_whfast_kepler_step(r, -r->dt*z[i]);    
+                reb_whfast_com_step(r, -r->dt*z[i]);
+                
+            }
         }
         switch (ri_whfast->coordinates){
             case REB_WHFAST_COORDINATES_JACOBI:
@@ -1251,6 +1330,40 @@ void reb_integrator_whfast_part2(struct reb_simulation* const r){
                 reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
                 reb_update_acceleration(r);
                 reb_whfast_interaction_step(r, b1*dt);
+            }
+            break;
+        case REB_WHFAST_KERNEL_6ABA363:
+            {
+                double b1 = 0.2621129352517028;
+                reb_whfast_interaction_step(r, b1*dt);
+             
+                double a1 = -0.0682610383918630;
+                double a2 =  0.5-a1;
+                reb_whfast_kepler_step(r, a2*dt);   
+                reb_whfast_com_step(r, a2*dt);
+                
+                double b2 = 1.-2.*b1;
+                double c2 = 0.0164011128160783;
+                reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
+                reb_update_acceleration(r);
+                reb_whfast_calculate_jerk(r);
+                // JERK
+                for (int j=0; j<N; j++){
+                    const double prefact = dt*dt*c2/b2*2.;
+                    particles[j].ax += prefact*p_j[j].ax; 
+                    particles[j].ay += prefact*p_j[j].ay; 
+                    particles[j].az += prefact*p_j[j].az; 
+                }
+                reb_whfast_interaction_step(r, b2*dt);
+                
+                reb_whfast_kepler_step(r, a2*dt);   
+                reb_whfast_com_step(r, a2*dt);
+                
+                reb_transformations_jacobi_to_inertial_pos(particles, p_j, particles, N);
+                reb_update_acceleration(r);
+                reb_whfast_interaction_step(r, b1*dt);
+                
+                
             }
             break;
         default:

@@ -374,6 +374,7 @@ struct reb_simulation_integrator_whfast {
         REB_WHFAST_KERNEL_COMPOSITION = 2,
         REB_WHFAST_KERNEL_LAZY = 3,
         REB_WHFAST_KERNEL_764 = 4,
+        REB_WHFAST_KERNEL_6ABA363 = 5,
     }kernel;
     
     

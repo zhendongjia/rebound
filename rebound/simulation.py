@@ -25,7 +25,7 @@ BOUNDARIES = {"none": 0, "open": 1, "periodic": 2, "shear": 3}
 GRAVITIES = {"none": 0, "basic": 1, "compensated": 2, "tree": 3, "mercurius": 4}
 COLLISIONS = {"none": 0, "direct": 1, "tree": 2, "mercurius": 3, "line": 4}
 VISUALIZATIONS = {"none": 0, "opengl": 1, "webgl": 2}
-WHFAST_KERNELS = {"default": 0, "modifiedkick": 1, "composition": 2, "lazy": 3, "764":4}
+WHFAST_KERNELS = {"default": 0, "modifiedkick": 1, "composition": 2, "lazy": 3, "764": 4, "6aba363": 5}
 WHFAST_COORDINATES = {"jacobi": 0, "democraticheliocentric": 1, "whds": 2}
 SABA_TYPES = {
         "1": 0x0, "2": 0x1, "3": 0x2, "4": 0x3,
