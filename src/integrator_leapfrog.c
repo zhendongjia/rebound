@@ -34,8 +34,10 @@
 #include <time.h>
 #include "rebound.h"
 
-void reb_leapfrog_apply_C(struct reb_simulation* r, double y, double v){
-    reb_update_acceleration(r);
+void reb_leapfrog_apply_C(struct reb_simulation* r, double y, double v, int recalculate){
+    if (recalculate){
+        reb_update_acceleration(r);
+    }
     // Assume particles.a calculated.
 	struct reb_particle* const particles = r->particles;
     const int N = r->N;
@@ -45,13 +47,6 @@ void reb_leapfrog_apply_C(struct reb_simulation* r, double y, double v){
     }
     struct reb_particle* jerk = r->ri_whfast.p_jh; // Used as a temporary buffer for accelerations
 	const double G = r->G;
-    double Rjx = 0.; // com
-    double Rjy = 0.;
-    double Rjz = 0.;
-    double Mj = 0.;
-    double Ajx = 0.; // sort of Jacobi acceleration
-    double Ajy = 0.;
-    double Ajz = 0.;
     for (int j=0; j<N; j++){
         jerk[j].ax = 0; 
         jerk[j].ay = 0; 
@@ -92,19 +87,12 @@ void reb_leapfrog_apply_C(struct reb_simulation* r, double y, double v){
             jerk[i].ay    -= dy*prefact1j;
             jerk[i].az    -= dz*prefact1j;
         }
-        Ajx += particles[j].ax*particles[j].m;
-        Ajy += particles[j].ay*particles[j].m;
-        Ajz += particles[j].az*particles[j].m;
-        Rjx += particles[j].x*particles[j].m;
-        Rjy += particles[j].y*particles[j].m;
-        Rjz += particles[j].z*particles[j].m;
-        Mj += particles[j].m;
     }
     }
 
 	const double dt = r->dt;
 	for (int i=0;i<N;i++){
-        const double prefact = dt*dt*dt*v*2.;
+        const double prefact = dt*dt*dt*v;
 		particles[i].vx += dt * y * particles[i].ax + prefact*jerk[i].ax;
 		particles[i].vy += dt * y * particles[i].ay + prefact*jerk[i].ay;
 		particles[i].vz += dt * y * particles[i].az + prefact*jerk[i].az;
@@ -140,7 +128,7 @@ void reb_integrator_leapfrog_part1(struct reb_simulation* r){
             double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
             for (int i=0;i<6;i++){
                 reb_leapfrog_apply_A(r, z[i]);
-                reb_leapfrog_apply_C(r, y[i], v[i]*2.); // recalculates accelerations
+                reb_leapfrog_apply_C(r, y[i], v[i]*2.,1); // recalculates accelerations
             }
             double a1 = -0.0682610383918630;
             reb_leapfrog_apply_A(r, a1);
@@ -165,7 +153,7 @@ void reb_integrator_leapfrog_part2(struct reb_simulation* r){
     if (r->ri_whfast.kernel == REB_WHFAST_KERNEL_6ABA363){
 
         double b1 = 0.2621129352517028;
-        reb_leapfrog_apply_C(r, b1, 0.); // recalculates accelerations
+        reb_leapfrog_apply_C(r, b1, 0.,0); // does NOT recalculate accelerations
      
         double a1 = -0.0682610383918630;
         double a2 =  0.5-a1;
@@ -173,12 +161,12 @@ void reb_integrator_leapfrog_part2(struct reb_simulation* r){
         
         double b2 = 1.-2.*b1;
         double c2 = 0.0164011128160783;
-        reb_leapfrog_apply_C(r, b2, c2*2.); // recalculates accelerations
+        reb_leapfrog_apply_C(r, b2, c2*2.,1); // recalculates accelerations
         
         reb_leapfrog_apply_A(r, a2);
         
         
-        reb_leapfrog_apply_C(r, b1, 0.); // recalculates accelerations
+        reb_leapfrog_apply_C(r, b1, 0.,1); // recalculates accelerations
         //reb_leapfrog_apply_A(r, a1);
         r->ri_whfast.is_synchronized =0;
     
@@ -208,7 +196,7 @@ void reb_integrator_leapfrog_synchronize(struct reb_simulation* r){
             y[5] = -(y[0]+y[1]+y[2]+y[3]+y[4]);
             double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
             for (int i=5;i>=0;i--){
-                reb_leapfrog_apply_C(r, -y[i], -v[i]*2.); // recalculates accelerations
+                reb_leapfrog_apply_C(r, -y[i], -v[i]*2.,1); // recalculates accelerations
                 reb_leapfrog_apply_A(r, -z[i]);
             }
             r->ri_whfast.is_synchronized =1;
