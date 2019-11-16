@@ -274,6 +274,73 @@ struct reb_simulation_integrator_mercurius {
 };
 
 /**
+ * @brief This structure contains variables and pointer used by the MERCURANA integrator.
+ */
+struct reb_simulation_integrator_mercurana {
+   /**
+    * @brief This is a function pointer to the force switching function used.
+    * @details If NULL (the default), the MERCURY switching function will be used.
+    * The argument d is the distance between two particles.
+    * The argument dcrit is the maximum of the critical distances of the two particles.
+    * The return value is a scalar between 0 and 1. If it always returns 1, then the
+    * integrator becomes the standard Wisdom-Holman integrator.
+    */
+    double (*L) (const struct reb_simulation* const r, double d, double dcrit);  
+    
+    /** 
+     * @brief Switching distance in units of the Hill radius 
+     * @brief The switching distances for particles are calculated automastically
+     * based on multiple criteria. One criteria calculates the Hill radius of 
+     * particles and then multiplies it with the hillfac variable. 
+     */ 
+    double hillfac;        
+    
+    /** 
+     * @brief Setting this flag to one will recalculate heliocentric coordinates from the particle structure at the beginning of the next timestep. 
+     * @details After one timestep, the flag gets set back to 0. 
+     * If you want to change particles after every timestep, you 
+     * also need to set this flag to 1 before every timestep.
+     * Default is 0.
+     */ 
+    unsigned int recalculate_coordinates_this_timestep;
+
+    /** 
+     * @brief Setting this flag to one will recalculate the critical switchover 
+     * distances dcrit at the the beginning of the next timestep. 
+     * @details After one timestep, the flag gets set back to 0. 
+     * If you want to recalculate dcrit at every every timestep, you 
+     * also need to set this flag to 1 before every timestep.
+     * Default is 0.
+     */ 
+    unsigned int recalculate_dcrit_this_timestep;
+
+    /**
+     * @brief If this flag is set (the default), the integrator will 
+     * recalculate heliocentric coordinates and synchronize after
+     * every timestep, to avoid problems with outputs or particle modifications
+     * between timesteps. 
+     * @details Setting it to 0 will result in a speedup, but care
+     * must be taken to synchronize and recalculate coordinates when needed.
+     */
+    unsigned int safe_mode;
+    
+    unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
+    unsigned int mode;              ///< Internal. 0 if WH is operating, 1 if IAS15 is operating.
+    unsigned int encounterN;        ///< Number of particles currently having an encounter
+    unsigned int encounterNactive;  ///< Number of particles currently having an encounter
+    unsigned int allocatedN;        ///< Current size of allocated internal arrays
+    unsigned int allocatedN_additionalforces;        ///< Current size of allocated internal particles_backup_additionalforces array
+    unsigned int dcrit_allocatedN;  ///< Current size of dcrit arrays
+    double* dcrit;                  ///< Switching radii for particles
+    struct reb_particle* REBOUND_RESTRICT particles_backup;     ///< Internal array, contains coordinates before Kepler step for encounter prediction
+    struct reb_particle* REBOUND_RESTRICT particles_backup_additionalforces;     ///< Internal array, contains coordinates before Kepler step for encounter prediction
+    int* encounter_map;             ///< Map to represent which particles are integrated with ias15
+    struct reb_vec3d com_pos;       ///< Used internally to keep track of the centre of mass during the timestep
+    struct reb_vec3d com_vel;       ///< Used internally to keep track of the centre of mass during the timestep
+};
+
+
+/**
  * @brief This structure contains variables used by the SEI integrator.
  * @details This is where the user sets the orbital frequency OMEGA for 
  * shearing sheet simulations.
@@ -926,6 +993,7 @@ struct reb_simulation {
         REB_COLLISION_TREE = 2,     ///< Tree based collision search O(N log(N))
         REB_COLLISION_MERCURIUS = 3,///< Direct collision search optimized for MERCURIUS
         REB_COLLISION_LINE = 4,     ///< Direct collision search O(N^2), looks for collisions by assuming a linear path over the last timestep
+        REB_COLLISION_MERCURANA = 4,///< Direct collision search optimized for MERCURANA
         } collision;
     /**
      * @brief Available integrators
@@ -940,6 +1008,7 @@ struct reb_simulation {
         REB_INTEGRATOR_JANUS = 8,    ///< Bit-wise reversible JANUS integrator.
         REB_INTEGRATOR_MERCURIUS = 9,///< MERCURIUS integrator 
         REB_INTEGRATOR_SABA = 10,    ///< SABA integrator family (Laskar and Robutel 2001)
+        REB_INTEGRATOR_MERCURANA = 11,///< MERCURANA integrator 
         } integrator;
 
     /**
@@ -962,6 +1031,7 @@ struct reb_simulation {
         REB_GRAVITY_TREE = 3,       ///< Use the tree to calculate gravity, O(N log(N)), set opening_angle2 to adjust accuracy.
         REB_GRAVITY_MERCURIUS = 4,  ///< Special gravity routine only for MERCURIUS
         REB_GRAVITY_JACOBI = 5,     ///< Special gravity routine which includes the Jacobi terms for WH integrators 
+        REB_GRAVITY_MERCURANA = 6,  ///< Special gravity routine only for MERCURANA
         } gravity;
     /** @} */
 
@@ -975,6 +1045,7 @@ struct reb_simulation {
     struct reb_simulation_integrator_saba ri_saba;      ///< The SABA struct 
     struct reb_simulation_integrator_ias15 ri_ias15;    ///< The IAS15 struct
     struct reb_simulation_integrator_mercurius ri_mercurius;      ///< The MERCURIUS struct
+    struct reb_simulation_integrator_mercurana ri_mercurana;      ///< The MERCURANA struct
     struct reb_simulation_integrator_janus ri_janus;    ///< The JANUS struct 
     /** @} */
 

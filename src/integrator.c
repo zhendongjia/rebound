@@ -41,6 +41,7 @@
 #include "integrator_saba.h"
 #include "integrator_ias15.h"
 #include "integrator_mercurius.h"
+#include "integrator_mercurana.h"
 #include "integrator_leapfrog.h"
 #include "integrator_sei.h"
 #include "integrator_janus.h"
@@ -64,6 +65,9 @@ void reb_integrator_part1(struct reb_simulation* r){
 			break;
 		case REB_INTEGRATOR_MERCURIUS:
 			reb_integrator_mercurius_part1(r);
+			break;
+		case REB_INTEGRATOR_MERCURANA:
+			reb_integrator_mercurana_part1(r);
 			break;
 		case REB_INTEGRATOR_JANUS:
 			reb_integrator_janus_part1(r);
@@ -92,6 +96,9 @@ void reb_integrator_part2(struct reb_simulation* r){
 			break;
 		case REB_INTEGRATOR_MERCURIUS:
 			reb_integrator_mercurius_part2(r);
+			break;
+		case REB_INTEGRATOR_MERCURANA:
+			reb_integrator_mercurana_part2(r);
 			break;
 		case REB_INTEGRATOR_JANUS:
 			reb_integrator_janus_part2(r);
@@ -125,6 +132,9 @@ void reb_integrator_synchronize(struct reb_simulation* r){
 		case REB_INTEGRATOR_MERCURIUS:
 			reb_integrator_mercurius_synchronize(r);
 			break;
+		case REB_INTEGRATOR_MERCURANA:
+			reb_integrator_mercurana_synchronize(r);
+			break;
 		case REB_INTEGRATOR_JANUS:
 			reb_integrator_janus_synchronize(r);
 			break;
@@ -148,6 +158,7 @@ void reb_integrator_reset(struct reb_simulation* r){
 	r->gravity_ignore_terms = 0;
 	reb_integrator_ias15_reset(r);
 	reb_integrator_mercurius_reset(r);
+	reb_integrator_mercurana_reset(r);
 	reb_integrator_leapfrog_reset(r);
 	reb_integrator_sei_reset(r);
 	reb_integrator_whfast_reset(r);
@@ -163,7 +174,7 @@ void reb_update_acceleration(struct reb_simulation* r){
 	if (r->N_var){
 		reb_calculate_acceleration_var(r);
 	}
-	if (r->additional_forces  && (r->integrator != REB_INTEGRATOR_MERCURIUS || r->ri_mercurius.mode==0)){
+	if (r->additional_forces  && (r->integrator != REB_INTEGRATOR_MERCURIUS || r->ri_mercurius.mode==0) && (r->integrator != REB_INTEGRATOR_MERCURANA || r->ri_mercurana.mode==0)){
         // For Mercurius:
         // Additional forces are only calculated in the kick step, not during close encounter
         if (r->integrator==REB_INTEGRATOR_MERCURIUS){
@@ -176,10 +187,32 @@ void reb_update_acceleration(struct reb_simulation* r){
             memcpy(r->ri_mercurius.particles_backup_additionalforces,r->particles,r->N*sizeof(struct reb_particle)); 
             reb_integrator_mercurius_dh_to_inertial(r);
         }
+        if (r->integrator==REB_INTEGRATOR_MERCURANA){
+            // shift pos and velocity so that external forces are calculated in inertial frame
+            // Note: Copying avoids degrading floating point performance
+            if(r->N>r->ri_mercurana.allocatedN_additionalforces){
+                r->ri_mercurana.particles_backup_additionalforces = realloc(r->ri_mercurana.particles_backup_additionalforces, r->N*sizeof(struct reb_particle));
+                r->ri_mercurana.allocatedN_additionalforces = r->N;
+            }
+            memcpy(r->ri_mercurana.particles_backup_additionalforces,r->particles,r->N*sizeof(struct reb_particle)); 
+            reb_integrator_mercurana_dh_to_inertial(r);
+        }
         r->additional_forces(r);
         if (r->integrator==REB_INTEGRATOR_MERCURIUS){
             struct reb_particle* restrict const particles = r->particles;
             struct reb_particle* restrict const backup = r->ri_mercurius.particles_backup_additionalforces;
+            for (int i=0;i<r->N;i++){
+                particles[i].x = backup[i].x;
+                particles[i].y = backup[i].y;
+                particles[i].z = backup[i].z;
+                particles[i].vx = backup[i].vx;
+                particles[i].vy = backup[i].vy;
+                particles[i].vz = backup[i].vz;
+            }
+        }
+        if (r->integrator==REB_INTEGRATOR_MERCURANA){
+            struct reb_particle* restrict const particles = r->particles;
+            struct reb_particle* restrict const backup = r->ri_mercurana.particles_backup_additionalforces;
             for (int i=0;i<r->N;i++){
                 particles[i].x = backup[i].x;
                 particles[i].y = backup[i].y;

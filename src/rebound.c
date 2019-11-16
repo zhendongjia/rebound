@@ -40,6 +40,7 @@
 #include "integrator_whfast.h"
 #include "integrator_ias15.h"
 #include "integrator_mercurius.h"
+#include "integrator_mercurana.h"
 #include "boundary.h"
 #include "gravity.h"
 #include "collision.h"
@@ -81,6 +82,7 @@ void reb_step(struct reb_simulation* const r){
         r->pre_timestep_modifications(r);
         r->ri_whfast.recalculate_coordinates_this_timestep = 1;
         r->ri_mercurius.recalculate_coordinates_this_timestep = 1;
+        r->ri_mercurana.recalculate_coordinates_this_timestep = 1;
     }
    
     reb_integrator_part1(r);
@@ -137,6 +139,7 @@ void reb_step(struct reb_simulation* const r){
         r->post_timestep_modifications(r);
         r->ri_whfast.recalculate_coordinates_this_timestep = 1;
         r->ri_mercurius.recalculate_coordinates_this_timestep = 1;
+        r->ri_mercurana.recalculate_coordinates_this_timestep = 1;
     }
     PROFILING_STOP(PROFILING_CAT_INTEGRATOR)
 
@@ -309,6 +312,7 @@ void reb_free_pointers(struct reb_simulation* const r){
     reb_integrator_whfast_reset(r);
     reb_integrator_ias15_reset(r);
     reb_integrator_mercurius_reset(r);
+    reb_integrator_mercurana_reset(r);
     if(r->free_particle_ap){
         for(int i=0; i<r->N; i++){
             r->free_particle_ap(&r->particles[i]);
@@ -371,6 +375,14 @@ void reb_reset_temporary_pointers(struct reb_simulation* const r){
     r->ri_mercurius.particles_backup = NULL;
     r->ri_mercurius.particles_backup_additionalforces = NULL;
     r->ri_mercurius.encounter_map = NULL;
+    // ********** MERCURANA
+    r->ri_mercurana.allocatedN = 0;
+    r->ri_mercurana.allocatedN_additionalforces = 0;
+    r->ri_mercurana.dcrit_allocatedN = 0;
+    r->ri_mercurana.dcrit = NULL;
+    r->ri_mercurana.particles_backup = NULL;
+    r->ri_mercurana.particles_backup_additionalforces = NULL;
+    r->ri_mercurana.encounter_map = NULL;
 
     // ********** JANUS
     r->ri_janus.allocated_N = 0;
@@ -572,6 +584,15 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_mercurius.is_synchronized = 1;
     r->ri_mercurius.encounterN = 0;
     r->ri_mercurius.hillfac = 3;
+
+    // ********** MERCURIUS
+    r->ri_mercurana.mode = 0;
+    r->ri_mercurana.safe_mode = 1;
+    r->ri_mercurana.recalculate_coordinates_this_timestep = 0;
+    r->ri_mercurana.recalculate_dcrit_this_timestep = 0;
+    r->ri_mercurana.is_synchronized = 1;
+    r->ri_mercurana.encounterN = 0;
+    r->ri_mercurana.hillfac = 3;
 
     // Tree parameters. Will not be used unless gravity or collision search makes use of tree.
     r->tree_needs_update= 0;
