@@ -73,17 +73,13 @@ double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r,
 
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt){
     double dts = copysign(1.,dt); 
-    dt = fabs(dt); // TODO check this makes sense for negative timestimps
-    // This function predicts close encounters during the timestep
-    // It makes use of the old and new position and velocities obtained
-    // after the Kepler step.
+    dt = fabs(dt);
     struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
-    struct reb_particle* const particles = rim->particles_backup;
+    struct reb_particle* const particles = r->particles;
     const double* const dcrit = rim->dcrit;
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
     rim->encounterN = 0;
-    //rim->encounter_map[0] = 1; star not part of encounter in mercurana
     for (int i=0; i<N; i++){
         rim->encounter_map[i] = 0;
     }
@@ -206,7 +202,6 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
     rim->encounterNactive = 0;
     for (unsigned int i=0; i<r->N; i++){
         if(rim->encounter_map[i]){  
-            r->particles[i] = rim->particles_backup[i]; // use coordinates before whfast step
             rim->encounter_map[i_enc] = i;
             i_enc++;
             if (r->N_active==-1 || i<r->N_active){
@@ -259,15 +254,16 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
 void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a){
     const int N = r->N;
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-    memcpy(rim->particles_backup,r->particles,N*sizeof(struct reb_particle)); 
     struct reb_particle* restrict const particles = r->particles;
     const double dt = r->dt;
-    for (int i=0;i<N;i++){
-        particles[i].x += a*dt*particles[i].vx;
-        particles[i].y += a*dt*particles[i].vy;
-        particles[i].z += a*dt*particles[i].vz;
-    }
     reb_mercurana_encounter_predict(r, a*dt);
+    for (int i=0;i<N;i++){
+        if(rim->encounter_map[i]==0){  // only advance non-encounter particles
+            particles[i].x += a*dt*particles[i].vx;
+            particles[i].y += a*dt*particles[i].vy;
+            particles[i].z += a*dt*particles[i].vz;
+        }
+    }
     reb_mercurana_encounter_step(r,a*dt);
 }
 void reb_integrator_mercurana_part1(struct reb_simulation* r){
@@ -288,7 +284,6 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     if (rim->allocatedN<N){
         // These arrays are only used within one timestep. 
         // Can be recreated without loosing bit-wise reproducibility
-        rim->particles_backup   = realloc(rim->particles_backup,sizeof(struct reb_particle)*N);
         rim->encounter_map      = realloc(rim->encounter_map,sizeof(int)*N);
         rim->allocatedN = N;
     }
@@ -371,23 +366,22 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
 
 void reb_integrator_mercurana_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-   
     
-        double b1 = 0.2621129352517028;
-        reb_integrator_mercurana_interaction_step(r, b1, 0.,0); // does NOT recalculate accelerations
-     
-        double a1 = -0.0682610383918630;
-        double a2 =  0.5-a1;
-        reb_integrator_mercurana_drift_step(r, a2);
-        
-        double b2 = 1.-2.*b1;
-        double c2 = 0.0164011128160783;
-        reb_integrator_mercurana_interaction_step(r, b2, c2*2.,1); // recalculates accelerations
-        
-        reb_integrator_mercurana_drift_step(r, a2);
-        
-        
-        reb_integrator_mercurana_interaction_step(r, b1, 0.,1); // recalculates accelerations
+    double b1 = 0.2621129352517028;
+    reb_integrator_mercurana_interaction_step(r, b1, 0.,0); // does NOT recalculate accelerations
+ 
+    double a1 = -0.0682610383918630;
+    double a2 =  0.5-a1;
+    reb_integrator_mercurana_drift_step(r, a2);
+    
+    double b2 = 1.-2.*b1;
+    double c2 = 0.0164011128160783;
+    reb_integrator_mercurana_interaction_step(r, b2, c2*2.,1); // recalculates accelerations
+    
+    reb_integrator_mercurana_drift_step(r, a2);
+    
+    
+    reb_integrator_mercurana_interaction_step(r, b1, 0.,1); // recalculates accelerations
         
     rim->is_synchronized = 0;
     if (rim->safe_mode){
@@ -432,8 +426,6 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.encounterNactive = 0;
     r->ri_mercurana.hillfac = 3;
     // Internal arrays (only used within one timestep)
-    free(r->ri_mercurana.particles_backup);
-    r->ri_mercurana.particles_backup = NULL;
     free(r->ri_mercurana.particles_backup_additionalforces);
     r->ri_mercurana.particles_backup_additionalforces = NULL;
     free(r->ri_mercurana.encounter_map);
