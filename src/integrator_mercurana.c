@@ -72,13 +72,13 @@ double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r,
 
 
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt){
+    double dts = copysign(1.,dt); 
     dt = fabs(dt); // TODO check this makes sense for negative timestimps
     // This function predicts close encounters during the timestep
     // It makes use of the old and new position and velocities obtained
     // after the Kepler step.
     struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
-    struct reb_particle* const particles = r->particles;
-    struct reb_particle* const particles_backup = rim->particles_backup;
+    struct reb_particle* const particles = rim->particles_backup;
     const double* const dcrit = rim->dcrit;
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
@@ -89,47 +89,26 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     }
     for (int i=0; i<N_active; i++){
         for (int j=i+1; j<N; j++){
-            const double dxn = particles[i].x - particles[j].x;
-            const double dyn = particles[i].y - particles[j].y;
-            const double dzn = particles[i].z - particles[j].z;
-            const double dvxn = particles[i].vx - particles[j].vx;
-            const double dvyn = particles[i].vy - particles[j].vy;
-            const double dvzn = particles[i].vz - particles[j].vz;
-            const double rn = (dxn*dxn + dyn*dyn + dzn*dzn);
-            const double dxo = particles_backup[i].x - particles_backup[j].x;
-            const double dyo = particles_backup[i].y - particles_backup[j].y;
-            const double dzo = particles_backup[i].z - particles_backup[j].z;
-            const double dvxo = particles_backup[i].vx - particles_backup[j].vx;
-            const double dvyo = particles_backup[i].vy - particles_backup[j].vy;
-            const double dvzo = particles_backup[i].vz - particles_backup[j].vz;
-            const double ro = (dxo*dxo + dyo*dyo + dzo*dzo);
+            const double dx1 = particles[i].x - particles[j].x; // distance at beginning
+            const double dy1 = particles[i].y - particles[j].y;
+            const double dz1 = particles[i].z - particles[j].z;
+            const double r1 = (dx1*dx1 + dy1*dy1 + dz1*dz1);
+            const double dvx1 = dts*(particles[i].vx - particles[j].vx); 
+            const double dvy1 = dts*(particles[i].vy - particles[j].vy);
+            const double dvz1 = dts*(particles[i].vz - particles[j].vz);
+            const double dx2 = dx1 +dt*dvx1; // distance at end
+            const double dy2 = dy1 +dt*dvy1;
+            const double dz2 = dz1 +dt*dvz1;
+            const double r2 = (dx2*dx2 + dy2*dy2 + dz2*dz2);
+            const double t_closest = (dx1*dvx1 + dy1*dvy1 + dz1*dvz1)/(dvx1*dvx1 + dvy1*dvy1 + dvz1*dvz1);
+            const double dx3 = dx1+t_closest*dvx1; // closest approach
+            const double dy3 = dy1+t_closest*dvy1;
+            const double dz3 = dz1+t_closest*dvz1;
+            const double r3 = (dx3*dx3 + dy3*dy3 + dz3*dz3);
 
-            const double drndt = (dxn*dvxn+dyn*dvyn+dzn*dvzn)*2.;
-            const double drodt = (dxo*dvxo+dyo*dvyo+dzo*dvzo)*2.;
-
-            const double a = 6.*(ro-rn)+3.*dt*(drodt+drndt); 
-            const double b = 6.*(rn-ro)-2.*dt*(2.*drodt+drndt); 
-            const double c = dt*drodt; 
-
-            double rmin = MIN(rn,ro);
-
-            const double s = b*b-4.*a*c;
-            const double sr = sqrt(MAX(0.,s));
-            const double tmin1 = (-b + sr)/(2.*a); 
-            const double tmin2 = (-b - sr)/(2.*a); 
-            if (tmin1>0. && tmin1<1.){
-                const double rmin1 = (1.-tmin1)*(1.-tmin1)*(1.+2.*tmin1)*ro
-                                     + tmin1*tmin1*(3.-2.*tmin1)*rn
-                                     + tmin1*(1.-tmin1)*(1.-tmin1)*dt*drodt
-                                     - tmin1*tmin1*(1.-tmin1)*dt*drndt;
-                rmin = MIN(MAX(rmin1,0.),rmin);
-            }
-            if (tmin2>0. && tmin2<1.){
-                const double rmin2 = (1.-tmin2)*(1.-tmin2)*(1.+2.*tmin2)*ro
-                                     + tmin2*tmin2*(3.-2.*tmin2)*rn
-                                     + tmin2*(1.-tmin2)*(1.-tmin2)*dt*drodt
-                                     - tmin2*tmin2*(1.-tmin2)*dt*drndt;
-                rmin = MIN(MAX(rmin2,0.),rmin);
+            double rmin = MIN(r1,r2);
+            if (t_closest>0. && t_closest<dt){
+                rmin = MIN(rmin, r3);
             }
 
             if (sqrt(rmin)< 1.1*MAX(dcrit[i],dcrit[j])){
