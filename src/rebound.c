@@ -585,7 +585,7 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_mercurius.encounterN = 0;
     r->ri_mercurius.hillfac = 3;
 
-    // ********** MERCURIUS
+    // ********** MERCURANA
     r->ri_mercurana.mode = 0;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.recalculate_coordinates_this_timestep = 0;

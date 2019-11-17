@@ -71,7 +71,8 @@ double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r,
 }
 
 
-static void reb_mercurana_encounter_predict(struct reb_simulation* const r){
+static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt){
+    dt = fabs(dt); // TODO check this makes sense for negative timestimps
     // This function predicts close encounters during the timestep
     // It makes use of the old and new position and velocities obtained
     // after the Kepler step.
@@ -81,7 +82,6 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r){
     const double* const dcrit = rim->dcrit;
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
-    const double dt = r->dt;
     rim->encounterN = 0;
     //rim->encounter_map[0] = 1; star not part of encounter in mercurana
     for (int i=0; i<N; i++){
@@ -146,25 +146,75 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r){
     }
 }
     
-void reb_integrator_mercurana_interaction_step(struct reb_simulation* const r, double dt){
-    struct reb_particle* restrict const particles = r->particles;
+void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int recalculate){
+    if (recalculate){
+        reb_update_acceleration(r);
+    }
+    // Assume particles.a calculated.
+	struct reb_particle* const particles = r->particles;
     const int N = r->N;
-    for (int i=0;i<N;i++){
-        particles[i].vx += dt*particles[i].ax;
-        particles[i].vy += dt*particles[i].ay;
-        particles[i].vz += dt*particles[i].az;
+    if (r->ri_whfast.allocated_N != N){
+        r->ri_whfast.allocated_N = N;
+        r->ri_whfast.p_jh = realloc(r->ri_whfast.p_jh,sizeof(struct reb_particle)*N);
+    }
+    struct reb_particle* jerk = r->ri_whfast.p_jh; // Used as a temporary buffer for accelerations
+	const double G = r->G;
+    for (int j=0; j<N; j++){
+        jerk[j].ax = 0; 
+        jerk[j].ay = 0; 
+        jerk[j].az = 0; 
+    }
+
+    double (*_L) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.L;
+    const double* const dcrit = r->ri_mercurana.dcrit;
+    if (v!=0.){
+    for (int j=0; j<N; j++){
+        for (int i=0; i<j; i++){
+            /////////////////
+            // Direct Term
+            const double dx = particles[j].x - particles[i].x; 
+            const double dy = particles[j].y - particles[i].y; 
+            const double dz = particles[j].z - particles[i].z; 
+            
+            const double dax = particles[j].ax - particles[i].ax; 
+            const double day = particles[j].ay - particles[i].ay; 
+            const double daz = particles[j].az - particles[i].az; 
+
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+            const double dcritmax = MAX(dcrit[i],dcrit[j]);
+            const double L = _L(r,dr,dcritmax);
+            const double alphasum = dax*dx+day*dy+daz*dz;
+            const double prefact2 = L*G /(dr*dr*dr);
+            const double prefact2i = prefact2*particles[i].m;
+            const double prefact2j = prefact2*particles[j].m;
+            jerk[j].ax    -= dax*prefact2i;
+            jerk[j].ay    -= day*prefact2i;
+            jerk[j].az    -= daz*prefact2i;
+            jerk[i].ax    += dax*prefact2j;
+            jerk[i].ay    += day*prefact2j;
+            jerk[i].az    += daz*prefact2j;
+            const double prefact1 = L*3.*alphasum*prefact2 /(dr*dr);
+            const double prefact1i = prefact1*particles[i].m;
+            const double prefact1j = prefact1*particles[j].m;
+            jerk[j].ax    += dx*prefact1i;
+            jerk[j].ay    += dy*prefact1i;
+            jerk[j].az    += dz*prefact1i;
+            jerk[i].ax    -= dx*prefact1j;
+            jerk[i].ay    -= dy*prefact1j;
+            jerk[i].az    -= dz*prefact1j;
+        }
+    }
+    }
+
+	const double dt = r->dt;
+	for (int i=0;i<N;i++){
+        const double prefact = dt*dt*dt*v;
+		particles[i].vx += dt * y * particles[i].ax + prefact*jerk[i].ax;
+		particles[i].vy += dt * y * particles[i].ay + prefact*jerk[i].ay;
+		particles[i].vz += dt * y * particles[i].az + prefact*jerk[i].az;
     }
 }
 
-void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double dt){
-    struct reb_particle* restrict const particles = r->particles;
-    const int N = r->N;
-    for (int i=0;i<N;i++){
-        particles[i].x += dt*particles[i].vx;
-        particles[i].y += dt*particles[i].vy;
-        particles[i].z += dt*particles[i].vz;
-    }
-}
 
 static void reb_mercurana_encounter_step(struct reb_simulation* const r, const double _dt){
     // Only particles having a close encounter are integrated by IAS15.
@@ -196,12 +246,13 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
     reb_integrator_ias15_reset(r);
     
     r->dt = 0.0001*_dt; // start with a small timestep.
+    double s = copysign(1.,_dt); 
     
-    while(r->t < t_needed && fabs(r->dt/old_dt)>1e-14 ){
+    while(s*r->t < s*t_needed && fabs(r->dt/old_dt)>1e-14 ){
         reb_update_acceleration(r);
         reb_integrator_ias15_part2(r);
         
-        if (r->t+r->dt >  t_needed){
+        if (s*(r->t+r->dt) >  s*t_needed){
             r->dt = t_needed-r->t;
         }
 
@@ -226,6 +277,20 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
 
 }
 
+void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a){
+    const int N = r->N;
+    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    memcpy(rim->particles_backup,r->particles,N*sizeof(struct reb_particle)); 
+    struct reb_particle* restrict const particles = r->particles;
+    const double dt = r->dt;
+    for (int i=0;i<N;i++){
+        particles[i].x += a*dt*particles[i].vx;
+        particles[i].y += a*dt*particles[i].vy;
+        particles[i].z += a*dt*particles[i].vz;
+    }
+    reb_mercurana_encounter_predict(r, a*dt);
+    reb_mercurana_encounter_step(r,a*dt);
+}
 void reb_integrator_mercurana_part1(struct reb_simulation* r){
     if (r->var_config_N){
         reb_warning(r,"Mercurius does not work with variational equations.");
@@ -300,29 +365,50 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         // Setting default switching function
         rim->L = reb_integrator_mercurana_L_mercury;
     }
-}
-
-void reb_integrator_mercurana_part2(struct reb_simulation* const r){
-    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-    const int N = r->N;
-   
-    if (rim->is_synchronized){
-        reb_integrator_mercurana_interaction_step(r,r->dt/2.);
-    }else{
-        reb_integrator_mercurana_interaction_step(r,r->dt);
-    }
+    
     // Make copy of particles before the kepler step.
     // Then evolve all particles in kepler step.
     // Result will be used in encounter prediction.
     // Particles having a close encounter will be overwritten 
     // later by encounter step.
-    memcpy(rim->particles_backup,r->particles,N*sizeof(struct reb_particle)); 
-    reb_integrator_mercurana_drift_step(r,r->dt);
-    
-    reb_mercurana_encounter_predict(r);
+    if (rim->is_synchronized){
+        // Preprocessor
+        double z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.};
+        z[5] = -(z[0]+z[1]+z[2]+z[3]+z[4]);
+        double y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, 0.};
+        y[5] = -(y[0]+y[1]+y[2]+y[3]+y[4]);
+        double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
+        for (int i=0;i<6;i++){
+            reb_integrator_mercurana_drift_step(r, z[i]);
+            reb_integrator_mercurana_interaction_step(r, y[i], v[i]*2.,1); // recalculates accelerations
+        }
+        double a1 = -0.0682610383918630;
+        reb_integrator_mercurana_drift_step(r,a1);
+    }else{
+        double a1 = -0.0682610383918630;
+        reb_integrator_mercurana_drift_step(r,a1*2.);
+    }
+}
+
+void reb_integrator_mercurana_part2(struct reb_simulation* const r){
+    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
    
-    reb_mercurana_encounter_step(r,r->dt);
     
+        double b1 = 0.2621129352517028;
+        reb_integrator_mercurana_interaction_step(r, b1, 0.,0); // does NOT recalculate accelerations
+     
+        double a1 = -0.0682610383918630;
+        double a2 =  0.5-a1;
+        reb_integrator_mercurana_drift_step(r, a2);
+        
+        double b2 = 1.-2.*b1;
+        double c2 = 0.0164011128160783;
+        reb_integrator_mercurana_interaction_step(r, b2, c2*2.,1); // recalculates accelerations
+        
+        reb_integrator_mercurana_drift_step(r, a2);
+        
+        
+        reb_integrator_mercurana_interaction_step(r, b1, 0.,1); // recalculates accelerations
         
     rim->is_synchronized = 0;
     if (rim->safe_mode){
@@ -342,8 +428,18 @@ void reb_integrator_mercurana_synchronize(struct reb_simulation* r){
             // Setting default switching function
             rim->L = reb_integrator_mercurana_L_mercury;
         }
-        reb_update_acceleration(r);
-        reb_integrator_mercurana_interaction_step(r,r->dt/2.);
+        double a1 = -0.0682610383918630;
+        reb_integrator_mercurana_drift_step(r,a1);
+        
+        double z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.};
+        z[5] = -(z[0]+z[1]+z[2]+z[3]+z[4]);
+        double y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, 0.};
+        y[5] = -(y[0]+y[1]+y[2]+y[3]+y[4]);
+        double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
+        for (int i=5;i>=0;i--){
+            reb_integrator_mercurana_interaction_step(r, -y[i], -v[i]*2.,1); // recalculates accelerations
+            reb_integrator_mercurana_drift_step(r, -z[i]);
+        }
         
         rim->is_synchronized = 1;
     }
@@ -353,6 +449,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.L = NULL;
     r->ri_mercurana.mode = 0;
     r->ri_mercurana.encounterN = 0;
+    r->ri_mercurana.is_synchronized = 1;
     r->ri_mercurana.encounterNactive = 0;
     r->ri_mercurana.hillfac = 3;
     // Internal arrays (only used within one timestep)
