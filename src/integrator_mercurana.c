@@ -53,6 +53,19 @@ double reb_integrator_mercurana_L_mercury(const struct reb_simulation* const r, 
     }
 }
 
+double reb_integrator_mercurana_dLdr_mercury(const struct reb_simulation* const r, double d, double dcrit){
+    // This is the changeover function used by the Mercury integrator.
+    double y = (d-0.1*dcrit)/(0.9*dcrit);
+    double dydr = 1./(0.9*dcrit);
+    if (y<0.){
+        return 0.;
+    }else if (y>1.){
+        return 0.;
+    }else{
+        return dydr*(20.*(y*y) - 60.*(y*y*y) + 30.*(y*y*y*y));
+    }
+}
+
 static double f(double x){
     if (x<0) return 0;
     return exp(-1./x);
@@ -122,6 +135,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
 }
     
 void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int recalculate){
+	const double dt = r->dt;
     if (recalculate){
         reb_update_acceleration(r);
     }
@@ -143,6 +157,33 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     double (*_L) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.L;
     const double* const dcrit = r->ri_mercurana.dcrit;
     if (v!=0.){
+        //LAZY
+       //     if (r->ri_whfast.allocated_Ntemp != N){
+       //         r->ri_whfast.allocated_Ntemp = N;
+       //         r->ri_whfast.p_temp = realloc(r->ri_whfast.p_temp,sizeof(struct reb_particle)*N);
+       //     }
+       //     struct reb_particle* p_temp = r->ri_whfast.p_temp;
+
+       //     // make copy of original positions
+       //     memcpy(p_temp,particles,r->N*sizeof(struct reb_particle));
+
+       //     // WHT Eq 10.6
+       //     for (unsigned int i=0;i<N;i++){
+       //         const double prefac1 = dt*dt*v/y; 
+       //         particles[i].x += prefac1 * p_temp[i].ax;
+       //         particles[i].y += prefac1 * p_temp[i].ay;
+       //         particles[i].z += prefac1 * p_temp[i].az;
+       //     }
+       //    
+       //     // recalculate kick 
+       //     reb_update_acceleration(r);
+
+       //     for (unsigned int i=0;i<N;i++){
+       //         // reset positions
+       //         particles[i].x = p_temp[i].x;
+       //         particles[i].y = p_temp[i].y;
+       //         particles[i].z = p_temp[i].z;
+       //     }
     for (int j=0; j<N; j++){
         for (int i=0; i<j; i++){
             /////////////////
@@ -168,7 +209,7 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
             jerk[i].ax    += dax*prefact2j;
             jerk[i].ay    += day*prefact2j;
             jerk[i].az    += daz*prefact2j;
-            const double prefact1 = L*3.*alphasum*prefact2 /(dr*dr);
+            const double prefact1 = 3.*alphasum*prefact2 /(dr*dr);
             const double prefact1i = prefact1*particles[i].m;
             const double prefact1j = prefact1*particles[j].m;
             jerk[j].ax    += dx*prefact1i;
@@ -181,7 +222,6 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     }
     }
 
-	const double dt = r->dt;
 	for (int i=0;i<N;i++){
         const double prefact = dt*dt*dt*v;
 		particles[i].vx += dt * y * particles[i].ax + prefact*jerk[i].ax;

@@ -35,6 +35,7 @@
 #include "rebound.h"
 
 void reb_leapfrog_apply_C(struct reb_simulation* r, double y, double v, int recalculate){
+	const double dt = r->dt;
     if (recalculate){
         reb_update_acceleration(r);
     }
@@ -54,6 +55,36 @@ void reb_leapfrog_apply_C(struct reb_simulation* r, double y, double v, int reca
     }
 
     if (v!=0.){
+        //LAZY
+    //        // Need temporary array to store old positions
+    //        if (r->ri_whfast.allocated_Ntemp != N){
+    //            r->ri_whfast.allocated_Ntemp = N;
+    //            r->ri_whfast.p_temp = realloc(r->ri_whfast.p_temp,sizeof(struct reb_particle)*N);
+    //        }
+    //        struct reb_particle* p_temp = r->ri_whfast.p_temp;
+
+    //        // make copy of original positions
+    //        memcpy(p_temp,particles,r->N*sizeof(struct reb_particle));
+
+    //        // WHT Eq 10.6
+    //        for (unsigned int i=0;i<N;i++){
+    //            const double prefac1 = dt*dt*v/y; 
+    //            particles[i].x += prefac1 * p_temp[i].ax;
+    //            particles[i].y += prefac1 * p_temp[i].ay;
+    //            particles[i].z += prefac1 * p_temp[i].az;
+    //        }
+    //       
+    //        // recalculate kick 
+    //        reb_update_acceleration(r);
+
+    //        for (unsigned int i=0;i<N;i++){
+    //            // reset positions
+    //            particles[i].x = p_temp[i].x;
+    //            particles[i].y = p_temp[i].y;
+    //            particles[i].z = p_temp[i].z;
+    //        }
+    //}
+    //MODIFIED
     for (int j=0; j<N; j++){
         for (int i=0; i<j; i++){
             /////////////////
@@ -90,7 +121,6 @@ void reb_leapfrog_apply_C(struct reb_simulation* r, double y, double v, int reca
     }
     }
 
-	const double dt = r->dt;
 	for (int i=0;i<N;i++){
         const double prefact = dt*dt*dt*v;
 		particles[i].vx += dt * y * particles[i].ax + prefact*jerk[i].ax;
