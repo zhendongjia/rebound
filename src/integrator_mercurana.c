@@ -103,11 +103,11 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
             const double r3 = (dx3*dx3 + dy3*dy3 + dz3*dz3);
 
             double rmin = MIN(r1,r2);
-            if (t_closest>0. && t_closest<dt){
+            if (t_closest/dt>-0.5 && t_closest/dt<1.5){
                 rmin = MIN(rmin, r3);
             }
 
-            if (sqrt(rmin)< 1.1*MAX(dcrit[i],dcrit[j])){
+            if (sqrt(rmin)< 2.*MAX(dcrit[i],dcrit[j])){
                 if (rim->encounter_map[i]==0){
                     rim->encounter_map[i] = i;
                     rim->encounterN++;
