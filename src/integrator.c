@@ -195,7 +195,8 @@ void reb_update_acceleration(struct reb_simulation* r){
                 r->ri_mercurana.allocatedN_additionalforces = r->N;
             }
             memcpy(r->ri_mercurana.particles_backup_additionalforces,r->particles,r->N*sizeof(struct reb_particle)); 
-            reb_integrator_mercurana_dh_to_inertial(r);
+            // Not sure if there is an issue with mercurana by commenting this out TODO
+            //reb_integrator_mercurana_dh_to_inertial(r);
         }
         r->additional_forces(r);
         if (r->integrator==REB_INTEGRATOR_MERCURIUS){

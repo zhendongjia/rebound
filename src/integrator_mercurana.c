@@ -71,81 +71,6 @@ double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r,
 }
 
 
-void reb_integrator_mercurana_inertial_to_dh(struct reb_simulation* r){
-    struct reb_particle* restrict const particles = r->particles;
-    struct reb_vec3d com_pos = {0};
-    struct reb_vec3d com_vel = {0};
-    double mtot = 0.;
-    const int N_active = r->N_active==-1?r->N:r->N_active;
-    const int N = r->N;
-    for (int i=0;i<N_active;i++){
-        double m = particles[i].m;
-        com_pos.x += m * particles[i].x;
-        com_pos.y += m * particles[i].y;
-        com_pos.z += m * particles[i].z;
-        com_vel.x += m * particles[i].vx;
-        com_vel.y += m * particles[i].vy;
-        com_vel.z += m * particles[i].vz;
-        mtot += m; 
-    }
-    com_pos.x /= mtot; com_pos.y /= mtot; com_pos.z /= mtot;
-    com_vel.x /= mtot; com_vel.y /= mtot; com_vel.z /= mtot;
-    // Particle 0 is also changed to allow for easy collision detection
-    for (int i=N-1;i>=0;i--){ 
-        particles[i].x -= particles[0].x;
-        particles[i].y -= particles[0].y;
-        particles[i].z -= particles[0].z;
-        particles[i].vx -= com_vel.x;
-        particles[i].vy -= com_vel.y;
-        particles[i].vz -= com_vel.z;
-    }
-    r->ri_mercurana.com_pos = com_pos;
-    r->ri_mercurana.com_vel = com_vel;
-}
-
-void reb_integrator_mercurana_dh_to_inertial(struct reb_simulation* r){
-    struct reb_particle* restrict const particles = r->particles;
-    struct reb_particle temp = {0};
-    const int N = r->N;
-    const int N_active = r->N_active==-1?r->N:r->N_active;
-    for (int i=1;i<N_active;i++){
-        double m = particles[i].m;
-        temp.x += m * particles[i].x;
-        temp.y += m * particles[i].y;
-        temp.z += m * particles[i].z;
-        temp.vx += m * particles[i].vx;
-        temp.vy += m * particles[i].vy;
-        temp.vz += m * particles[i].vz;
-        temp.m += m;
-    }
-    temp.m += r->particles[0].m;
-    temp.x /= temp.m; 
-    temp.y /= temp.m;
-    temp.z /= temp.m;
-    temp.vx /= particles[0].m; 
-    temp.vy /= particles[0].m;
-    temp.vz /= particles[0].m;
-    // Use com to calculate central object's position.
-    // This ignores previous values stored in particles[0].
-    // Should not matter unless collisions occured.
-    particles[0].x = r->ri_mercurana.com_pos.x - temp.x; 
-    particles[0].y = r->ri_mercurana.com_pos.y - temp.y; 
-    particles[0].z = r->ri_mercurana.com_pos.z - temp.z; 
-
-    for (int i=1;i<N;i++){
-        particles[i].x += particles[0].x;
-        particles[i].y += particles[0].y;
-        particles[i].z += particles[0].z;
-        particles[i].vx += r->ri_mercurana.com_vel.x;
-        particles[i].vy += r->ri_mercurana.com_vel.y;
-        particles[i].vz += r->ri_mercurana.com_vel.z;
-    }
-    particles[0].vx = r->ri_mercurana.com_vel.x - temp.vx; 
-    particles[0].vy = r->ri_mercurana.com_vel.y - temp.vy; 
-    particles[0].vz = r->ri_mercurana.com_vel.z - temp.vz; 
-}
-
-
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r){
     // This function predicts close encounters during the timestep
     // It makes use of the old and new position and velocities obtained
@@ -224,43 +149,20 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r){
 void reb_integrator_mercurana_interaction_step(struct reb_simulation* const r, double dt){
     struct reb_particle* restrict const particles = r->particles;
     const int N = r->N;
-    for (int i=1;i<N;i++){
+    for (int i=0;i<N;i++){
         particles[i].vx += dt*particles[i].ax;
         particles[i].vy += dt*particles[i].ay;
         particles[i].vz += dt*particles[i].az;
     }
 }
 
-void reb_integrator_mercurana_jump_step(struct reb_simulation* const r, double dt){
+void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double dt){
     struct reb_particle* restrict const particles = r->particles;
     const int N = r->N;
-    double px=0., py=0., pz=0.;
-    for (int i=1;i<N;i++){
-        px += r->particles[i].vx*r->particles[i].m; // in dh
-        py += r->particles[i].vy*r->particles[i].m; 
-        pz += r->particles[i].vz*r->particles[i].m;
-    }
-    px /= r->particles[0].m;
-    py /= r->particles[0].m;
-    pz /= r->particles[0].m;
-    for (int i=1;i<N;i++){
-        particles[i].x += dt*px;
-        particles[i].y += dt*py;
-        particles[i].z += dt*pz;
-    }
-}
-
-void reb_integrator_mercurana_com_step(struct reb_simulation* const r, double dt){
-    r->ri_mercurana.com_pos.x += dt*r->ri_mercurana.com_vel.x;
-    r->ri_mercurana.com_pos.y += dt*r->ri_mercurana.com_vel.y;
-    r->ri_mercurana.com_pos.z += dt*r->ri_mercurana.com_vel.z;
-}
-
-void reb_integrator_mercurana_kepler_step(struct reb_simulation* const r, double dt){
-    struct reb_particle* restrict const particles = r->particles;
-    const int N = r->N;
-    for (int i=1;i<N;i++){
-        reb_whfast_kepler_solver(r,particles,r->G*particles[0].m,i,dt); // in dh
+    for (int i=0;i<N;i++){
+        particles[i].x += dt*particles[i].vx;
+        particles[i].y += dt*particles[i].vy;
+        particles[i].z += dt*particles[i].vz;
     }
 }
 
@@ -362,9 +264,6 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         rim->dcrit_allocatedN = N;
         // If particle number increased (or this is the first step), need to calculate critical radii
         rim->recalculate_dcrit_this_timestep        = 1;
-        // Heliocentric coordinates were never calculated.
-        // This will get triggered on first step only (not when loaded from archive)
-        rim->recalculate_coordinates_this_timestep = 1;
     }
     if (rim->allocatedN<N){
         // These arrays are only used within one timestep. 
@@ -372,14 +271,6 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         rim->particles_backup   = realloc(rim->particles_backup,sizeof(struct reb_particle)*N);
         rim->encounter_map      = realloc(rim->encounter_map,sizeof(int)*N);
         rim->allocatedN = N;
-    }
-    if (rim->safe_mode || rim->recalculate_coordinates_this_timestep){
-        if (rim->is_synchronized==0){
-            reb_integrator_mercurana_synchronize(r);
-            reb_warning(r,"MERCURANA: Recalculating heliocentric coordinates but coordinates were not synchronized before.");
-        }
-        reb_integrator_mercurana_inertial_to_dh(r);
-        rim->recalculate_coordinates_this_timestep = 0;
     }
 
     if (rim->recalculate_dcrit_this_timestep){
@@ -444,22 +335,18 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
     }else{
         reb_integrator_mercurana_interaction_step(r,r->dt);
     }
-    reb_integrator_mercurana_jump_step(r,r->dt/2.);
-    reb_integrator_mercurana_com_step(r,r->dt); 
-    
     // Make copy of particles before the kepler step.
     // Then evolve all particles in kepler step.
     // Result will be used in encounter prediction.
     // Particles having a close encounter will be overwritten 
     // later by encounter step.
     memcpy(rim->particles_backup,r->particles,N*sizeof(struct reb_particle)); 
-    reb_integrator_mercurana_kepler_step(r,r->dt);
+    reb_integrator_mercurana_drift_step(r,r->dt);
     
     reb_mercurana_encounter_predict(r);
    
     reb_mercurana_encounter_step(r,r->dt);
     
-    reb_integrator_mercurana_jump_step(r,r->dt/2.);
         
     rim->is_synchronized = 0;
     if (rim->safe_mode){
@@ -482,8 +369,6 @@ void reb_integrator_mercurana_synchronize(struct reb_simulation* r){
         reb_update_acceleration(r);
         reb_integrator_mercurana_interaction_step(r,r->dt/2.);
         
-        reb_integrator_mercurana_dh_to_inertial(r);
-
         rim->is_synchronized = 1;
     }
 }
@@ -494,7 +379,6 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.encounterN = 0;
     r->ri_mercurana.encounterNactive = 0;
     r->ri_mercurana.hillfac = 3;
-    r->ri_mercurana.recalculate_coordinates_this_timestep = 0;
     // Internal arrays (only used within one timestep)
     free(r->ri_mercurana.particles_backup);
     r->ri_mercurana.particles_backup = NULL;
