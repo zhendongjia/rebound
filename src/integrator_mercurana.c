@@ -198,15 +198,8 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
     r->dt = 0.0001*_dt; // start with a small timestep.
     
     while(r->t < t_needed && fabs(r->dt/old_dt)>1e-14 ){
-        struct reb_particle star = r->particles[0]; // backup velocity
-        r->particles[0].vx = 0; // star does not move in dh 
-        r->particles[0].vy = 0;
-        r->particles[0].vz = 0;
         reb_update_acceleration(r);
         reb_integrator_ias15_part2(r);
-        r->particles[0].vx = star.vx; // restore every timestep for collisions
-        r->particles[0].vy = star.vy;
-        r->particles[0].vz = star.vz;
         
         if (r->t+r->dt >  t_needed){
             r->dt = t_needed-r->t;
@@ -223,23 +216,6 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
         // r->ri_mercurana.mode
         if (r->post_timestep_modifications){
             r->post_timestep_modifications(r);
-        }
-
-        star.vx = r->particles[0].vx; // keep track of changed star velocity for later collisions
-        star.vy = r->particles[0].vy;
-        star.vz = r->particles[0].vz;
-        if (r->particles[0].x !=0 || r->particles[0].y !=0 || r->particles[0].z !=0){
-            // Collision with star occured
-            // Shift all particles back to heliocentric coordinates
-            // Ignore stars velocity:
-            //   - will not be used after this
-            //   - com velocity is unchained. this velocity will be used
-            //     to reconstruct star's velocity later.
-            for (int i=r->N-1; i>=0; i--){
-                r->particles[i].x -= r->particles[0].x;
-                r->particles[i].y -= r->particles[0].y;
-                r->particles[i].z -= r->particles[0].z;
-            }
         }
     }
 
