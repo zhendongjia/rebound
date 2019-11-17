@@ -82,9 +82,9 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r){
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
     const double dt = r->dt;
-    rim->encounterN = 1;
-    rim->encounter_map[0] = 1;
-    for (int i=1; i<N; i++){
+    rim->encounterN = 0;
+    //rim->encounter_map[0] = 1; star not part of encounter in mercurana
+    for (int i=0; i<N; i++){
         rim->encounter_map[i] = 0;
     }
     for (int i=0; i<N_active; i++){
