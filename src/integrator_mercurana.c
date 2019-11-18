@@ -62,13 +62,17 @@ double reb_integrator_mercurana_dLdr_mercury(const struct reb_simulation* const 
     }else if (y>1.){
         return 0.;
     }else{
-        return dydr*(20.*(y*y) - 60.*(y*y*y) + 30.*(y*y*y*y));
+        return dydr*(30.*(y*y) - 60.*(y*y*y) + 30.*(y*y*y*y));
     }
 }
 
 static double f(double x){
     if (x<0) return 0;
     return exp(-1./x);
+}
+static double dfdy(double x){
+    if (x<0) return 0;
+    return exp(-1./x)/(x*x);
 }
 
 double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r, double d, double dcrit){
@@ -80,6 +84,21 @@ double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r,
         return 1.;
     }else{
         return f(y) /(f(y) + f(1.-y));
+    }
+}
+double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation* const r, double d, double dcrit){
+    // Infinitely differentiable function.
+    double y = (d-0.1*dcrit)/(0.9*dcrit);
+    double dydr = 1./(0.9*dcrit);
+    if (y<0.){
+        return 0.;
+    }else if (y>1.){
+        return 0.;
+    }else{
+        return dydr*(
+                dfdy(y) /(f(y) + f(1.-y))
+                -f(y) /(f(y) + f(1.-y))/(f(y) + f(1.-y)) * (dfdy(y) - dfdy(1.-y))
+                );
     }
 }
 
@@ -199,17 +218,18 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
             const double dr = sqrt(dx*dx + dy*dy + dz*dz);
             const double dcritmax = MAX(dcrit[i],dcrit[j]);
             const double L = _L(r,dr,dcritmax);
+            const double dLdr = reb_integrator_mercurana_dLdr_infinity(r, dr, dcritmax);
             const double alphasum = dax*dx+day*dy+daz*dz;
-            const double prefact2 = L*G /(dr*dr*dr);
-            const double prefact2i = prefact2*particles[i].m;
-            const double prefact2j = prefact2*particles[j].m;
+            const double prefact2 = G /(dr*dr*dr);
+            const double prefact2i = L*prefact2*particles[i].m;
+            const double prefact2j = L*prefact2*particles[j].m;
             jerk[j].ax    -= dax*prefact2i;
             jerk[j].ay    -= day*prefact2i;
             jerk[j].az    -= daz*prefact2i;
             jerk[i].ax    += dax*prefact2j;
             jerk[i].ay    += day*prefact2j;
             jerk[i].az    += daz*prefact2j;
-            const double prefact1 = 3.*alphasum*prefact2 /(dr*dr);
+            const double prefact1 = alphasum*prefact2 *(3*L/(dr*dr)-dLdr/dr);
             const double prefact1i = prefact1*particles[i].m;
             const double prefact1j = prefact1*particles[j].m;
             jerk[j].ax    += dx*prefact1i;
@@ -377,7 +397,7 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     
     if (rim->L == NULL){
         // Setting default switching function
-        rim->L = reb_integrator_mercurana_L_mercury;
+        rim->L = reb_integrator_mercurana_L_infinity;
     }
     
     // Make copy of particles before the kepler step.
@@ -439,7 +459,7 @@ void reb_integrator_mercurana_synchronize(struct reb_simulation* r){
         rim->mode = 0;
         if (rim->L == NULL){
             // Setting default switching function
-            rim->L = reb_integrator_mercurana_L_mercury;
+            rim->L = reb_integrator_mercurana_L_infinity;
         }
         double a1 = -0.0682610383918630;
         reb_integrator_mercurana_drift_step(r,a1);
