@@ -1113,7 +1113,9 @@ void reb_display_prepare_data(struct reb_simulation* const r, int orbits){
     struct reb_simulation* const r_copy = data->r_copy;
 
     // this only does something for WHFAST
-    reb_integrator_synchronize(r_copy);
+    if (r->integrator != REB_INTEGRATOR_MERCURANA){
+        reb_integrator_synchronize(r_copy);
+    }
        
     // Update data on GPU 
     for (int i=0;i<r_copy->N;i++){
