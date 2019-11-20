@@ -1927,6 +1927,7 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("_dcrit", POINTER(c_double)),
                 ("_particles_backup", POINTER(Particle)),
                 ("_particles_backup_additionalforces", POINTER(Particle)),
+                ("_hasencounter", POINTER(c_int)),
                 ("_encounter_map", POINTER(c_int)),
                 ("_com_pos", reb_vec3d),
                 ("_com_vel", reb_vec3d),

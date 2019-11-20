@@ -113,7 +113,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     const int N_active = r->N_active==-1?r->N:r->N_active;
     rim->encounterN = 0;
     for (int i=0; i<N; i++){
-        rim->encounter_map[i] = 0;
+        rim->hasencounter[i] = 0;
     }
     for (int i=0; i<N_active; i++){
         for (int j=i+1; j<N; j++){
@@ -140,12 +140,14 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
             }
 
             if (sqrt(rmin)< 2.*MAX(dcrit[i],dcrit[j])){
-                if (rim->encounter_map[i]==0){
-                    rim->encounter_map[i] = i;
+                if (rim->hasencounter[i]==0){
+                    rim->hasencounter[i] = 1;
+                    rim->encounter_map[rim->encounterN] = i;
                     rim->encounterN++;
                 }
-                if (rim->encounter_map[j]==0){
-                    rim->encounter_map[j] = j;
+                if (rim->hasencounter[j]==0){
+                    rim->hasencounter[j] = 1;
+                    rim->encounter_map[rim->encounterN] = j;
                     rim->encounterN++;
                 }
             }
@@ -446,27 +448,22 @@ void reb_integrator_mercurana_interaction_step_encounter(struct reb_simulation* 
 static void reb_mercurana_encounter_step(struct reb_simulation* const r, const double _dt){
     // Only particles having a close encounter are integrated by IAS15.
     struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
-    if (rim->encounterN<2){
+    if (rim->encounterN<1){
         return; // If there are no particles (other than the star) having a close encounter, then there is nothing to do.
     }
 
-    int i_enc = 0;
     rim->encounterNactive = 0;
-    for (unsigned int i=0; i<r->N; i++){
-        if(rim->encounter_map[i]){  
-            rim->encounter_map[i_enc] = i;
-            i_enc++;
-            if (r->N_active==-1 || i<r->N_active){
-                rim->encounterNactive++;
-            }
+    for (unsigned int i=0; i<rim->encounterN; i++){
+        if(rim->encounter_map[i] < r->N_active || r->N_active==-1){
+            rim->encounterNactive++;
         }
     }
 
     rim->mode = 1;
-    const int Nsubsteps = 100;
+    const int Nsubsteps = 10;
     const double old_dt = r->dt;
     const double old_t = r->t;
-    r->dt /= Nsubsteps;
+    r->dt = _dt/Nsubsteps;
     
     // Preprocessor
     double z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.};
@@ -543,13 +540,13 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
     const double dt = r->dt;
     reb_mercurana_encounter_predict(r, a*dt);
     for (int i=0;i<N;i++){
-        if(rim->encounter_map[i]==0){  // only advance non-encounter particles
+        if(rim->hasencounter[i]==0){  // only advance non-encounter particles
             particles[i].x += a*dt*particles[i].vx;
             particles[i].y += a*dt*particles[i].vy;
             particles[i].z += a*dt*particles[i].vz;
         }
     }
-    reb_mercurana_encounter_step(r,a*dt);
+    reb_mercurana_encounter_step(r,a*dt); // advance encounter particles here.
 }
 void reb_integrator_mercurana_part1(struct reb_simulation* r){
     if (r->var_config_N){
@@ -569,6 +566,7 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     if (rim->allocatedN<N){
         // These arrays are only used within one timestep. 
         // Can be recreated without loosing bit-wise reproducibility
+        rim->hasencounter       = realloc(rim->hasencounter,sizeof(int)*N);
         rim->encounter_map      = realloc(rim->encounter_map,sizeof(int)*N);
         rim->allocatedN = N;
     }
@@ -715,6 +713,8 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.particles_backup_additionalforces = NULL;
     free(r->ri_mercurana.encounter_map);
     r->ri_mercurana.encounter_map = NULL;
+    free(r->ri_mercurana.hasencounter);
+    r->ri_mercurana.hasencounter = NULL;
     r->ri_mercurana.allocatedN = 0;
     r->ri_mercurana.allocatedN_additionalforces = 0;
     // dcrit array

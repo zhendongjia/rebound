@@ -334,6 +334,7 @@ struct reb_simulation_integrator_mercurana {
     double* dcrit;                  ///< Switching radii for particles
     struct reb_particle* REBOUND_RESTRICT particles_backup;     ///< Internal array, contains coordinates before Kepler step for encounter prediction
     struct reb_particle* REBOUND_RESTRICT particles_backup_additionalforces;     ///< Internal array, contains coordinates before Kepler step for encounter prediction
+    int* hasencounter;              ///< 0 if not part of encounter, 1 if part of encounter
     int* encounter_map;             ///< Map to represent which particles are integrated with ias15
     struct reb_vec3d com_pos;       ///< Used internally to keep track of the centre of mass during the timestep
     struct reb_vec3d com_vel;       ///< Used internally to keep track of the centre of mass during the timestep

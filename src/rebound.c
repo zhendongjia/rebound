@@ -383,6 +383,7 @@ void reb_reset_temporary_pointers(struct reb_simulation* const r){
     r->ri_mercurana.particles_backup = NULL;
     r->ri_mercurana.particles_backup_additionalforces = NULL;
     r->ri_mercurana.encounter_map = NULL;
+    r->ri_mercurana.hasencounter = NULL;
 
     // ********** JANUS
     r->ri_janus.allocated_N = 0;
