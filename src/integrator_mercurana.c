@@ -460,7 +460,7 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
     }
 
     rim->mode = 1;
-    const int Nsubsteps = 10;
+    const int Nsubsteps = rim->Nsubsteps;
     const double old_dt = r->dt;
     const double old_t = r->t;
     r->dt = _dt/Nsubsteps;
@@ -591,12 +591,13 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
 
             const double GM = r->G*(m0+r->particles[i].m);
             const double a = GM*_r / (2.*GM - _r*v2);
-            const double vc = sqrt(GM/fabs(a));
+            //const double vc = sqrt(GM/fabs(a));
             double dcrit = 0;
+            // Criteria 1 and 2 commented out because particles move along straight lines during drift step, thus can predit encounters
             // Criteria 1: average velocity
-            dcrit = MAX(dcrit, vc*0.4*r->dt);
+            //dcrit = MAX(dcrit, vc*0.4*r->dt);
             // Criteria 2: current velocity
-            dcrit = MAX(dcrit, sqrt(v2)*0.4*r->dt);
+            //dcrit = MAX(dcrit, sqrt(v2)*0.4*r->dt);
             // Criteria 3: Hill radius
             dcrit = MAX(dcrit, rim->hillfac*a*pow(r->particles[i].m/(3.*r->particles[0].m),1./3.));
             // Criteria 4: physical radius
@@ -708,6 +709,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.is_synchronized = 1;
     r->ri_mercurana.encounterNactive = 0;
     r->ri_mercurana.hillfac = 3;
+    r->ri_mercurana.Nsubsteps = 10;
     // Internal arrays (only used within one timestep)
     free(r->ri_mercurana.particles_backup_additionalforces);
     r->ri_mercurana.particles_backup_additionalforces = NULL;

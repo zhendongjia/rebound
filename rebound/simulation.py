@@ -1917,6 +1917,7 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("recalculate_coordinates_this_timestep", c_uint),
                 ("recalculate_dcrit_this_timestep", c_uint),
                 ("safe_mode", c_uint),
+                ("Nsubsteps", c_uint),
                 ("_is_synchronized", c_uint),
                 ("mode", c_uint),
                 ("_encounterN", c_uint),

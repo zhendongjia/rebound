@@ -594,6 +594,7 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_mercurana.is_synchronized = 1;
     r->ri_mercurana.encounterN = 0;
     r->ri_mercurana.hillfac = 3;
+    r->ri_mercurana.Nsubsteps = 10;
 
     // Tree parameters. Will not be used unless gravity or collision search makes use of tree.
     r->tree_needs_update= 0;
