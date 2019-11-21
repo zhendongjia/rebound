@@ -174,9 +174,10 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
             if (sqrt(rmin)< 2.*MAX(dcrit[mi],dcrit[mj])){ // TODO remove sqrt
                 // j particle will be added later (active particles need to be in array first)
                 rim->inshell[mi] = shell+1;
-                rim->map[shell+1][rim->shellN[shell+1]] = i;
+                rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
                 rim->shellN_active[shell+1]++;
+                break; // only add particle i once
             }
         }
     }
@@ -184,13 +185,13 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         int mi = map[i]; 
         for (int j=0; j<N_active; j++){
             int mj = map[j]; 
-            if (i==j) continue;
             double rmin = reb_mercurana_predict_rmin(particles[mi],particles[mj],dt);
 
             if (sqrt(rmin)< 2.*MAX(dcrit[mi],dcrit[mj])){ // TODO remove sqrt
                 rim->inshell[mi] = shell+1;
-                rim->map[shell+1][rim->shellN[shell+1]] = i;
+                rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
+                break; // only add particle i once
             }
         }
     }
@@ -257,14 +258,12 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
             const double dcritmax_inner = MAX(dcrit_inner[mi],dcrit_inner[mj]);
             const double L_inner = _L(r,_r,dcritmax_inner);
             double L_outer = 0.;
+            double dcritmax_outer = 0.;
             if (shell!=0){
-                const double dcritmax_outer = MAX(dcrit_outer[mi],dcrit_outer[mj]);
+                dcritmax_outer = MAX(dcrit_outer[mi],dcrit_outer[mj]);
                 L_outer = _L(r,_r,dcritmax_outer);
             }
             const double prefact = -G*particles[mj].m*L_inner*(1.-L_outer)/(_r*_r*_r);
-            if (i==0 && j==1 && shell==1 && L_outer!=1.)
-            printf("%.4f %d %d %d   %.3f %3f\n",r->t, shell, i, j, L_inner, L_outer);
-            //printf("%d ",shell+1); fflush(stdout); 
             particles[mi].ax    += prefact*dx;
             particles[mi].ay    += prefact*dy;
             particles[mi].az    += prefact*dz;
