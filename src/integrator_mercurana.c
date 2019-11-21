@@ -102,6 +102,12 @@ double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation* const
     }
 }
 
+const double a_6[2] = {-0.0682610383918630,0.568261038391863038121699}; // a1 a2
+const double b_6[2] = {0.2621129352517028, 0.475774129496594366806050}; // b1 b2
+const double c_6[2] = {0., 0.0164011128160783}; // c1 c2
+const double z_6[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.564398710666239478150885};
+const double y_6[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, -0.680252073928462652752103};
+const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
 
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt){
     double dts = copysign(1.,dt); 
@@ -313,11 +319,6 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
     r->dt = _dt/Nsubsteps;
     
     // Preprocessor
-    double z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.};
-    z[5] = -(z[0]+z[1]+z[2]+z[3]+z[4]);
-    double y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, 0.};
-    y[5] = -(y[0]+y[1]+y[2]+y[3]+y[4]);
-    double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
     for (int i=0;i<6;i++){
         reb_integrator_mercurana_drift_step_encounter(r, z[i]);
         reb_integrator_mercurana_interaction_step_encounter(r, y[i], v[i]*2.,1); // recalculates accelerations
@@ -562,33 +563,18 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
             reb_integrator_mercurana_synchronize(r);
             reb_warning(r,"MERCURANA: Recalculating dcrit but pos/vel were not synchronized before.");
         }
+        // TODO: need to think about cetral object more
         rim->dcrit[0] = 2.*r->particles[0].r; // central object only uses physical radius
-        const double m0 = r->particles[0].m;
-        for (int i=1;i<N;i++){
-            const double dx  = r->particles[i].x;  // in dh
-            const double dy  = r->particles[i].y;
-            const double dz  = r->particles[i].z;
-            const double dvx = r->particles[i].vx - r->particles[0].vx; 
-            const double dvy = r->particles[i].vy - r->particles[0].vy; 
-            const double dvz = r->particles[i].vz - r->particles[0].vz; 
-            const double _r = sqrt(dx*dx + dy*dy + dz*dz);
-            const double v2 = dvx*dvx + dvy*dvy + dvz*dvz;
-
-            const double GM = r->G*(m0+r->particles[i].m);
-            const double a = GM*_r / (2.*GM - _r*v2);
-            //const double vc = sqrt(GM/fabs(a));
-            double dcrit = 0;
-            // Criteria 1 and 2 commented out because particles move along straight lines during drift step, thus can predit encounters
-            // Criteria 1: average velocity
-            //dcrit = MAX(dcrit, vc*0.4*r->dt);
-            // Criteria 2: current velocity
-            //dcrit = MAX(dcrit, sqrt(v2)*0.4*r->dt);
-            // Criteria 3: Hill radius
-            dcrit = MAX(dcrit, rim->hillfac*a*pow(r->particles[i].m/(3.*r->particles[0].m),1./3.));
-            // Criteria 4: physical radius
-            dcrit = MAX(dcrit, 2.*r->particles[i].r);
-
-            rim->dcrit[i] = dcrit;
+        double critical_timescale = r->dt*rim->dt_frac;
+        for (int s=0;s<rim->Nmaxshells;s++){
+            for (int i=1;i<N;i++){
+                // radius at which escape speed is equal to critical timescale
+                // TODO: make machine independent
+                double dcrit = pow(critical_timescale*critical_timescale*r->G*r->particles[i].m,1./3.);
+                dcrit = MAX(dcrit, 2.*r->particles[i].r);
+                rim->dcrit[s][i] = dcrit;
+            }
+            critical_timescale /= Nstepspershell;
         }
     }
     
@@ -602,56 +588,36 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         reb_warning(r,"Mercurius has it's own gravity routine. Gravity routine set by the user will be ignored.");
     }
     r->gravity = REB_GRAVITY_MERCURANA;
-    rim->mode = 0;
     
     if (rim->L == NULL){
         // Setting default switching function
         rim->L = reb_integrator_mercurana_L_infinity;
-    }
-    
-    // Make copy of particles before the kepler step.
-    // Then evolve all particles in kepler step.
-    // Result will be used in encounter prediction.
-    // Particles having a close encounter will be overwritten 
-    // later by encounter step.
-    if (rim->is_synchronized){
-        // Preprocessor
-        double z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.};
-        z[5] = -(z[0]+z[1]+z[2]+z[3]+z[4]);
-        double y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, 0.};
-        y[5] = -(y[0]+y[1]+y[2]+y[3]+y[4]);
-        double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
-        for (int i=0;i<6;i++){
-            reb_integrator_mercurana_drift_step(r, z[i]);
-            reb_integrator_mercurana_interaction_step(r, y[i], v[i]*2.,1); // recalculates accelerations
-        }
-        double a1 = -0.0682610383918630;
-        reb_integrator_mercurana_drift_step(r,a1);
-    }else{
-        double a1 = -0.0682610383918630;
-        reb_integrator_mercurana_drift_step(r,a1*2.);
+        rim->dLdr = reb_integrator_mercurana_dLdr_infinity;
     }
 }
 
+void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, int shell){
+    for (int i=0;i<6;i++){
+        reb_integrator_mercurana_drift_step(r, z_6[i], shell);
+        reb_integrator_mercurana_interaction_step(r, y_6[i], v_6[i]*2.,1,shell);
+    }
+}
+void reb_integrator_mercurana_step(struct reb_simulation* const r, int shell){
+    reb_integrator_mercurana_drift_step(r, a_6[0], shell);
+    reb_integrator_mercurana_interaction_step(r, b_6[0], c_6[0]*2., 1, shell);
+    reb_integrator_mercurana_drift_step(r, a_6[1], shell);
+    reb_integrator_mercurana_interaction_step(r, b_6[1], c_6[1]*2., 1, shell); 
+    reb_integrator_mercurana_drift_step(r, a_6[1], shell);
+    reb_integrator_mercurana_interaction_step(r, b_6[0], c_6[0]*2., 1, shell);
+    reb_integrator_mercurana_drift_step(r, a_6[0], shell);
+}
+
 void reb_integrator_mercurana_part2(struct reb_simulation* const r){
-    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-    
-    double b1 = 0.2621129352517028;
-    reb_integrator_mercurana_interaction_step(r, b1, 0.,1); // recalculates accelerations (Not sure if needed! TODO)
- 
-    double a1 = -0.0682610383918630;
-    double a2 =  0.5-a1;
-    reb_integrator_mercurana_drift_step(r, a2);
-    
-    double b2 = 1.-2.*b1;
-    double c2 = 0.0164011128160783;
-    reb_integrator_mercurana_interaction_step(r, b2, c2*2.,1); // recalculates accelerations
-    
-    reb_integrator_mercurana_drift_step(r, a2);
-    
-    
-    reb_integrator_mercurana_interaction_step(r, b1, 0.,1); // recalculates accelerations
-        
+    if (rim->is_synchronized){
+        reb_integrator_mercurana_preprocessor(r, 0);
+    }
+    reb_integrator_mercurana_step(r, 0);
+
     rim->is_synchronized = 0;
     if (rim->safe_mode){
         reb_integrator_mercurana_synchronize(r);

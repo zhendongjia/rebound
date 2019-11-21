@@ -317,7 +317,7 @@ struct reb_simulation_integrator_mercurana {
 
     unsigned int order;
     unsigned int safe_mode;
-    double dt_fac;        
+    double dt_frac;        
     unsigned int Nmaxshells;
     unsigned int Nstepspershell;        
     unsigned int** map;  // from shell to global       
