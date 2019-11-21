@@ -109,18 +109,26 @@ const double z_6[6] = { 0.07943288242455420, 0.02974829169467665, -0.70570749648
 const double y_6[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, -0.680252073928462652752103};
 const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
 
-static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt){
+static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt, int shell){
     double dts = copysign(1.,dt); 
     dt = fabs(dt);
     struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
     struct reb_particle* const particles = r->particles;
-    const double* const dcrit = rim->dcrit;
-    const int N = r->N;
-    const int N_active = r->N_active==-1?r->N:r->N_active;
-    rim->encounterN = 0;
+    const double* const dcrit = rim->dcrit[shell];
+    const int N = r->shellN[shell];
+    const int N_active = r->shellN_active[shell];
+
+    // Put all particles in current shell by default
     for (int i=0; i<N; i++){
-        rim->hasencounter[i] = 0;
+        int mi = map[i]; 
+        rim->inshell[mi] = shell;
     }
+    
+    // Check if particles are in sub-shell
+    if (shell+1<rim->Nmaxshells){ // does sub-shell exist?
+        rim->shellN[shell+1] = 0;
+        rim->shellN_active[shell+1] = 0;
+
     for (int i=0; i<N_active; i++){
         for (int j=i+1; j<N; j++){
             const double dx1 = particles[i].x - particles[j].x; // distance at beginning
@@ -166,25 +174,23 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
     const int N = rim.shellN[shell];
     int* map = rim.map[shell];
     struct reb_particle* restrict const particles = r->particles;
-    const double dt = r->dt;
-    reb_mercurana_encounter_predict(r, a*dt, shell);
+    reb_mercurana_encounter_predict(r, a, shell);
     for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
         int mi = map[i]; 
         if(rim->inshell[mi]==shell){  // only advance in-shell particles
-            particles[mi].x += a*dt*particles[mi].vx;
-            particles[mi].y += a*dt*particles[mi].vy;
-            particles[mi].z += a*dt*particles[mi].vz;
+            particles[mi].x += a*particles[mi].vx;
+            particles[mi].y += a*particles[mi].vy;
+            particles[mi].z += a*particles[mi].vz;
         }
     }
     if (shell+1<rim->Nmaxshells){ // does sub-shell exist?
         // advance all sub-shell particles
-        //                               a*dt not wrking yet
-        dt / Nstepspershell
-        reb_integrator_mercurana_preprocessor(r, a*dt, shell+1);
+        double as = a/Nstepspershell;
+        reb_integrator_mercurana_preprocessor(r, as, shell+1);
         for (int i=0;i<rim->Nstepspershell;i++){
-            reb_integrator_mercurana_step(r, a*dt, shell+1);
+            reb_integrator_mercurana_step(r, as, shell+1);
         }
-        reb_integrator_mercurana_postprocessor(r, a*dt, shell+1);
+        reb_integrator_mercurana_postprocessor(r, as, shell+1);
     }
 }
 
@@ -205,7 +211,6 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
 
     double (*_L) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.L;
     double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.dLdr;
-    const double dt = r->dt;
     // Normal force calculation 
     for (int i=0; i<N; i++){
         if (reb_sigint) return;
@@ -357,32 +362,31 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     }
 
     for (int i=0;i<N;i++){
-        const double prefact = dt*dt*dt*v;
         int mi = map[i];
-        particles[mi].vx += dt * y * particles[mi].ax + prefact*jerk[i].ax;
-        particles[mi].vy += dt * y * particles[mi].ay + prefact*jerk[i].ay;
-        particles[mi].vz += dt * y * particles[mi].az + prefact*jerk[i].az;
+        particles[mi].vx += y*particles[mi].ax + v*jerk[i].ax;
+        particles[mi].vy += y*particles[mi].ay + v*jerk[i].ay;
+        particles[mi].vz += y*particles[mi].az + v*jerk[i].az;
     }
 }
 void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, int shell, double dt){
     for (int i=0;i<6;i++){
         reb_integrator_mercurana_drift_step(r, dt*z_6[i], shell);
-        reb_integrator_mercurana_interaction_step(r, dt*y_6[i], v_6[i]*2., 1, shell);
+        reb_integrator_mercurana_interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2., 1, shell);
     }
 }
 void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, int shell, double dt){
     for (int i=5;i>=0;i--){
-        reb_integrator_mercurana_interaction_step(r, -dt*y_6[i], -v_6[i]*2., 1, shell); TODO need to put dt in front of v_6
+        reb_integrator_mercurana_interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2., 1, shell); 
         reb_integrator_mercurana_drift_step(r, -dt*z_6[i], shell);
     }
 }
 void reb_integrator_mercurana_step(struct reb_simulation* const r, int shell, double dt){
     reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
-    reb_integrator_mercurana_interaction_step(r, dt*b_6[0], c_6[0]*2., 1, shell);  TODO Need to add dt in front of c_6 
+    reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., 1, shell); 
     reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
-    reb_integrator_mercurana_interaction_step(r, dt*b_6[1], c_6[1]*2., 1, shell); 
+    reb_integrator_mercurana_interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., 1, shell); 
     reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
-    reb_integrator_mercurana_interaction_step(r, dt*b_6[0], c_6[0]*2., 1, shell);
+    reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., 1, shell);
     reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell);
 }
 
@@ -474,6 +478,10 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
 }
 
 void reb_integrator_mercurana_part2(struct reb_simulation* const r){
+    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    rim->shellN[0] = r->N;
+    rim->shellN_active[0] = r->N_active==-1?r->N:r->N_active;
+
     if (rim->is_synchronized){
         reb_integrator_mercurana_preprocessor(r, 0, r->dt);
     }
