@@ -291,159 +291,6 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     }
 }
 
-void reb_integrator_mercurana_drift_step_encounter(struct reb_simulation* const r, double a){
-    const int N = r->ri_mercurana.encounterN;
-    int* map = r->ri_mercurana.encounter_map;
-    struct reb_particle* restrict const particles = r->particles;
-    const double dt = r->dt;
-    for (int i=0;i<N;i++){
-        int ri = map[i]; // only advance encounter particles
-        particles[ri].x += a*dt*particles[ri].vx;
-        particles[ri].y += a*dt*particles[ri].vy;
-        particles[ri].z += a*dt*particles[ri].vz;
-    }
-}
-void reb_integrator_mercurana_interaction_step_encounter(struct reb_simulation* r, double y, double v, int recalculate){
-    const double dt = r->dt;
-    if (recalculate){
-        reb_update_acceleration(r);
-    }
-    // Assume particles.a calculated.
-    struct reb_particle* const particles = r->particles;
-    const int N = r->ri_mercurana.encounterN;
-    const int N_active = r->ri_mercurana.encounterNactive;
-    int* map = r->ri_mercurana.encounter_map;
-    const int testparticle_type   = r->testparticle_type;
-    if (r->ri_whfast.allocated_N < N){
-        r->ri_whfast.allocated_N = N;
-        r->ri_whfast.p_jh = realloc(r->ri_whfast.p_jh,sizeof(struct reb_particle)*N);
-    }
-    struct reb_particle* jerk = r->ri_whfast.p_jh; // Used as a temporary buffer for accelerations
-    const double G = r->G;
-    for (int j=0; j<N; j++){
-        jerk[j].ax = 0; 
-        jerk[j].ay = 0; 
-        jerk[j].az = 0; 
-    }
-
-    double (*_L) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.L;
-    const double* const dcrit = r->ri_mercurana.dcrit;
-    if (v!=0.){
-        //LAZY
-       //     if (r->ri_whfast.allocated_Ntemp != N){
-       //         r->ri_whfast.allocated_Ntemp = N;
-       //         r->ri_whfast.p_temp = realloc(r->ri_whfast.p_temp,sizeof(struct reb_particle)*N);
-       //     }
-       //     struct reb_particle* p_temp = r->ri_whfast.p_temp;
-
-       //     // make copy of original positions
-       //     memcpy(p_temp,particles,r->N*sizeof(struct reb_particle));
-
-       //     // WHT Eq 10.6
-       //     for (unsigned int i=0;i<N;i++){
-       //         const double prefac1 = dt*dt*v/y; 
-       //         particles[i].x += prefac1 * p_temp[i].ax;
-       //         particles[i].y += prefac1 * p_temp[i].ay;
-       //         particles[i].z += prefac1 * p_temp[i].az;
-       //     }
-       //    
-       //     // recalculate kick 
-       //     reb_update_acceleration(r);
-
-       //     for (unsigned int i=0;i<N;i++){
-       //         // reset positions
-       //         particles[i].x = p_temp[i].x;
-       //         particles[i].y = p_temp[i].y;
-       //         particles[i].z = p_temp[i].z;
-       //     }
-    for (int j=0; j<N_active; j++){
-        for (int i=0; i<j; i++){
-            int mi = map[i];
-            int mj = map[j];
-            const double dx = particles[mj].x - particles[mi].x; 
-            const double dy = particles[mj].y - particles[mi].y; 
-            const double dz = particles[mj].z - particles[mi].z; 
-            
-            const double dax = particles[mj].ax - particles[mi].ax; 
-            const double day = particles[mj].ay - particles[mi].ay; 
-            const double daz = particles[mj].az - particles[mi].az; 
-
-            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-            const double dcritmax = MAX(dcrit[mi],dcrit[mj]);
-            const double L = _L(r,dr,dcritmax);
-            const double dLdr = reb_integrator_mercurana_dLdr_infinity(r, dr, dcritmax);
-            const double alphasum = dax*dx+day*dy+daz*dz;
-            const double prefact2 = G /(dr*dr*dr);
-            const double prefact2i = (1.-L)*prefact2*particles[mi].m;
-            const double prefact2j = (1.-L)*prefact2*particles[mj].m;
-            jerk[j].ax    -= dax*prefact2i;
-            jerk[j].ay    -= day*prefact2i;
-            jerk[j].az    -= daz*prefact2i;
-            jerk[i].ax    += dax*prefact2j;
-            jerk[i].ay    += day*prefact2j;
-            jerk[i].az    += daz*prefact2j;
-            const double prefact1 = alphasum*prefact2 *(3.*(1.-L)/(dr*dr)+dLdr/dr);
-            const double prefact1i = prefact1*particles[mi].m;
-            const double prefact1j = prefact1*particles[mj].m;
-            jerk[j].ax    += dx*prefact1i;
-            jerk[j].ay    += dy*prefact1i;
-            jerk[j].az    += dz*prefact1i;
-            jerk[i].ax    -= dx*prefact1j;
-            jerk[i].ay    -= dy*prefact1j;
-            jerk[i].az    -= dz*prefact1j;
-        }
-    }
-    for (int j=0; j<N_active; j++){
-        for (int i=N_active; i<N; i++){
-            int mi = map[i];
-            int mj = map[j];
-            const double dx = particles[mj].x - particles[mi].x; 
-            const double dy = particles[mj].y - particles[mi].y; 
-            const double dz = particles[mj].z - particles[mi].z; 
-            
-            const double dax = particles[mj].ax - particles[mi].ax; 
-            const double day = particles[mj].ay - particles[mi].ay; 
-            const double daz = particles[mj].az - particles[mi].az; 
-
-            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-            const double dcritmax = MAX(dcrit[mi],dcrit[mj]);
-            const double L = _L(r,dr,dcritmax);
-            const double dLdr = reb_integrator_mercurana_dLdr_infinity(r, dr, dcritmax);
-            const double alphasum = dax*dx+day*dy+daz*dz;
-            const double prefact2 = G /(dr*dr*dr);
-            const double prefact2j = (1.-L)*prefact2*particles[mj].m;
-            if (testparticle_type){
-                const double prefact2i = (1.-L)*prefact2*particles[mi].m;
-                jerk[j].ax    -= dax*prefact2i;
-                jerk[j].ay    -= day*prefact2i;
-                jerk[j].az    -= daz*prefact2i;
-            }
-            jerk[i].ax    += dax*prefact2j;
-            jerk[i].ay    += day*prefact2j;
-            jerk[i].az    += daz*prefact2j;
-            const double prefact1 = alphasum*prefact2 *(3.*(1.-L)/(dr*dr)+dLdr/dr);
-            const double prefact1j = prefact1*particles[mj].m;
-            if (testparticle_type){
-                const double prefact1i = prefact1*particles[mi].m;
-                jerk[j].ax    += dx*prefact1i;
-                jerk[j].ay    += dy*prefact1i;
-                jerk[j].az    += dz*prefact1i;
-            }
-            jerk[i].ax    -= dx*prefact1j;
-            jerk[i].ay    -= dy*prefact1j;
-            jerk[i].az    -= dz*prefact1j;
-        }
-    }
-    }
-
-    for (int i=0;i<N;i++){
-        const double prefact = dt*dt*dt*v;
-        int mi = map[i];
-        particles[mi].vx += dt * y * particles[mi].ax + prefact*jerk[i].ax;
-        particles[mi].vy += dt * y * particles[mi].ay + prefact*jerk[i].ay;
-        particles[mi].vz += dt * y * particles[mi].az + prefact*jerk[i].az;
-    }
-}
 
 static void reb_mercurana_encounter_step(struct reb_simulation* const r, const double _dt){
     // Only particles having a close encounter are integrated by IAS15.
@@ -533,20 +380,138 @@ static void reb_mercurana_encounter_step(struct reb_simulation* const r, const d
 
 }
 
-void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a){
-    const int N = r->N;
+void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    const int N = rim.shellN[shell];
+    int* map = rim.map[shell];
     struct reb_particle* restrict const particles = r->particles;
     const double dt = r->dt;
-    reb_mercurana_encounter_predict(r, a*dt);
-    for (int i=0;i<N;i++){
-        if(rim->hasencounter[i]==0){  // only advance non-encounter particles
-            particles[i].x += a*dt*particles[i].vx;
-            particles[i].y += a*dt*particles[i].vy;
-            particles[i].z += a*dt*particles[i].vz;
+    reb_mercurana_encounter_predict(r, a*dt, shell);
+    for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
+        int mi = map[i]; 
+        if(rim->inshell[mi]==shell){  // only advance in-shell non-encounter particles
+            particles[mi].x += a*dt*particles[mi].vx;
+            particles[mi].y += a*dt*particles[mi].vy;
+            particles[mi].z += a*dt*particles[mi].vz;
         }
     }
-    reb_mercurana_encounter_step(r,a*dt); // advance encounter particles here.
+    reb_mercurana_encounter_step(r,a*dt,shell); // advance encounter particles here
+}
+
+void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int recalculate, int shell){
+    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    const int N = rim->shellN[shell];
+    const int N_active = rim->shellN_active[shell];
+    if (rim->jerk_allocatedN < N){
+        rim->jerk_allocatedN = N;
+        rim->jerk = realloc(r->rim,sizeof(struct reb_particle)*N);
+    }
+    struct reb_particle* REBOUND_RESTRICT jerk = rim->jerk; 
+    const double dt = r->dt;
+    if (recalculate){
+        reb_update_acceleration(r);
+    }
+    struct reb_particle* const particles = r->particles;
+    const int testparticle_type   = r->testparticle_type;
+    const double G = r->G;
+    for (int j=0; j<N; j++){
+        jerk[j].ax = 0; 
+        jerk[j].ay = 0; 
+        jerk[j].az = 0; 
+    }
+    int* map = rim->map[shell];
+    const double* const dcrit = r->ri_mercurana.dcrit[shell];
+
+    double (*_L) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.L;
+    double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.dLdr;
+    if (v!=0.){ // is jerk used?
+        for (int j=0; j<N_active; j++){
+            for (int i=0; i<j; i++){
+                int mi = map[i];
+                int mj = map[j];
+                const double dx = particles[mj].x - particles[mi].x; 
+                const double dy = particles[mj].y - particles[mi].y; 
+                const double dz = particles[mj].z - particles[mi].z; 
+                
+                const double dax = particles[mj].ax - particles[mi].ax; 
+                const double day = particles[mj].ay - particles[mi].ay; 
+                const double daz = particles[mj].az - particles[mi].az; 
+
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                const double dcritmax = MAX(dcrit[mi],dcrit[mj]);
+                const double L = _L(r,dr,dcritmax);
+                const double dLdr = reb_integrator_mercurana_dLdr_infinity(r, dr, dcritmax);
+                const double alphasum = dax*dx+day*dy+daz*dz;
+                const double prefact2 = G /(dr*dr*dr);
+                const double prefact2i = (1.-L)*prefact2*particles[mi].m;
+                const double prefact2j = (1.-L)*prefact2*particles[mj].m;
+                jerk[j].ax    -= dax*prefact2i;
+                jerk[j].ay    -= day*prefact2i;
+                jerk[j].az    -= daz*prefact2i;
+                jerk[i].ax    += dax*prefact2j;
+                jerk[i].ay    += day*prefact2j;
+                jerk[i].az    += daz*prefact2j;
+                const double prefact1 = alphasum*prefact2 *(3.*(1.-L)/(dr*dr)+dLdr/dr);
+                const double prefact1i = prefact1*particles[mi].m;
+                const double prefact1j = prefact1*particles[mj].m;
+                jerk[j].ax    += dx*prefact1i;
+                jerk[j].ay    += dy*prefact1i;
+                jerk[j].az    += dz*prefact1i;
+                jerk[i].ax    -= dx*prefact1j;
+                jerk[i].ay    -= dy*prefact1j;
+                jerk[i].az    -= dz*prefact1j;
+            }
+        }
+        for (int j=0; j<N_active; j++){
+            for (int i=N_active; i<N; i++){
+                int mi = map[i];
+                int mj = map[j];
+                const double dx = particles[mj].x - particles[mi].x; 
+                const double dy = particles[mj].y - particles[mi].y; 
+                const double dz = particles[mj].z - particles[mi].z; 
+                
+                const double dax = particles[mj].ax - particles[mi].ax; 
+                const double day = particles[mj].ay - particles[mi].ay; 
+                const double daz = particles[mj].az - particles[mi].az; 
+
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                const double dcritmax = MAX(dcrit[mi],dcrit[mj]);
+                const double L = _L(r,dr,dcritmax);
+                const double dLdr =_dLdr(r, dr, dcritmax);
+                const double alphasum = dax*dx+day*dy+daz*dz;
+                const double prefact2 = G /(dr*dr*dr);
+                const double prefact2j = (1.-L)*prefact2*particles[mj].m;
+                if (testparticle_type){
+                    const double prefact2i = (1.-L)*prefact2*particles[mi].m;
+                    jerk[j].ax    -= dax*prefact2i;
+                    jerk[j].ay    -= day*prefact2i;
+                    jerk[j].az    -= daz*prefact2i;
+                }
+                jerk[i].ax    += dax*prefact2j;
+                jerk[i].ay    += day*prefact2j;
+                jerk[i].az    += daz*prefact2j;
+                const double prefact1 = alphasum*prefact2 *(3.*(1.-L)/(dr*dr)+dLdr/dr);
+                const double prefact1j = prefact1*particles[mj].m;
+                if (testparticle_type){
+                    const double prefact1i = prefact1*particles[mi].m;
+                    jerk[j].ax    += dx*prefact1i;
+                    jerk[j].ay    += dy*prefact1i;
+                    jerk[j].az    += dz*prefact1i;
+                }
+                jerk[i].ax    -= dx*prefact1j;
+                jerk[i].ay    -= dy*prefact1j;
+                jerk[i].az    -= dz*prefact1j;
+            }
+        }
+    }
+
+    for (int i=0;i<N;i++){
+        const double prefact = dt*dt*dt*v;
+        int mi = map[i];
+        particles[mi].vx += dt * y * particles[mi].ax + prefact*jerk[i].ax;
+        particles[mi].vy += dt * y * particles[mi].ay + prefact*jerk[i].ay;
+        particles[mi].vz += dt * y * particles[mi].az + prefact*jerk[i].az;
+    }
 }
 void reb_integrator_mercurana_part1(struct reb_simulation* r){
     if (r->var_config_N){
@@ -556,19 +521,39 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     const int N = r->N;
     
-    if (rim->dcrit_allocatedN<N){
-        // Need to safe these arrays in SimulationArchive
-        rim->dcrit              = realloc(rim->dcrit, sizeof(double)*N);
-        rim->dcrit_allocatedN = N;
-        // If particle number increased (or this is the first step), need to calculate critical radii
-        rim->recalculate_dcrit_this_timestep        = 1;
-    }
     if (rim->allocatedN<N){
-        // These arrays are only used within one timestep. 
-        // Can be recreated without loosing bit-wise reproducibility
-        rim->hasencounter       = realloc(rim->hasencounter,sizeof(int)*N);
-        rim->encounter_map      = realloc(rim->encounter_map,sizeof(int)*N);
+        // dcrit
+        if (rim->dcrit){
+            for (int i=0;i<rim->Nmaxshells;i++){
+                free(rim->dcrit[i]);
+            }
+        }
+        rim->dcrit = realloc(rim->dcrit, sizeof(unsigned int*)*rim->Nmaxshells);
+        for (int i=0;i<rim->Nmaxshells;i++){
+            rim->dcrit[i] = realloc(rim->dcrit[i], sizeof(unsigned int)*N);
+        }
+        // map
+        if (rim->map){
+            for (int i=0;i<rim->Nmaxshells;i++){
+                free(rim->map[i]);
+            }
+        }
+        rim->map = realloc(rim->map, sizeof(unsigned int*)*rim->Nmaxshells);
+        for (int i=0;i<rim->Nmaxshells;i++){
+            rim->map[i] = realloc(rim->map[i], sizeof(unsigned int)*N);
+        }
+        // inshell
+        rim->inshell = realloc(rim->inshell, sizeof(unsigned int)*N);
+        // jerk
+        rim->jerk = realloc(rim->jerk, sizeof(struct reb_particle)*N);
+        // shellN
+        rim->shellN = realloc(rim->shellN, sizeof(unsigned int)*rim->Nmaxshells);
+        // shellN_active
+        rim->shellN_active = realloc(rim->shellN_active, sizeof(unsigned int)*rim->Nmaxshells);
+
         rim->allocatedN = N;
+        // If particle number increased (or this is the first step), need to calculate critical radii
+        rim->recalculate_dcrit_this_timestep = 1;
     }
 
     if (rim->recalculate_dcrit_this_timestep){

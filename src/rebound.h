@@ -314,25 +314,28 @@ struct reb_simulation_integrator_mercurana {
      * @details Setting it to 0 will result in a speedup, but care
      * must be taken to synchronize and recalculate coordinates when needed.
      */
+
+    unsigned int order;
     unsigned int safe_mode;
-    
     double dt_fac;        
     unsigned int Nmaxshells;
     unsigned int Nstepspershell;        
+    unsigned int** map;  // from shell to global       
+    unsigned int* inshell;  // from global to shell
+    double** dcrit;       
+    unsigned int allocatedN; 
+    unsigned int* shellN;  
+    unsigned int* shellN_active; 
+    unsigned int current_shell; 
+    struct reb_particle* REBOUND_RESTRICT jerk;
+    unsigned int jerk_allocatedN;
+    double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit);  
+
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
-    unsigned int mode;              ///< Internal. 0 if WH is operating, 1 if IAS15 is operating.
-    unsigned int encounterN;        ///< Number of particles currently having an encounter
-    unsigned int encounterNactive;  ///< Number of particles currently having an encounter
     unsigned int allocatedN;        ///< Current size of allocated internal arrays
     unsigned int allocatedN_additionalforces;        ///< Current size of allocated internal particles_backup_additionalforces array
-    unsigned int dcrit_allocatedN;  ///< Current size of dcrit arrays
-    double* dcrit;                  ///< Switching radii for particles
     struct reb_particle* REBOUND_RESTRICT particles_backup;     ///< Internal array, contains coordinates before Kepler step for encounter prediction
     struct reb_particle* REBOUND_RESTRICT particles_backup_additionalforces;     ///< Internal array, contains coordinates before Kepler step for encounter prediction
-    int* hasencounter;              ///< 0 if not part of encounter, 1 if part of encounter
-    int* encounter_map;             ///< Map to represent which particles are integrated with ias15
-    struct reb_vec3d com_pos;       ///< Used internally to keep track of the centre of mass during the timestep
-    struct reb_vec3d com_vel;       ///< Used internally to keep track of the centre of mass during the timestep
 };
 
 
