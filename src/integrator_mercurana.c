@@ -599,7 +599,13 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
 void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, int shell){
     for (int i=0;i<6;i++){
         reb_integrator_mercurana_drift_step(r, z_6[i], shell);
-        reb_integrator_mercurana_interaction_step(r, y_6[i], v_6[i]*2.,1,shell);
+        reb_integrator_mercurana_interaction_step(r, y_6[i], v_6[i]*2., 1, shell);
+    }
+}
+void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, int shell){
+    for (int i=5;i>=0;i--){
+        reb_integrator_mercurana_interaction_step(r, -y_6[i], -v_6[i]*2., 1, shell);
+        reb_integrator_mercurana_drift_step(r, -z_6[i], shell);
     }
 }
 void reb_integrator_mercurana_step(struct reb_simulation* const r, int shell){
@@ -631,24 +637,12 @@ void reb_integrator_mercurana_synchronize(struct reb_simulation* r){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     if (rim->is_synchronized == 0){
         r->gravity = REB_GRAVITY_MERCURANA; // needed here again for SimulationArchive
-        rim->mode = 0;
         if (rim->L == NULL){
             // Setting default switching function
             rim->L = reb_integrator_mercurana_L_infinity;
+            rim->dLdr = reb_integrator_mercurana_dLdr_infinity;
         }
-        double a1 = -0.0682610383918630;
-        reb_integrator_mercurana_drift_step(r,a1);
-        
-        double z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.};
-        z[5] = -(z[0]+z[1]+z[2]+z[3]+z[4]);
-        double y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, 0.};
-        y[5] = -(y[0]+y[1]+y[2]+y[3]+y[4]);
-        double v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
-        for (int i=5;i>=0;i--){
-            reb_integrator_mercurana_interaction_step(r, -y[i], -v[i]*2.,1); // recalculates accelerations
-            reb_integrator_mercurana_drift_step(r, -z[i]);
-        }
-        
+        reb_integrator_mercurana_postprocessor(r,0);
         rim->is_synchronized = 1;
     }
 }
@@ -659,7 +653,6 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.encounterN = 0;
     r->ri_mercurana.is_synchronized = 1;
     r->ri_mercurana.encounterNactive = 0;
-    r->ri_mercurana.hillfac = 3;
     r->ri_mercurana.Nsubsteps = 10;
     // Internal arrays (only used within one timestep)
     free(r->ri_mercurana.particles_backup_additionalforces);
