@@ -109,6 +109,31 @@ const double z_6[6] = { 0.07943288242455420, 0.02974829169467665, -0.70570749648
 const double y_6[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, -0.680252073928462652752103};
 const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
 
+double reb_mercurana_predict_rmin(struct reb_particle p1, struct reb_particle p2, double dt){ 
+    const double dx1 = p1.x - p2.x; // distance at beginning
+    const double dy1 = p1.y - p2.y;
+    const double dz1 = p1.z - p2.z;
+    const double r1 = (dx1*dx1 + dy1*dy1 + dz1*dz1);
+    const double dvx1 = dts*(p1.vx - p2.vx); 
+    const double dvy1 = dts*(p1.vy - p2.vy);
+    const double dvz1 = dts*(p1.vz - p2.vz);
+    const double dx2 = dx1 +dt*dvx1; // distance at end
+    const double dy2 = dy1 +dt*dvy1;
+    const double dz2 = dz1 +dt*dvz1;
+    const double r2 = (dx2*dx2 + dy2*dy2 + dz2*dz2);
+    const double t_closest = (dx1*dvx1 + dy1*dvy1 + dz1*dvz1)/(dvx1*dvx1 + dvy1*dvy1 + dvz1*dvz1);
+    const double dx3 = dx1+t_closest*dvx1; // closest approach
+    const double dy3 = dy1+t_closest*dvy1;
+    const double dz3 = dz1+t_closest*dvz1;
+    const double r3 = (dx3*dx3 + dy3*dy3 + dz3*dz3);
+
+    double rmin = MIN(r1,r2);
+    if (t_closest/dt>-0.5 && t_closest/dt<1.5){
+        rmin = MIN(rmin, r3);
+    }
+    return rmin;
+}
+
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt, int shell){
     double dts = copysign(1.,dt); 
     dt = fabs(dt);
@@ -132,41 +157,34 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     rim->shellN[shell+1] = 0;
     rim->shellN_active[shell+1] = 0;
 
+    // Note: Need to find the active particles first
+    // TODO make this O(N^2/2)
     for (int i=0; i<N_active; i++){
-        for (int j=i+1; j<N; j++){
-            const double dx1 = particles[i].x - particles[j].x; // distance at beginning
-            const double dy1 = particles[i].y - particles[j].y;
-            const double dz1 = particles[i].z - particles[j].z;
-            const double r1 = (dx1*dx1 + dy1*dy1 + dz1*dz1);
-            const double dvx1 = dts*(particles[i].vx - particles[j].vx); 
-            const double dvy1 = dts*(particles[i].vy - particles[j].vy);
-            const double dvz1 = dts*(particles[i].vz - particles[j].vz);
-            const double dx2 = dx1 +dt*dvx1; // distance at end
-            const double dy2 = dy1 +dt*dvy1;
-            const double dz2 = dz1 +dt*dvz1;
-            const double r2 = (dx2*dx2 + dy2*dy2 + dz2*dz2);
-            const double t_closest = (dx1*dvx1 + dy1*dvy1 + dz1*dvz1)/(dvx1*dvx1 + dvy1*dvy1 + dvz1*dvz1);
-            const double dx3 = dx1+t_closest*dvx1; // closest approach
-            const double dy3 = dy1+t_closest*dvy1;
-            const double dz3 = dz1+t_closest*dvz1;
-            const double r3 = (dx3*dx3 + dy3*dy3 + dz3*dz3);
+        int mi = map[i]; 
+        for (int j=0; j<N; j++){
+            int mj = map[j]; 
+            if (i==j) continue;
+            double rmin = reb_mercurana_predict_rmin(particles[mi],particles[mj],dt);
 
-            double rmin = MIN(r1,r2);
-            if (t_closest/dt>-0.5 && t_closest/dt<1.5){
-                rmin = MIN(rmin, r3);
+            if (sqrt(rmin)< 2.*MAX(dcrit[mi],dcrit[mj])){ // TODO remove sqrt
+                // j particle will be added later (active particles need to be in array first)
+                rim->inshell[mi] = shell+1;
+                rim->map[shell+1][rim->shellN[shell+1]] = i;
+                rim->shellN[shell+1]++;
             }
+        }
+    }
+    for (int i=N_active; i<N; i++){
+        int mi = map[i]; 
+        for (int j=0; j<N_active; j++){
+            int mj = map[j]; 
+            if (i==j) continue;
+            double rmin = reb_mercurana_predict_rmin(particles[mi],particles[mj],dt);
 
-            if (sqrt(rmin)< 2.*MAX(dcrit[i],dcrit[j])){
-                if (rim->hasencounter[i]==0){
-                    rim->hasencounter[i] = 1;
-                    rim->encounter_map[rim->encounterN] = i;
-                    rim->encounterN++;
-                }
-                if (rim->hasencounter[j]==0){
-                    rim->hasencounter[j] = 1;
-                    rim->encounter_map[rim->encounterN] = j;
-                    rim->encounterN++;
-                }
+            if (sqrt(rmin)< 2.*MAX(dcrit[mi],dcrit[mj])){ // TODO remove sqrt
+                rim->inshell[mi] = shell+1;
+                rim->map[shell+1][rim->shellN[shell+1]] = i;
+                rim->shellN[shell+1]++;
             }
         }
     }
@@ -525,8 +543,6 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.particles_backup_additionalforces = NULL;
     free(r->ri_mercurana.encounter_map);
     r->ri_mercurana.encounter_map = NULL;
-    free(r->ri_mercurana.hasencounter);
-    r->ri_mercurana.hasencounter = NULL;
     r->ri_mercurana.allocatedN = 0;
     r->ri_mercurana.allocatedN_additionalforces = 0;
     // dcrit array
