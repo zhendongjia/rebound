@@ -1912,26 +1912,24 @@ class reb_simulation_integrator_mercurana(Structure):
     >>> sim.ri_mercurana.hillfac = 3.
 
     """
-    _fields_ = [("L", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
-                ("hillfac", c_double),
-                ("recalculate_coordinates_this_timestep", c_uint),
+    _fields_ = [
+                ("L", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
+                ("dLdr", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
                 ("recalculate_dcrit_this_timestep", c_uint),
+                ("order", c_uint),
                 ("safe_mode", c_uint),
-                ("Nsubsteps", c_uint),
-                ("_is_synchronized", c_uint),
-                ("mode", c_uint),
-                ("_encounterN", c_uint),
-                ("_encounterNactive", c_uint),
-                ("_allocatedN", c_uint),
-                ("_allocatedN_additionalforces", c_uint),
-                ("_dcrit_allocatedN", c_uint),
+                ("dt_frac", c_double),
+                ("Nmaxshells", c_uint),
+                ("Nstepspershell", c_uint),
+                ("_map", POINTER(c_uint)),
+                ("_inshell", POINTER(c_uint)),
                 ("_dcrit", POINTER(c_double)),
-                ("_particles_backup", POINTER(Particle)),
-                ("_particles_backup_additionalforces", POINTER(Particle)),
-                ("_hasencounter", POINTER(c_int)),
-                ("_encounter_map", POINTER(c_int)),
-                ("_com_pos", reb_vec3d),
-                ("_com_vel", reb_vec3d),
+                ("_allocatedN", c_uint),
+                ("_shellN", POINTER(c_uint)),
+                ("_shellN_active", POINTER(c_uint)),
+                ("Nmaxshellused", c_uint),
+                ("_jerk", POINTER(Particle)),
+                ("_is_synchronized", c_uint),
                 ]
 
 class timeval(Structure):
