@@ -288,14 +288,6 @@ struct reb_simulation_integrator_mercurana {
     double (*L) (const struct reb_simulation* const r, double d, double dcrit);  
     
     /** 
-     * @brief Switching distance in units of the Hill radius 
-     * @brief The switching distances for particles are calculated automastically
-     * based on multiple criteria. One criteria calculates the Hill radius of 
-     * particles and then multiplies it with the hillfac variable. 
-     */ 
-    double hillfac;        
-    
-    /** 
      * @brief Setting this flag to one will recalculate heliocentric coordinates from the particle structure at the beginning of the next timestep. 
      * @details After one timestep, the flag gets set back to 0. 
      * If you want to change particles after every timestep, you 
@@ -324,7 +316,9 @@ struct reb_simulation_integrator_mercurana {
      */
     unsigned int safe_mode;
     
-    unsigned int Nsubsteps;        
+    double dt_fac;        
+    unsigned int Nmaxshells;
+    unsigned int Nstepspershell;        
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
     unsigned int mode;              ///< Internal. 0 if WH is operating, 1 if IAS15 is operating.
     unsigned int encounterN;        ///< Number of particles currently having an encounter
