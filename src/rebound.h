@@ -286,15 +286,7 @@ struct reb_simulation_integrator_mercurana {
     * integrator becomes the standard Wisdom-Holman integrator.
     */
     double (*L) (const struct reb_simulation* const r, double d, double dcrit);  
-    
-    /** 
-     * @brief Setting this flag to one will recalculate heliocentric coordinates from the particle structure at the beginning of the next timestep. 
-     * @details After one timestep, the flag gets set back to 0. 
-     * If you want to change particles after every timestep, you 
-     * also need to set this flag to 1 before every timestep.
-     * Default is 0.
-     */ 
-    unsigned int recalculate_coordinates_this_timestep;
+    double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit);  
 
     /** 
      * @brief Setting this flag to one will recalculate the critical switchover 
@@ -326,16 +318,8 @@ struct reb_simulation_integrator_mercurana {
     unsigned int allocatedN; 
     unsigned int* shellN;  
     unsigned int* shellN_active; 
-    unsigned int current_shell; 
     struct reb_particle* REBOUND_RESTRICT jerk;
-    unsigned int jerk_allocatedN;
-    double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit);  
-
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
-    unsigned int allocatedN;        ///< Current size of allocated internal arrays
-    unsigned int allocatedN_additionalforces;        ///< Current size of allocated internal particles_backup_additionalforces array
-    struct reb_particle* REBOUND_RESTRICT particles_backup;     ///< Internal array, contains coordinates before Kepler step for encounter prediction
-    struct reb_particle* REBOUND_RESTRICT particles_backup_additionalforces;     ///< Internal array, contains coordinates before Kepler step for encounter prediction
 };
 
 

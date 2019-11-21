@@ -592,7 +592,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
 		break;
         case REB_GRAVITY_MERCURANA:
         {
-            }
+            // Do nothing (it's all done in mercurana)
 		}
 		break;
 		default:

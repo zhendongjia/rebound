@@ -63,9 +63,11 @@ void reb_collision_search(struct reb_simulation* const r){
         }
     }
     if (r->integrator==REB_INTEGRATOR_MERCURANA){
-        N = r->ri_mercurana.encounterN;
-        Ninner = N;
-        mercurius_map = r->ri_mercurana.encounter_map;
+        return;
+        reb_error(r,"mercurana collisions not implemented");
+        //N = r->ri_mercurana.encounterN;
+        //Ninner = N;
+        //mercurius_map = r->ri_mercurana.encounter_map;
     }
 	int collisions_N = 0;
 	const struct reb_particle* const particles = r->particles;

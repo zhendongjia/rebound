@@ -174,7 +174,8 @@ void reb_update_acceleration(struct reb_simulation* r){
 	if (r->N_var){
 		reb_calculate_acceleration_var(r);
 	}
-	if (r->additional_forces  && (r->integrator != REB_INTEGRATOR_MERCURIUS || r->ri_mercurius.mode==0) && (r->integrator != REB_INTEGRATOR_MERCURANA || r->ri_mercurana.mode==0)){
+    // TODO make additional forces work with mercurana
+	if (r->additional_forces  && (r->integrator != REB_INTEGRATOR_MERCURIUS || r->ri_mercurius.mode==0) && (r->integrator != REB_INTEGRATOR_MERCURANA)){
         // For Mercurius:
         // Additional forces are only calculated in the kick step, not during close encounter
         if (r->integrator==REB_INTEGRATOR_MERCURIUS){
@@ -187,33 +188,10 @@ void reb_update_acceleration(struct reb_simulation* r){
             memcpy(r->ri_mercurius.particles_backup_additionalforces,r->particles,r->N*sizeof(struct reb_particle)); 
             reb_integrator_mercurius_dh_to_inertial(r);
         }
-        if (r->integrator==REB_INTEGRATOR_MERCURANA){
-            // shift pos and velocity so that external forces are calculated in inertial frame
-            // Note: Copying avoids degrading floating point performance
-            if(r->N>r->ri_mercurana.allocatedN_additionalforces){
-                r->ri_mercurana.particles_backup_additionalforces = realloc(r->ri_mercurana.particles_backup_additionalforces, r->N*sizeof(struct reb_particle));
-                r->ri_mercurana.allocatedN_additionalforces = r->N;
-            }
-            memcpy(r->ri_mercurana.particles_backup_additionalforces,r->particles,r->N*sizeof(struct reb_particle)); 
-            // Not sure if there is an issue with mercurana by commenting this out TODO
-            //reb_integrator_mercurana_dh_to_inertial(r);
-        }
         r->additional_forces(r);
         if (r->integrator==REB_INTEGRATOR_MERCURIUS){
             struct reb_particle* restrict const particles = r->particles;
             struct reb_particle* restrict const backup = r->ri_mercurius.particles_backup_additionalforces;
-            for (int i=0;i<r->N;i++){
-                particles[i].x = backup[i].x;
-                particles[i].y = backup[i].y;
-                particles[i].z = backup[i].z;
-                particles[i].vx = backup[i].vx;
-                particles[i].vy = backup[i].vy;
-                particles[i].vz = backup[i].vz;
-            }
-        }
-        if (r->integrator==REB_INTEGRATOR_MERCURANA){
-            struct reb_particle* restrict const particles = r->particles;
-            struct reb_particle* restrict const backup = r->ri_mercurana.particles_backup_additionalforces;
             for (int i=0;i<r->N;i++){
                 particles[i].x = backup[i].x;
                 particles[i].y = backup[i].y;
