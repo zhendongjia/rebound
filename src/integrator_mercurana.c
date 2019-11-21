@@ -197,7 +197,6 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
 }
     
 void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
-    printf("d"); fflush(stdout); 
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     unsigned int N = rim->shellN[shell];
     unsigned int* map = rim->map[shell];
@@ -213,6 +212,7 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
     }
     if (shell+1<rim->Nmaxshells){ // does sub-shell exist?
         if (rim->shellN[shell+1]>0){ // are there particles in it?
+            printf("%d ",shell+1); fflush(stdout); 
             // advance all sub-shell particles
             double as = a/rim->Nstepspershell;
             reb_integrator_mercurana_preprocessor(r, as, shell+1);
@@ -225,7 +225,6 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
 }
 
 void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int remove_TODO_recalculate, int shell){
-    printf("i"); fflush(stdout); 
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     const int N = rim->shellN[shell];
     const int N_active = rim->shellN_active[shell];
@@ -400,25 +399,49 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     }
 }
 void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, double dt, int shell){
-    for (int i=0;i<6;i++){
-        reb_integrator_mercurana_drift_step(r, dt*z_6[i], shell);
-        reb_integrator_mercurana_interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2., 1, shell);
+    switch(r->ri_mercurana.order){
+        case 6:
+            for (int i=0;i<6;i++){
+                reb_integrator_mercurana_drift_step(r, dt*z_6[i], shell);
+                reb_integrator_mercurana_interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2., 1, shell);
+            }
+            break;
+        case 2:
+        default:
+            break;
     }
 }
 void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, double dt, int shell){
-    for (int i=5;i>=0;i--){
-        reb_integrator_mercurana_interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2., 1, shell); 
-        reb_integrator_mercurana_drift_step(r, -dt*z_6[i], shell);
+    switch(r->ri_mercurana.order){
+        case 6:
+            for (int i=5;i>=0;i--){
+                reb_integrator_mercurana_interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2., 1, shell); 
+                reb_integrator_mercurana_drift_step(r, -dt*z_6[i], shell);
+             }
+            break;
+        case 2:
+        default:
+            break;
     }
 }
 void reb_integrator_mercurana_step(struct reb_simulation* const r, double dt, int shell){
-    reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
-    reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., 1, shell); 
-    reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
-    reb_integrator_mercurana_interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., 1, shell); 
-    reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
-    reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., 1, shell);
-    reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell);
+    switch(r->ri_mercurana.order){
+        case 6:
+            reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
+            reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., 1, shell); 
+            reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
+            reb_integrator_mercurana_interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., 1, shell); 
+            reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
+            reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., 1, shell);
+            reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell);
+            break;
+        case 2:
+        default:
+            reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
+            reb_integrator_mercurana_interaction_step(r, dt, 0., 1, shell);
+            reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
+            break;
+    }
 }
 
 void reb_integrator_mercurana_part1(struct reb_simulation* r){
