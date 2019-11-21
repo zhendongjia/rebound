@@ -124,10 +124,13 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         rim->inshell[mi] = shell;
     }
     
+    if (shell+1>=rim->Nmaxshells){ // does sub-shell exist?
+        return;
+    }
+    
     // Check if particles are in sub-shell
-    if (shell+1<rim->Nmaxshells){ // does sub-shell exist?
-        rim->shellN[shell+1] = 0;
-        rim->shellN_active[shell+1] = 0;
+    rim->shellN[shell+1] = 0;
+    rim->shellN_active[shell+1] = 0;
 
     for (int i=0; i<N_active; i++){
         for (int j=i+1; j<N; j++){
