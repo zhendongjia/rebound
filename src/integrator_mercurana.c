@@ -399,7 +399,7 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
     reb_mercurana_encounter_step(r,a*dt,shell); // advance encounter particles here
 }
 
-void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int recalculate, int shell){
+void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int remove_TODO_recalculate, int shell){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     const int N = rim->shellN[shell];
     const int N_active = rim->shellN_active[shell];
@@ -408,23 +408,113 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
         rim->jerk = realloc(r->rim,sizeof(struct reb_particle)*N);
     }
     struct reb_particle* REBOUND_RESTRICT jerk = rim->jerk; 
-    const double dt = r->dt;
-    if (recalculate){
-        reb_update_acceleration(r);
-    }
     struct reb_particle* const particles = r->particles;
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
+    int* map = rim->map[shell];
+    const double* const dcrit_inner = r->ri_mercurana.dcrit[shell];
+    const double* const dcrit_outer = r->ri_mercurana.dcrit[shell-1];
+
+    double (*_L) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.L;
+    double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.dLdr;
+    const double dt = r->dt;
+    // Normal force calculation 
+            switch (r->ri_mercurana.mode){
+                case 0: // WHFAST part
+                {
+                    for (int i=0; i<N; i++){
+                        if (reb_sigint) return;
+                        particles[i].ax = 0; 
+                        particles[i].ay = 0; 
+                        particles[i].az = 0; 
+                        for (int j=0; j<N_active; j++){
+                            if (i==j) continue;
+                            const double dx = particles[i].x - particles[j].x;
+                            const double dy = particles[i].y - particles[j].y;
+                            const double dz = particles[i].z - particles[j].z;
+                            const double _r = sqrt(dx*dx + dy*dy + dz*dz + softening2);
+                            const double dcritmax = MAX(dcrit[i],dcrit[j]);
+                            const double L = _L(r,_r,dcritmax);
+                            const double mj = particles[j].m;
+                            const double prefact = -G*mj*L/(_r*_r*_r);
+                            particles[i].ax    += prefact*dx;
+                            particles[i].ay    += prefact*dy;
+                            particles[i].az    += prefact*dz;
+                        }
+                    }
+                    if (_testparticle_type){
+                    for (int i=0; i<N_active; i++){
+                        if (reb_sigint) return;
+                        for (int j=N_active; j<N; j++){
+                            const double dx = particles[i].x - particles[j].x;
+                            const double dy = particles[i].y - particles[j].y;
+                            const double dz = particles[i].z - particles[j].z;
+                            const double _r = sqrt(dx*dx + dy*dy + dz*dz + softening2);
+                            const double dcritmax = MAX(dcrit[i],dcrit[j]);
+                            const double L = _L(r,_r,dcritmax);
+                            const double mj = particles[j].m;
+                            const double prefact = -G*mj*L/(_r*_r*_r);
+                            particles[i].ax    += prefact*dx;
+                            particles[i].ay    += prefact*dy;
+                            particles[i].az    += prefact*dz;
+                        }
+                    }
+                    }
+                }
+                break;
+                case 1: // IAS15 part
+                {
+                    const double* const dcrit = r->ri_mercurana.dcrit;
+                    const int encounterN = r->ri_mercurana.encounterN;
+                    const int encounterNactive = r->ri_mercurana.encounterNactive;
+                    int* map = r->ri_mercurana.encounter_map;
+                    for (int i=0; i<encounterN; i++){
+                        if (reb_sigint) return;
+                        int mi = map[i];
+                        particles[mi].ax = 0; 
+                        particles[mi].ay = 0; 
+                        particles[mi].az = 0; 
+                        for (int j=0; j<encounterNactive; j++){
+                            if (i==j) continue;
+                            int mj = map[j];
+                            const double dx = particles[mi].x - particles[mj].x;
+                            const double dy = particles[mi].y - particles[mj].y;
+                            const double dz = particles[mi].z - particles[mj].z;
+                            const double _r = sqrt(dx*dx + dy*dy + dz*dz + softening2);
+                            const double dcritmax = MAX(dcrit[mi],dcrit[mj]);
+                            const double L = _L(r,_r,dcritmax);
+                            double prefact = -G*particles[mj].m*(1.-L)/(_r*_r*_r);
+                            particles[mi].ax    += prefact*dx;
+                            particles[mi].ay    += prefact*dy;
+                            particles[mi].az    += prefact*dz;
+                        }
+                    }
+                    if (_testparticle_type){
+                    for (int i=0; i<encounterNactive; i++){
+                        if (reb_sigint) return;
+                        int mi = map[i];
+                        for (int j=encounterNactive; j<encounterN; j++){
+                            int mj = map[j];
+                            const double dx = particles[mi].x - particles[mj].x;
+                            const double dy = particles[mi].y - particles[mj].y;
+                            const double dz = particles[mi].z - particles[mj].z;
+                            const double _r = sqrt(dx*dx + dy*dy + dz*dz + softening2);
+                            const double dcritmax = MAX(dcrit[mi],dcrit[mj]);
+                            const double L = _L(r,_r,dcritmax);
+                            double prefact = -G*particles[mj].m*(1.-L)/(_r*_r*_r);
+                            particles[mi].ax    += prefact*dx;
+                            particles[mi].ay    += prefact*dy;
+                            particles[mi].az    += prefact*dz;
+                        }
+                    }
+                    }
+                }
+    }
     for (int j=0; j<N; j++){
         jerk[j].ax = 0; 
         jerk[j].ay = 0; 
         jerk[j].az = 0; 
     }
-    int* map = rim->map[shell];
-    const double* const dcrit = r->ri_mercurana.dcrit[shell];
-
-    double (*_L) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.L;
-    double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.dLdr;
     if (v!=0.){ // is jerk used?
         for (int j=0; j<N_active; j++){
             for (int i=0; i<j; i++){
