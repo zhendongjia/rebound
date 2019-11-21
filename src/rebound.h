@@ -318,6 +318,7 @@ struct reb_simulation_integrator_mercurana {
     unsigned int allocatedN; 
     unsigned int* shellN;  
     unsigned int* shellN_active; 
+    unsigned int Nmaxshellused;  
     struct reb_particle* REBOUND_RESTRICT jerk;
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
 };
