@@ -212,7 +212,6 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
     }
     if (shell+1<rim->Nmaxshells){ // does sub-shell exist?
         if (rim->shellN[shell+1]>0){ // are there particles in it?
-            printf("%d ",shell+1); fflush(stdout); 
             // advance all sub-shell particles
             double as = a/rim->Nstepspershell;
             reb_integrator_mercurana_preprocessor(r, as, shell+1);
@@ -263,6 +262,9 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
                 L_outer = _L(r,_r,dcritmax_outer);
             }
             const double prefact = -G*particles[mj].m*L_inner*(1.-L_outer)/(_r*_r*_r);
+            if (i==0 && j==1 && shell==1 && L_outer!=1.)
+            printf("%.4f %d %d %d   %.3f %3f\n",r->t, shell, i, j, L_inner, L_outer);
+            //printf("%d ",shell+1); fflush(stdout); 
             particles[mi].ax    += prefact*dx;
             particles[mi].ay    += prefact*dy;
             particles[mi].az    += prefact*dz;
@@ -550,7 +552,6 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
 
     r->t+=r->dt;
     r->dt_last_done = r->dt;
-    printf("\n"); fflush(stdout); 
 }
 
 void reb_integrator_mercurana_synchronize(struct reb_simulation* r){
