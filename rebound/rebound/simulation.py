@@ -20,12 +20,12 @@ import types
 ### The following enum and class definitions need to
 ### consitent with those in rebound.h
         
-INTEGRATORS = {"ias15": 0, "whfast": 1, "sei": 2, "leapfrog": 4, "none": 7, "janus": 8, "mercurius": 9, "saba": 10, "mercurana": 11}
+INTEGRATORS = {"ias15": 0, "whfast": 1, "sei": 2, "leapfrog": 4, "none": 7, "janus": 8, "mercurius": 9, "saba": 10}
 BOUNDARIES = {"none": 0, "open": 1, "periodic": 2, "shear": 3}
-GRAVITIES = {"none": 0, "basic": 1, "compensated": 2, "tree": 3, "mercurius": 4, "mercurana": 5}
-COLLISIONS = {"none": 0, "direct": 1, "tree": 2, "mercurius": 3, "line": 4, "mercurana":5, }
+GRAVITIES = {"none": 0, "basic": 1, "compensated": 2, "tree": 3, "mercurius": 4}
+COLLISIONS = {"none": 0, "direct": 1, "tree": 2, "mercurius": 3, "line": 4}
 VISUALIZATIONS = {"none": 0, "opengl": 1, "webgl": 2}
-WHFAST_KERNELS = {"default": 0, "modifiedkick": 1, "composition": 2, "lazy": 3, "764": 4, "6aba363": 5}
+WHFAST_KERNELS = {"default": 0, "modifiedkick": 1, "composition": 2, "lazy": 3}
 WHFAST_COORDINATES = {"jacobi": 0, "democraticheliocentric": 1, "whds": 2}
 SABA_TYPES = {
         "1": 0x0, "2": 0x1, "3": 0x2, "4": 0x3,
@@ -939,7 +939,6 @@ class Simulation(Structure):
         - ``'LEAPFROG'``
         - ``'JANUS'``
         - ``'MERCURIUS'``
-        - ``'MERCURANA'``
         - ``'WHCKL'`` 
         - ``'WHCKM'`` 
         - ``'WHCKC'`` 
@@ -1062,7 +1061,6 @@ class Simulation(Structure):
         - ``'direct'``
         - ``'tree'``
         - ``'mercurius'`` 
-        - ``'mercurana'`` 
         - ``'direct'``
         
         Check the online documentation for a full description of each of the modules. 
@@ -1896,41 +1894,6 @@ class reb_simulation_integrator_mercurius(Structure):
                 ("_com_pos", reb_vec3d),
                 ("_com_vel", reb_vec3d),
                 ]
-class reb_simulation_integrator_mercurana(Structure):
-    """
-    This class is an abstraction of the C-struct reb_simulation_integrator_mercurana.
-    It controls the behaviour of the MERCURANA integrator.  See Rein et al. (2019) 
-    for more details.
-    
-    :ivar float hillfac:      
-        Switching radius in units of the hill radius.
-
-    Example usage:
-    
-    >>> sim = rebound.Simulation()
-    >>> sim.integrator = "mercurana"
-    >>> sim.ri_mercurana.hillfac = 3.
-
-    """
-    _fields_ = [
-                ("L", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
-                ("dLdr", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
-                ("recalculate_dcrit_this_timestep", c_uint),
-                ("order", c_uint),
-                ("safe_mode", c_uint),
-                ("dt_frac", c_double),
-                ("Nmaxshells", c_uint),
-                ("Nstepspershell", c_uint),
-                ("_map", POINTER(c_uint)),
-                ("_inshell", POINTER(c_uint)),
-                ("_dcrit", POINTER(POINTER(c_double))),
-                ("_allocatedN", c_uint),
-                ("_shellN", POINTER(c_uint)),
-                ("_shellN_active", POINTER(c_uint)),
-                ("Nmaxshellused", c_uint),
-                ("_jerk", POINTER(Particle)),
-                ("_is_synchronized", c_uint),
-                ]
 
 class timeval(Structure):
     _fields_ = [("tv_sec",c_long),("tv_usec",c_long)]
@@ -2009,7 +1972,7 @@ Simulation._fields_ = [
                 ("collision_resolve_keep_sorted", c_int),
                 ("collisions", c_void_p),
                 ("collisions_allocatedN", c_int),
-                ("minimum_collision_velocity", c_double),
+                ("minimum_collision_celocity", c_double),
                 ("collisions_plog", c_double),
                 ("max_radius", c_double*2),
                 ("collisions_Nlog", c_long),
@@ -2040,7 +2003,6 @@ Simulation._fields_ = [
                 ("ri_saba", reb_simulation_integrator_saba),
                 ("ri_ias15", reb_simulation_integrator_ias15),
                 ("ri_mercurius", reb_simulation_integrator_mercurius),
-                ("ri_mercurana", reb_simulation_integrator_mercurana),
                 ("ri_janus", reb_simulation_integrator_janus),
                 ("_additional_forces", CFUNCTYPE(None,POINTER(Simulation))),
                 ("_pre_timestep_modifications", CFUNCTYPE(None,POINTER(Simulation))),
@@ -2088,9 +2050,7 @@ class Particles(MutableMapping):
     @property
     def _ps(self):
         ParticleList = Particle*self.sim.N
-        pl = ParticleList.from_address(ctypes.addressof(self.sim._particles.contents))
-        pl._sim = self.sim # keep reference to sim until ParticleList is deallocated to avoid memory issues
-        return pl
+        return ParticleList.from_address(ctypes.addressof(self.sim._particles.contents))
 
     def __getitem__(self, key):
         hash_types = c_uint32, c_uint, c_ulong
