@@ -116,7 +116,7 @@ const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054
 const double y_4[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624269298081};
 const double z_4[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
 
-double reb_mercurana_predict_rmin(struct reb_particle p1, struct reb_particle p2, double dt){ 
+double reb_mercurana_predict_r2min(struct reb_particle p1, struct reb_particle p2, double dt){ 
     double dts = copysign(1.,dt); 
     dt = fabs(dt);
     const double dx1 = p1.x - p2.x; // distance at beginning
@@ -172,9 +172,9 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         for (int j=0; j<N; j++){
             int mj = map[j]; 
             if (i==j) continue;
-            double rmin = reb_mercurana_predict_rmin(particles[mi],particles[mj],dt);
+            double rmin = reb_mercurana_predict_r2min(particles[mi],particles[mj],dt);
 
-            if (sqrt(rmin)< 2.*MAX(dcrit[mi],dcrit[mj])){ // TODO remove sqrt
+            if (sqrt(rmin)< dcrit[mi]+dcrit[mj]){ // TODO remove sqrt
                 // j particle will be added later (active particles need to be in array first)
                 rim->inshell[mi] = shell+1;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
@@ -188,9 +188,9 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         int mi = map[i]; 
         for (int j=0; j<N_active; j++){
             int mj = map[j]; 
-            double rmin = reb_mercurana_predict_rmin(particles[mi],particles[mj],dt);
+            double rmin = reb_mercurana_predict_r2min(particles[mi],particles[mj],dt);
 
-            if (sqrt(rmin)< 2.*MAX(dcrit[mi],dcrit[mj])){ // TODO remove sqrt
+            if (sqrt(rmin)< dcrit[mi]+dcrit[mj]){ // TODO remove sqrt
                 rim->inshell[mi] = shell+1;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
@@ -515,7 +515,7 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
             reb_integrator_mercurana_synchronize(r);
             reb_warning(r,"MERCURANA: Recalculating dcrit but pos/vel were not synchronized before.");
         }
-        double critical_timescale = r->dt*rim->dt_frac;
+        double critical_timescale = r->dt*rim->dt_frac/2./M_PI;
         for (int s=0;s<rim->Nmaxshells-1;s++){ // innermost shell has no dcrit
             // TODO: need to think about cetral object more
             rim->dcrit[s][0] = 2.*r->particles[0].r; // central object only uses physical radius
