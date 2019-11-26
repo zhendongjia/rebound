@@ -285,8 +285,8 @@ struct reb_simulation_integrator_mercurana {
     * The return value is a scalar between 0 and 1. If it always returns 1, then the
     * integrator becomes the standard Wisdom-Holman integrator.
     */
-    double (*L) (const struct reb_simulation* const r, double d, double dcrit);  
-    double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit);  
+    double (*L) (const struct reb_simulation* const r, double d, double dcrit, double fracin);  
+    double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin);  
 
     /** 
      * @brief Setting this flag to one will recalculate the critical switchover 

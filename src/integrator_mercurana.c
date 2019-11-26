@@ -41,9 +41,9 @@
 #define MIN(a, b) ((a) > (b) ? (b) : (a))    ///< Returns the minimum of a and b
 #define MAX(a, b) ((a) > (b) ? (a) : (b))    ///< Returns the maximum of a and b
 
-double reb_integrator_mercurana_L_mercury(const struct reb_simulation* const r, double d, double dcrit){
+double reb_integrator_mercurana_L_mercury(const struct reb_simulation* const r, double d, double ri, double ro){
     // This is the changeover function used by the Mercury integrator.
-    double y = (d-0.1*dcrit)/(0.9*dcrit);
+    double y = (d-ri)/(ro-ri);
     if (y<0.){
         return 0.;
     }else if (y>1.){
@@ -53,10 +53,10 @@ double reb_integrator_mercurana_L_mercury(const struct reb_simulation* const r, 
     }
 }
 
-double reb_integrator_mercurana_dLdr_mercury(const struct reb_simulation* const r, double d, double dcrit){
+double reb_integrator_mercurana_dLdr_mercury(const struct reb_simulation* const r, double d, double ri, double ro){
     // This is the changeover function used by the Mercury integrator.
-    double y = (d-0.1*dcrit)/(0.9*dcrit);
-    double dydr = 1./(0.9*dcrit);
+    double y = (d-ri)/(ro-ri);
+    double dydr = 1./(ro-ri);
     if (y<0.){
         return 0.;
     }else if (y>1.){
@@ -75,9 +75,9 @@ static double dfdy(double x){
     return exp(-1./x)/(x*x);
 }
 
-double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r, double d, double dcrit){
+double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r, double d, double ri, double ro){
     // Infinitely differentiable function.
-    double y = (d-0.1*dcrit)/(0.9*dcrit);
+    double y = (d-ri)/(ro-ri);
     if (y<0.){
         return 0.;
     }else if (y>1.){
@@ -86,10 +86,10 @@ double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r,
         return f(y) /(f(y) + f(1.-y));
     }
 }
-double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation* const r, double d, double dcrit){
+double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation* const r, double d, double ri, double ro){
     // Infinitely differentiable function.
-    double y = (d-0.1*dcrit)/(0.9*dcrit);
-    double dydr = 1./(0.9*dcrit);
+    double y = (d-ri)/(ro-ri);
+    double dydr = 1./(ro-ri);
     if (y<0.){
         return 0.;
     }else if (y>1.){
@@ -206,9 +206,11 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
     unsigned int* map = rim->map[shell];
     struct reb_particle* restrict const particles = r->particles;
     reb_mercurana_encounter_predict(r, a, shell);
+    printf("\ndrift %d   %.8f\n",shell,  a);
     for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
         int mi = map[i]; 
         if(rim->inshell[mi]==shell){  // only advance in-shell particles
+            //printf("    %.6f   %d\n",a,mi);
             particles[mi].x += a*particles[mi].vx;
             particles[mi].y += a*particles[mi].vy;
             particles[mi].z += a*particles[mi].vz;
@@ -228,7 +230,7 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
     }
 }
 
-void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int remove_TODO_recalculate, int shell){
+void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int shell){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     const int N = rim->shellN[shell];
     const int N_active = rim->shellN_active[shell];
@@ -237,14 +239,19 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
     unsigned int* map = rim->map[shell];
-    const double* const dcrit_inner = r->ri_mercurana.dcrit[shell];
-    const double* dcrit_outer = NULL;
-    if (shell!=0){ // outermost shell has no outer shell
-        dcrit_outer = r->ri_mercurana.dcrit[shell-1];
+    const double* dcrit_ii = NULL;
+    const double* dcrit_i = NULL;
+    const double* dcrit_o = NULL;
+    if (shell<rim->Nmaxshells-1){
+        dcrit_ii = r->ri_mercurana.dcrit[shell+1];
+    }
+    dcrit_i = r->ri_mercurana.dcrit[shell];
+    if (shell!=0){
+        dcrit_o = r->ri_mercurana.dcrit[shell-1];
     }
 
-    double (*_L) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.L;
-    double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit) = r->ri_mercurana.dLdr;
+    double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
+    double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.dLdr;
     // Normal force calculation 
     for (int i=0; i<N; i++){
         if (reb_sigint) return;
@@ -259,15 +266,23 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
             const double dy = particles[mi].y - particles[mj].y;
             const double dz = particles[mi].z - particles[mj].z;
             const double _r = sqrt(dx*dx + dy*dy + dz*dz);
-            const double dcritmax_inner = MAX(dcrit_inner[mi],dcrit_inner[mj]);
-            const double L_inner = _L(r,_r,dcritmax_inner);
-            double L_outer = 0.;
-            double dcritmax_outer = 0.;
-            if (shell!=0){
-                dcritmax_outer = MAX(dcrit_outer[mi],dcrit_outer[mj]);
-                L_outer = _L(r,_r,dcritmax_outer);
+            const double dc_i = dcrit_i[mi]+dcrit_i[mj];
+            double Lsum = 0.;
+            double dc_o = 0;
+            if (dcrit_o){
+                dc_o = dcrit_o[mi]+dcrit_o[mj];
+                Lsum -= _L(r,_r,dc_i,dc_o);
             }
-            const double prefact = -G*particles[mj].m*L_inner*(1.-L_outer)/(_r*_r*_r);
+            double dc_ii = 0;
+            if (dcrit_ii){
+                dc_ii = dcrit_ii[mi]+dcrit_ii[mj];
+                Lsum += _L(r,_r,dc_ii,dc_i);
+            }else{
+                Lsum += 1; // Innermost
+            }
+            printf("i-%d   %d %d %.8f   %.4f  %.9f\n",shell,mi,mj,y,Lsum,_r/dc_i);
+
+            const double prefact = -G*particles[mj].m*Lsum/(_r*_r*_r);
             particles[mi].ax    += prefact*dx;
             particles[mi].ay    += prefact*dy;
             particles[mi].az    += prefact*dz;
@@ -282,15 +297,21 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
                 const double dx = particles[mi].x - particles[mj].x;
                 const double dy = particles[mi].y - particles[mj].y;
                 const double dz = particles[mi].z - particles[mj].z;
-                const double _r = sqrt(dx*dx + dy*dy + dz*dz);
-                const double dcritmax_inner = MAX(dcrit_inner[mi],dcrit_inner[mj]);
-                const double L_inner = _L(r,_r,dcritmax_inner);
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                const double dcritmax_inner = MAX(dcrit_i[mi],dcrit_i[mj]);
+                double L_inner;
+                if (shell==rim->Nmaxshells-1){
+                    L_inner = _L(r,dr,dcritmax_inner,0.1);
+                }else{
+                    const double dcritmax_inner2 = MAX(dcrit_ii[mi],dcrit_ii[mj]);
+                    L_inner = _L(r,dr,dcritmax_inner,dcritmax_inner2/dcritmax_inner);
+                }
                 double L_outer = 0.;
                 if (shell!=0){
-                    const double dcritmax_outer = MAX(dcrit_outer[mi],dcrit_outer[mj]);
-                    L_outer = _L(r,_r,dcritmax_outer);
+                    const double dcritmax_outer = MAX(dcrit_o[mi],dcrit_o[mj]);
+                    L_outer = _L(r,dr,dcritmax_outer,dcritmax_inner/dcritmax_outer);
                 }
-                const double prefact = -G*particles[mj].m*L_inner*(1.-L_outer)/(_r*_r*_r);
+                const double prefact = -G*particles[mj].m*L_inner*(1.-L_outer)/(dr*dr*dr);
                 particles[mi].ax    += prefact*dx;
                 particles[mi].ay    += prefact*dy;
                 particles[mi].az    += prefact*dz;
@@ -317,26 +338,35 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
                 const double daz = particles[mj].az - particles[mi].az; 
 
                 const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                const double dcritmax_inner = MAX(dcrit_inner[mi],dcrit_inner[mj]);
-                const double L_inner = _L(r,dr,dcritmax_inner);
-                const double dLdr_inner = _dLdr(r, dr, dcritmax_inner);
-                double L_outer = 0.;
-                double dLdr_outer = 0.;
-                if (shell!=0){
-                    const double dcritmax_outer = MAX(dcrit_outer[mi],dcrit_outer[mj]);
-                    L_outer = _L(r,dr,dcritmax_outer);
+                const double dc_i = dcrit_i[mi]+dcrit_i[mj];
+                double Lsum = 0.;
+                double dLdrsum = 0.;
+                double dc_o = 0;
+                if (dcrit_o){
+                    dc_o = dcrit_o[mi]+dcrit_o[mj];
+                    Lsum -= _L(r,dr,dc_i,dc_o);
+                    dLdrsum -= _dLdr(r,dr,dc_i,dc_o);
+                }
+                double dc_ii = 0;
+                if (dcrit_ii){
+                    dc_ii = dcrit_ii[mi]+dcrit_ii[mj];
+                    Lsum += _L(r,dr,dc_ii,dc_i);
+                    dLdrsum += _dLdr(r,dr,dc_ii,dc_i);
+                }else{
+                    Lsum += 1; // Innermost
                 }
                 const double alphasum = dax*dx+day*dy+daz*dz;
                 const double prefact2 = G /(dr*dr*dr);
-                const double prefact2i = L_inner*(1.-L_outer)*prefact2*particles[mi].m;
-                const double prefact2j = L_inner*(1.-L_outer)*prefact2*particles[mj].m;
+                const double prefact2i = Lsum*prefact2*particles[mi].m;
+                const double prefact2j = Lsum*prefact2*particles[mj].m;
                 jerk[j].ax    -= dax*prefact2i;
                 jerk[j].ay    -= day*prefact2i;
                 jerk[j].az    -= daz*prefact2i;
                 jerk[i].ax    += dax*prefact2j;
                 jerk[i].ay    += day*prefact2j;
                 jerk[i].az    += daz*prefact2j;
-                const double prefact1 = alphasum*prefact2 *(3.*L_inner*(1.-L_outer)/(dr*dr)-(dLdr_inner-dLdr_outer)/dr);
+                // TODO: check dLdrsum term
+                const double prefact1 = alphasum*prefact2 *(3.*Lsum/(dr*dr)-(dLdrsum)/dr);
                 const double prefact1i = prefact1*particles[mi].m;
                 const double prefact1j = prefact1*particles[mj].m;
                 jerk[j].ax    += dx*prefact1i;
@@ -360,14 +390,23 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
                 const double daz = particles[mj].az - particles[mi].az; 
 
                 const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                const double dcritmax_inner = MAX(dcrit_inner[mi],dcrit_inner[mj]);
-                const double L_inner = _L(r,dr,dcritmax_inner);
-                const double dLdr_inner = _dLdr(r, dr, dcritmax_inner);
+                const double dcritmax_inner = MAX(dcrit_i[mi],dcrit_i[mj]);
+                double L_inner;
+                double dLdr_inner;
+                if (shell==rim->Nmaxshells-1){
+                    L_inner = _L(r,dr,dcritmax_inner,0.1);
+                    dLdr_inner = _dLdr(r, dr, dcritmax_inner, 0.1);
+                }else{
+                    const double dcritmax_inner2 = MAX(dcrit_ii[mi],dcrit_ii[mj]);
+                    L_inner = _L(r,dr,dcritmax_inner,dcritmax_inner2/dcritmax_inner);
+                    dLdr_inner = _dLdr(r, dr, dcritmax_inner, dcritmax_inner2/dcritmax_inner);
+                }
                 double L_outer = 0.;
                 double dLdr_outer = 0.;
                 if (shell!=0){
-                    const double dcritmax_outer = MAX(dcrit_outer[mi],dcrit_outer[mj]);
-                    L_outer = _L(r,dr,dcritmax_outer);
+                    const double dcritmax_outer = MAX(dcrit_o[mi],dcrit_o[mj]);
+                    L_outer = _L(r,dr,dcritmax_outer,dcritmax_inner/dcritmax_outer);
+                    dLdr_outer = _dLdr(r,dr,dcritmax_outer,dcritmax_inner/dcritmax_outer);
                 }
                 const double alphasum = dax*dx+day*dy+daz*dz;
                 const double prefact2 = G /(dr*dr*dr);
@@ -408,12 +447,12 @@ void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, doubl
         case 6:
             for (int i=0;i<6;i++){
                 reb_integrator_mercurana_drift_step(r, dt*z_6[i], shell);
-                reb_integrator_mercurana_interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2., 1, shell);
+                reb_integrator_mercurana_interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2., shell);
             }
             break;
         case 4:
             for (int i=0;i<3;i++){
-                reb_integrator_mercurana_interaction_step(r, dt*y_4[i], 0., 1, shell);
+                reb_integrator_mercurana_interaction_step(r, dt*y_4[i], 0., shell);
                 reb_integrator_mercurana_drift_step(r, dt*z_4[i], shell);
             }
             break;
@@ -426,14 +465,14 @@ void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, doub
     switch(r->ri_mercurana.order){
         case 6:
             for (int i=5;i>=0;i--){
-                reb_integrator_mercurana_interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2., 1, shell); 
+                reb_integrator_mercurana_interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2., shell); 
                 reb_integrator_mercurana_drift_step(r, -dt*z_6[i], shell);
              }
             break;
         case 4:
             for (int i=2;i>=0;i--){
                 reb_integrator_mercurana_drift_step(r, -dt*z_4[i], shell);
-                reb_integrator_mercurana_interaction_step(r, -dt*y_4[i], 0., 1, shell); 
+                reb_integrator_mercurana_interaction_step(r, -dt*y_4[i], 0., shell); 
              }
             break;
         case 2:
@@ -445,22 +484,22 @@ void reb_integrator_mercurana_step(struct reb_simulation* const r, double dt, in
     switch(r->ri_mercurana.order){
         case 6:
             reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
-            reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., 1, shell); 
+            reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell); 
             reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
-            reb_integrator_mercurana_interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., 1, shell); 
+            reb_integrator_mercurana_interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., shell); 
             reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
-            reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., 1, shell);
+            reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell);
             reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell);
             break;
         case 4:
             reb_integrator_mercurana_drift_step(r, dt*0.5, shell); //TODO combine drift steps
-            reb_integrator_mercurana_interaction_step(r, dt, dt*dt*dt/24.*2, 1, shell); 
+            reb_integrator_mercurana_interaction_step(r, dt, dt*dt*dt/24.*2, shell); 
             reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
             break;
         case 2:
         default:
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt, 0., 1, shell);
+            reb_integrator_mercurana_drift_step(r, dt*0.5, shell); //TODO combine drift steps
+            reb_integrator_mercurana_interaction_step(r, dt, 0., shell);
             reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
             break;
     }
@@ -515,22 +554,23 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
             reb_integrator_mercurana_synchronize(r);
             reb_warning(r,"MERCURANA: Recalculating dcrit but pos/vel were not synchronized before.");
         }
-        double critical_timescale = r->dt*rim->dt_frac/2./M_PI;
-        for (int s=0;s<rim->Nmaxshells-1;s++){ // innermost shell has no dcrit
-            // TODO: need to think about cetral object more
-            rim->dcrit[s][0] = 2.*r->particles[0].r; // central object only uses physical radius
-            for (int i=1;i<N;i++){
-                // radius at which escape speed is equal to critical timescale
+        //double critical_timescale = r->dt*rim->dt_frac/2./M_PI;
+        double dt_shell = r->dt;
+        for (int s=0;s<rim->Nmaxshells;s++){ // innermost shell has no dcrit
+            for (int i=0;i<N;i++){
                 // TODO: make machine independent
-                double dcrit = pow(critical_timescale*critical_timescale*r->G*r->particles[i].m,1./3.);
-                dcrit = MAX(dcrit, 2.*r->particles[i].r);
+                // distance where dt/dt_frac is equal to dynamical timescale
+                double dcrit = pow(dt_shell*dt_shell/(rim->dt_frac*rim->dt_frac)*r->G*r->particles[i].m,1./3.);
+                dcrit = MAX(dcrit, r->particles[i].r);
                 rim->dcrit[s][i] = dcrit;
             }
-            critical_timescale /= rim->Nstepspershell;
+            // TODO think about 2
+            dt_shell /= 2*rim->Nstepspershell;
+            // Initialize shell numbers to zero (not needed, but helps debugging)
+            rim->shellN[s] = 0;
+            rim->shellN_active[s] = 0;
         }
         for (int i=0;i<N;i++){
-            // Set dcrit for inner-most shell to 0 
-            rim->dcrit[rim->Nmaxshells-1][i] = 0;
             // Set map to identity for outer-most shell
             rim->map[0][i] = i;
         }
