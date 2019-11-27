@@ -1917,6 +1917,7 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("dLdr", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
                 ("recalculate_dcrit_this_timestep", c_uint),
                 ("order", c_uint),
+                ("ordersubsteps", c_uint),
                 ("safe_mode", c_uint),
                 ("dt_frac", c_double),
                 ("Nmaxshells", c_uint),
