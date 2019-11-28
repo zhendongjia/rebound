@@ -228,8 +228,8 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                     r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
                     r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
                 }
-                r->collisions[collisions_N].p1 = i;
-                r->collisions[collisions_N].p2 = j;
+                r->collisions[collisions_N].p1 = mi;
+                r->collisions[collisions_N].p2 = mj;
                 //r->collisions[collisions_N].gb = 0;
                 collisions_N++;
                 // Only mark collisions here. Resolve later.
@@ -368,6 +368,7 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
         particles[mi].ax = 0; 
         particles[mi].ay = 0; 
         particles[mi].az = 0; 
+        if (reb_sigint) return;
         for (int j=0; j<N_active; j++){
             int mj = map[j];
             if (mi==mj) continue;
@@ -437,6 +438,7 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     if (v!=0.){ // is jerk even used?
         for (int j=0; j<N_active; j++){
             int mj = map[j];
+            if (reb_sigint) return;
             for (int i=0; i<j; i++){
                 int mi = map[i];
                 const double dx = particles[mj].x - particles[mi].x; 
@@ -486,6 +488,7 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
         }
         for (int j=0; j<N_active; j++){
             int mj = map[j];
+            if (reb_sigint) return;
             for (int i=N_active; i<N; i++){
                 int mi = map[i];
                 const double dx = particles[mj].x - particles[mi].x; 
@@ -664,7 +667,9 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
                 // TODO: make machine independent
                 // distance where dt/dt_frac is equal to dynamical timescale
                 double dcrit = pow(dt_shell*dt_shell/(rim->dt_frac*rim->dt_frac)*r->G*r->particles[i].m,1./3.);
-                dcrit = MAX(dcrit, r->particles[i].r);
+                // TODO think about particle radius here.
+                // Problem is that shells get subdivided indefinitely
+                //dcrit = MAX(dcrit, r->particles[i].r);
                 rim->dcrit[s][i] = dcrit;
             }
             // TODO think about 2
