@@ -116,7 +116,7 @@ const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054
 const double y_4[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624269298081};
 const double z_4[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
 
-double reb_mercurana_predict_r2min(struct reb_particle p1, struct reb_particle p2, double dt){ 
+void reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_particle p2, double dt, double* rmin2_ab, double* rmin2_abc){ 
     double dts = copysign(1.,dt); 
     dt = fabs(dt);
     const double dx1 = p1.x - p2.x; // distance at beginning
@@ -136,11 +136,12 @@ double reb_mercurana_predict_r2min(struct reb_particle p1, struct reb_particle p
     const double dz3 = dz1+t_closest*dvz1;
     const double r3 = (dx3*dx3 + dy3*dy3 + dz3*dz3);
 
-    double rmin = MIN(r1,r2);
-    if (t_closest/dt>-0.5 && t_closest/dt<1.5){
-        rmin = MIN(rmin, r3);
+    *rmin2_ab = MIN(r1,r2);
+    if (t_closest/dt>=0. && t_closest/dt<=1.){
+        *rmin2_abc = MIN(*rmin2_ab, r3);
+    }else{
+        *rmin2_abc = *rmin2_ab;
     }
-    return rmin;
 }
 
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt, int shell){
@@ -154,12 +155,14 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     // Put all particles in current shell by default
     for (int i=0; i<N; i++){
         int mi = map[i]; 
-        rim->inshell[mi] = shell;
+        rim->inshell[mi] = 1;
     }
     
     if (shell+1>=rim->Nmaxshells){ // does sub-shell exist?
         return;
     }
+	
+    int collisions_N = 0;
     
     // Check if particles are in sub-shell
     rim->shellN[shell+1] = 0;
@@ -172,43 +175,149 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         for (int j=0; j<N; j++){
             int mj = map[j]; 
             if (i==j) continue;
-            double rmin = reb_mercurana_predict_r2min(particles[mi],particles[mj],dt);
-
-            if (sqrt(rmin)< dcrit[mi]+dcrit[mj]){ // TODO remove sqrt
+            double rmin2_ab, rmin2_abc;
+            reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
+            double rsum = particles[mi].r+particles[mj].r;
+            double dcritsum = dcrit[mi]+dcrit[mj];
+            // Only check if particles are overlapping at the beginning or end of the timestep.
+            // TODO: Add flag to also check for overlap during the timestep.
+            if (rmin2_ab<rsum*rsum){
+                // Collision occured.
+                // Note: No check if particles are approaching each other. 
+                // Add particles to collision array.
+                if (r->collisions_allocatedN<=collisions_N){
+                    // Allocate memory if there is no space in array.
+                    // Init to 32 if no space has been allocated yet, otherwise double it.
+                    r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
+                    r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
+                }
+                r->collisions[collisions_N].p1 = i;
+                r->collisions[collisions_N].p2 = j;
+                //r->collisions[collisions_N].gb = 0;
+                collisions_N++;
+                // Only mark collisions here. Resolve later.
+            }
+            if (rmin2_abc< dcritsum*dcritsum){ 
                 // j particle will be added later (active particles need to be in array first)
-                rim->inshell[mi] = shell+1;
+                rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
                 rim->shellN_active[shell+1]++;
                 break; // only add particle i once
             }
+
         }
     }
     for (int i=N_active; i<N; i++){
         int mi = map[i]; 
         for (int j=0; j<N_active; j++){
             int mj = map[j]; 
-            double rmin = reb_mercurana_predict_r2min(particles[mi],particles[mj],dt);
-
-            if (sqrt(rmin)< dcrit[mi]+dcrit[mj]){ // TODO remove sqrt
-                rim->inshell[mi] = shell+1;
+            double rmin2_ab, rmin2_abc;
+            reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
+            double rsum = particles[mi].r+particles[mj].r;
+            double dcritsum = dcrit[mi]+dcrit[mj];
+            // Only check if particles are overlapping at the beginning or end of the timestep.
+            // TODO: Add flag to also check for overlap during the timestep.
+            if (rmin2_ab<rsum*rsum){
+                // Collision occured.
+                // Note: No check if particles are approaching each other. 
+                // Add particles to collision array.
+                if (r->collisions_allocatedN<=collisions_N){
+                    // Allocate memory if there is no space in array.
+                    // Init to 32 if no space has been allocated yet, otherwise double it.
+                    r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
+                    r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
+                }
+                r->collisions[collisions_N].p1 = i;
+                r->collisions[collisions_N].p2 = j;
+                //r->collisions[collisions_N].gb = 0;
+                collisions_N++;
+                // Only mark collisions here. Resolve later.
+            }
+            if (rmin2_abc< dcritsum*dcritsum){ 
+                rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
                 break; // only add particle i once
             }
         }
     }
+	// randomize collisions
+	for (int i=0;i<collisions_N;i++){
+		int new = rand()%collisions_N;
+		struct reb_collision c1 = r->collisions[i];
+		r->collisions[i] = r->collisions[new];
+		r->collisions[new] = c1;
+	}
+	
+	int (*resolve) (struct reb_simulation* const r, struct reb_collision c) = r->collision_resolve;
+	if (resolve==NULL){
+		// Default is hard sphere
+		resolve = reb_collision_resolve_halt;
+	}
+	for (int i=0;i<collisions_N;i++){
+        
+        struct reb_collision c = r->collisions[i];
+        if (c.p1 != -1 && c.p2 != -1){
+            // Resolve collision
+            int outcome = resolve(r, c);
+            
+            // Remove particles
+            if (outcome & 1){
+                // Remove p1
+                if (c.p2==r->N-r->N_var-1 && !(r->tree_root)){
+                    // Particles swapped
+                    c.p2 = c.p1;
+                }
+                reb_remove(r,c.p1,r->collision_resolve_keep_sorted);
+                // Check for pair
+                for (int j=i+1;j<collisions_N;j++){
+                    struct reb_collision cp = r->collisions[j];
+                    if (cp.p1==c.p1 || cp.p2==c.p1){
+                        r->collisions[j].p1 = -1;
+                        r->collisions[j].p2 = -1;
+                        // Will be skipped.
+                    }
+                    if (cp.p1==r->N-r->N_var){
+                        r->collisions[j].p1 = c.p1;
+                    }
+                    if (cp.p2==r->N-r->N_var){
+                        r->collisions[j].p2 = c.p1;
+                    }
+                }
+            }
+            if (outcome & 2){
+                // Remove p2
+                reb_remove(r,c.p2,r->collision_resolve_keep_sorted);
+                // Check for pair
+                for (int j=i+1;j<collisions_N;j++){
+                    struct reb_collision cp = r->collisions[j];
+                    if (cp.p1==c.p2 || cp.p2==c.p2){
+                        r->collisions[j].p1 = -1;
+                        r->collisions[j].p2 = -1;
+                        // Will be skipped.
+                    }
+                    if (cp.p1==r->N-r->N_var){
+                        r->collisions[j].p1 = c.p2;
+                    }
+                    if (cp.p2==r->N-r->N_var){
+                        r->collisions[j].p2 = c.p2;
+                    }
+                }
+            }
+        }
+	}
 }
     
 void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-    unsigned int N = rim->shellN[shell];
     unsigned int* map = rim->map[shell];
     struct reb_particle* restrict const particles = r->particles;
     reb_mercurana_encounter_predict(r, a, shell);
+    unsigned int N = rim->shellN[shell];
     for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
         int mi = map[i]; 
-        if(rim->inshell[mi]==shell){  // only advance in-shell particles
+        if(rim->inshell[mi]){  // only advance in-shell particles
             particles[mi].x += a*particles[mi].vx;
             particles[mi].y += a*particles[mi].vy;
             particles[mi].z += a*particles[mi].vz;
@@ -224,6 +333,8 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
                 reb_integrator_mercurana_step(r, as, shell+1, rim->ordersubsteps);
             }
             reb_integrator_mercurana_postprocessor(r, as, shell+1, rim->ordersubsteps);
+            rim->shellN[shell+1] = 0; // Done with sub-shell. Set to 0 for reb_remove().
+            rim->shellN_active[shell+1] = 0;
         }
     }
 }
