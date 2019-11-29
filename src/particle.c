@@ -240,6 +240,13 @@ int reb_remove(struct reb_simulation* const r, int index, int keepSorted){
                     break; // do not remove same particle twice. but continue with other shells
                 }
             }
+            if(keepSorted){
+                for (int i=index;i<r->N-1;i++){
+                    rim->dcrit[s][i] = rim->dcrit[s][i+1];
+                }
+            }else{
+                rim->dcrit[s][index] = rim->dcrit[s][r->N-1];
+            }
         }
     }
     if (r->integrator == REB_INTEGRATOR_MERCURIUS){
