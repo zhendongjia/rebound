@@ -213,34 +213,42 @@ void reb_remove_all(struct reb_simulation* const r){
 
 int reb_remove(struct reb_simulation* const r, int index, int keepSorted){
     if (r->integrator == REB_INTEGRATOR_MERCURANA){
-        // Only need to update maps
         struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+        // First update map itself
         for (int s=0;s<rim->Nmaxshells;s++){
             unsigned int* map = rim->map[s];
             for (int i=0;i<rim->shellN[s];i++){
                 if (map[i]==index){
-                    // Need to remove particle from shell. 
-                    if(index<rim->shellN_active[s]){
-                        rim->shellN_active[s]--;
-                    }
-                    if(keepSorted){
-                        for (int j=0;j<rim->shellN[s];j++){
-                            if (map[j]>index){
-                                map[j]--;
-                            }
-                        }
-                        rim->shellN[s]--;
-                        for (int j=i;j<rim->shellN[s];j++){
-                            map[j]=map[j+1];
+                    if (keepSorted){
+                        for (int j=i;j<rim->shellN[s]-1;j++){
+                            map[j] = map[j+1];
                         }
                     }else{
-                        rim->shellN[s]--;
-                        map[i]=map[rim->shellN[s]];
+                        map[i] = map[rim->shellN[s]-1];
                     }
-                    break; // do not remove same particle twice. but continue with other shells
+                    rim->shellN[s]--;
+                    if(index<r->N_active || r->N_active==-1){
+                        rim->shellN_active[s]--;
+                    }
+                    break; // only one chance of particle being in each shell
                 }
             }
-            if(keepSorted){
+        }
+        // Then update map indices
+        for (int s=0;s<rim->Nmaxshells;s++){
+            unsigned int* map = rim->map[s];
+            for (int i=0;i<rim->shellN[s];i++){
+                if (map[i]>index && keepSorted){
+                    map[i]--;
+                }
+                if (map[i]==r->N-1 && (!keepSorted)){
+                    map[i] = index;
+                }
+            }
+        }
+        // Update dcrits
+        for (int s=0;s<rim->Nmaxshells;s++){
+            if (keepSorted){
                 for (int i=index;i<r->N-1;i++){
                     rim->dcrit[s][i] = rim->dcrit[s][i+1];
                 }

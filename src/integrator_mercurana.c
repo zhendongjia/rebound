@@ -182,6 +182,9 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
             // Only check if particles are overlapping at the beginning or end of the timestep.
             // TODO: Add flag to also check for overlap during the timestep.
             if (rmin2_ab<rsum*rsum){
+                ////printf("col found i=%d j=%d s=%d\n", mi,mj, shell);
+                //printf("part i m=%f xyz=%f %f %f \n", r->particles[mi].m, r->particles[mi].x, r->particles[mi].y, r->particles[mi].z );
+                //printf("part j m=%f xyz=%f %f %f \n", r->particles[mj].m, r->particles[mj].x, r->particles[mj].y, r->particles[mj].z );
                 // Collision occured.
                 // Note: No check if particles are approaching each other. 
                 // Add particles to collision array.
@@ -191,8 +194,8 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                     r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
                     r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
                 }
-                r->collisions[collisions_N].p1 = i;
-                r->collisions[collisions_N].p2 = j;
+                r->collisions[collisions_N].p1 = mi;
+                r->collisions[collisions_N].p2 = mj;
                 //r->collisions[collisions_N].gb = 0;
                 collisions_N++;
                 // Only mark collisions here. Resolve later.
@@ -255,12 +258,14 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
 		// Default is hard sphere
 		resolve = reb_collision_resolve_halt;
 	}
+    int N_orig = r->N;
 	for (int i=0;i<collisions_N;i++){
         
         struct reb_collision c = r->collisions[i];
         if (c.p1 != -1 && c.p2 != -1){
             // Resolve collision
             int outcome = resolve(r, c);
+            //printf("resolce %d\n",outcome);
             
             // Remove particles
             if (outcome & 1){
@@ -307,13 +312,18 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
             }
         }
 	}
+    if (N_orig!=r->N){
+        // redo prediction. Substeps might not be needed anymore
+        reb_mercurana_encounter_predict(r, dt,shell);
+    }
 }
     
 void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
+    //printf("drift s=%d\n",shell);
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-    unsigned int* map = rim->map[shell];
     struct reb_particle* restrict const particles = r->particles;
     reb_mercurana_encounter_predict(r, a, shell);
+    unsigned int* map = rim->map[shell];
     unsigned int N = rim->shellN[shell];
     for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
         int mi = map[i]; 
@@ -340,6 +350,7 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
 }
 
 void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int shell){
+    //printf("inter s=%d\n",shell);
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     const int N = rim->shellN[shell];
     const int N_active = rim->shellN_active[shell];

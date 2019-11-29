@@ -602,7 +602,7 @@ int reb_collision_resolve_merge(struct reb_simulation* const r, struct reb_colli
             Ei += 0.5*pj->m*(vx*vx + vy*vy + vz*vz);
         }
         const int N_active = ((r->N_active==-1)?r->N-r->N_var:r->N_active);
-        TODO this doesn't work in MERCURANA
+        //TODO this doesn't work in MERCURANA
         // No potential energy between test particles
         if (i<N_active || j<N_active){
             double x = pi->x - pj->x;
