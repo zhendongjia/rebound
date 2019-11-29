@@ -343,8 +343,6 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
                 reb_integrator_mercurana_step(r, as, shell+1, rim->ordersubsteps);
             }
             reb_integrator_mercurana_postprocessor(r, as, shell+1, rim->ordersubsteps);
-            rim->shellN[shell+1] = 0; // Done with sub-shell. Set to 0 for reb_remove().
-            rim->shellN_active[shell+1] = 0;
         }
     }
 }
@@ -726,6 +724,7 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
 
     rim->is_synchronized = 0;
     if (rim->safe_mode){
+        // TODO: Think about safe-mode. Right now subdividing the drift step does lead to different results!
         reb_integrator_mercurana_synchronize(r);
     }
 
