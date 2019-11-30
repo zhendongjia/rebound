@@ -676,12 +676,9 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
                 // TODO: make machine independent
                 // distance where dt/dt_frac is equal to dynamical timescale
                 double dcrit = pow(dt_shell*dt_shell/(rim->dt_frac*rim->dt_frac)*r->G*r->particles[i].m,1./3.);
-                // TODO think about particle radius here.
-                // Problem is that shells get subdivided indefinitely
-                //dcrit = MAX(dcrit, r->particles[i].r);
+                // Note: particle radius not needed here.
                 rim->dcrit[s][i] = dcrit;
             }
-            // TODO think about 2
             dt_shell /= 2*rim->Nstepspershell;
             // Initialize shell numbers to zero (not needed, but helps debugging)
             rim->shellN[s] = 0;
