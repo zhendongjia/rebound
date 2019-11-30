@@ -41,29 +41,15 @@
 #define MIN(a, b) ((a) > (b) ? (b) : (a))    ///< Returns the minimum of a and b
 #define MAX(a, b) ((a) > (b) ? (a) : (b))    ///< Returns the maximum of a and b
 
-double reb_integrator_mercurana_L_mercury(const struct reb_simulation* const r, double d, double ri, double ro){
-    // This is the changeover function used by the Mercury integrator.
-    double y = (d-ri)/(ro-ri);
-    if (y<0.){
-        return 0.;
-    }else if (y>1.){
-        return 1.;
-    }else{
-        return 10.*(y*y*y) - 15.*(y*y*y*y) + 6.*(y*y*y*y*y);
+// Machine independent implementation of pow(*,1./3.) using Newton's method.
+// Speed is not an issue. Only used to calculate dcrit.
+static double sqrt3(double a){
+    double x = 1.;
+    for (int k=0; k<20;k++){  // A smaller number should be ok too.
+        double x2 = x*x;
+        x += (a/x2-x)/3.;
     }
-}
-
-double reb_integrator_mercurana_dLdr_mercury(const struct reb_simulation* const r, double d, double ri, double ro){
-    // This is the changeover function used by the Mercury integrator.
-    double y = (d-ri)/(ro-ri);
-    double dydr = 1./(ro-ri);
-    if (y<0.){
-        return 0.;
-    }else if (y>1.){
-        return 0.;
-    }else{
-        return dydr*(30.*(y*y) - 60.*(y*y*y) + 30.*(y*y*y*y));
-    }
+    return x;
 }
 
 static double f(double x){
@@ -673,10 +659,9 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         double dt_shell = r->dt;
         for (int s=0;s<rim->Nmaxshells;s++){ // innermost shell has no dcrit
             for (int i=0;i<N;i++){
-                // TODO: make machine independent
                 // distance where dt/dt_frac is equal to dynamical timescale
-                double dcrit = pow(dt_shell*dt_shell/(rim->dt_frac*rim->dt_frac)*r->G*r->particles[i].m,1./3.);
                 // Note: particle radius not needed here.
+                double dcrit = sqrt3(dt_shell*dt_shell/(rim->dt_frac*rim->dt_frac)*r->G*r->particles[i].m);
                 rim->dcrit[s][i] = dcrit;
             }
             dt_shell /= 2*rim->Nstepspershell;
@@ -721,7 +706,6 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
 
     rim->is_synchronized = 0;
     if (rim->safe_mode){
-        // TODO: Think about safe-mode. Right now subdividing the drift step does lead to different results!
         reb_integrator_mercurana_synchronize(r);
     }
 
