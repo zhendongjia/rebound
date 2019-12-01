@@ -45,7 +45,7 @@
 // Speed is not an issue. Only used to calculate dcrit.
 static double sqrt3(double a){
     double x = 1.;
-    for (int k=0; k<20;k++){  // A smaller number should be ok too.
+    for (int k=0; k<200;k++){  // A smaller number should be ok too.
         double x2 = x*x;
         x += (a/x2-x)/3.;
     }
@@ -702,7 +702,11 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
     if (rim->is_synchronized){
         reb_integrator_mercurana_preprocessor(r, r->dt, 0, rim->order);
     }
-    reb_integrator_mercurana_step(r, r->dt, 0, rim->order);
+    double alpha1 = 1.35120719195965763404768780897;
+    reb_integrator_mercurana_step(r, alpha1*r->dt, 0, rim->order);
+    reb_integrator_mercurana_step(r, (1.-2.*alpha1)*r->dt, 0, rim->order);
+    reb_integrator_mercurana_step(r, alpha1*r->dt, 0, rim->order);
+    //reb_integrator_mercurana_step(r, r->dt, 0, rim->order);
 
     rim->is_synchronized = 0;
     if (rim->safe_mode){
