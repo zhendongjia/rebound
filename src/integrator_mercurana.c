@@ -661,10 +661,16 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
             for (int i=0;i<N;i++){
                 // distance where dt/dt_frac is equal to dynamical timescale
                 // Note: particle radius not needed here.
-                double dcrit = sqrt3(dt_shell*dt_shell/(rim->dt_frac*rim->dt_frac)*r->G*r->particles[i].m);
+                double T = dt_shell/(rim->dt_frac*2.*M_PI);
+                double dcrit = sqrt3(T*T*r->G*r->particles[i].m);
                 rim->dcrit[s][i] = dcrit;
             }
-            dt_shell /= 2*rim->Nstepspershell;
+            double longest_drift_step_in_shell = 0.5;                        // 2nd + 4th order
+            if ((s==0 && rim->order==6) || (s>0 && rim->ordersubsteps==6)){  // 6th order
+                longest_drift_step_in_shell = a_6[1];
+            }
+            dt_shell *= longest_drift_step_in_shell;
+            dt_shell /= rim->Nstepspershell;
             // Initialize shell numbers to zero (not needed, but helps debugging)
             rim->shellN[s] = 0;
             rim->shellN_active[s] = 0;
@@ -702,11 +708,11 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
     if (rim->is_synchronized){
         reb_integrator_mercurana_preprocessor(r, r->dt, 0, rim->order);
     }
-    double alpha1 = 1.35120719195965763404768780897;
-    reb_integrator_mercurana_step(r, alpha1*r->dt, 0, rim->order);
-    reb_integrator_mercurana_step(r, (1.-2.*alpha1)*r->dt, 0, rim->order);
-    reb_integrator_mercurana_step(r, alpha1*r->dt, 0, rim->order);
-    //reb_integrator_mercurana_step(r, r->dt, 0, rim->order);
+    //double alpha1 = 1.35120719195965763404768780897;
+    //reb_integrator_mercurana_step(r, alpha1*r->dt, 0, rim->order);
+    //reb_integrator_mercurana_step(r, (1.-2.*alpha1)*r->dt, 0, rim->order);
+    //reb_integrator_mercurana_step(r, alpha1*r->dt, 0, rim->order);
+    reb_integrator_mercurana_step(r, r->dt, 0, rim->order);
 
     rim->is_synchronized = 0;
     if (rim->safe_mode){
