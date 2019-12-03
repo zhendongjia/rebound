@@ -58,13 +58,14 @@ void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, 
     struct reb_particle* const particles = r->particles;
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
-    
-    // Normal force calculation 
-    for (int i=N_central; i<N; i++){
-        if (reb_sigint) return;
+    for (int i=0; i<N; i++){
         particles[i].ax = 0; 
         particles[i].ay = 0; 
         particles[i].az = 0; 
+    }
+    
+    // Normal force calculation 
+    for (int i=N_central; i<N; i++){
         if (reb_sigint) return;
         for (int j=N_central; j<N_active; j++){
             if (i==j) continue;
@@ -190,14 +191,29 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
     
-    // Normal force calculation 
-    for (int i=N_central; i<N; i++){
-        if (reb_sigint) return;
+    for (int i=0; i<N; i++){
         particles[i].ax = 0; 
         particles[i].ay = 0; 
         particles[i].az = 0; 
-        if (reb_sigint) return;
-        for (int j=N_central; j<N_active; j++){
+    }
+
+    // Normal force calculation 
+    for (int i=0; i<N_central; i++){
+        for (int j=0; j<N_active; j++){
+            if (i==j) continue;
+            const double dx = particles[i].x - particles[j].x;
+            const double dy = particles[i].y - particles[j].y;
+            const double dz = particles[i].z - particles[j].z;
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+            const double prefact = -G*particles[j].m/(dr*dr*dr);
+            particles[i].ax    += prefact*dx;
+            particles[i].ay    += prefact*dy;
+            particles[i].az    += prefact*dz;
+        }
+    }
+    for (int j=0; j<N_central; j++){
+        for (int i=0; i<N; i++){
             if (i==j) continue;
             const double dx = particles[i].x - particles[j].x;
             const double dy = particles[i].y - particles[j].y;
@@ -211,6 +227,8 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
         }
     }
     if (testparticle_type){
+        // TODO
+        printf("not working");
         for (int i=N_central; i<N_active; i++){
             if (reb_sigint) return;
             for (int j=N_active; j<N; j++){
@@ -233,9 +251,10 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
         jerk[j].az = 0; 
     }
     if (v!=0.){ // is jerk even used?
-        for (int j=N_central; j<N_active; j++){
+        for (int j=0; j<N_central; j++){
             if (reb_sigint) return;
-            for (int i=N_central; i<j; i++){
+            for (int i=0; i<N_active; i++){
+                if (i==j) continue;
                 const double dx = particles[j].x - particles[i].x; 
                 const double dy = particles[j].y - particles[i].y; 
                 const double dz = particles[j].z - particles[i].z; 
@@ -248,26 +267,45 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
                 const double alphasum = dax*dx+day*dy+daz*dz;
                 const double prefact2 = G /(dr*dr*dr);
                 const double prefact2i = prefact2*particles[i].m;
-                const double prefact2j = prefact2*particles[j].m;
                 jerk[j].ax    -= dax*prefact2i;
                 jerk[j].ay    -= day*prefact2i;
                 jerk[j].az    -= daz*prefact2i;
-                jerk[i].ax    += dax*prefact2j;
-                jerk[i].ay    += day*prefact2j;
-                jerk[i].az    += daz*prefact2j;
                 const double prefact1 = alphasum*prefact2/dr *3./dr;
                 const double prefact1i = prefact1*particles[i].m;
-                const double prefact1j = prefact1*particles[j].m;
                 jerk[j].ax    += dx*prefact1i;
                 jerk[j].ay    += dy*prefact1i;
                 jerk[j].az    += dz*prefact1i;
-                jerk[i].ax    -= dx*prefact1j;
-                jerk[i].ay    -= dy*prefact1j;
-                jerk[i].az    -= dz*prefact1j;
+            }
+        }
+        for (int i=0; i<N_central; i++){
+            if (reb_sigint) return;
+            for (int j=0; j<N_active; j++){
+                if (i==j) continue;
+                const double dx = particles[j].x - particles[i].x; 
+                const double dy = particles[j].y - particles[i].y; 
+                const double dz = particles[j].z - particles[i].z; 
+                
+                const double dax = particles[j].ax - particles[i].ax; 
+                const double day = particles[j].ay - particles[i].ay; 
+                const double daz = particles[j].az - particles[i].az; 
+
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                const double alphasum = dax*dx+day*dy+daz*dz;
+                const double prefact2 = G /(dr*dr*dr);
+                const double prefact2i = prefact2*particles[i].m;
+                jerk[j].ax    -= dax*prefact2i;
+                jerk[j].ay    -= day*prefact2i;
+                jerk[j].az    -= daz*prefact2i;
+                const double prefact1 = alphasum*prefact2/dr *3./dr;
+                const double prefact1i = prefact1*particles[i].m;
+                jerk[j].ax    += dx*prefact1i;
+                jerk[j].ay    += dy*prefact1i;
+                jerk[j].az    += dz*prefact1i;
             }
         }
         for (int j=N_central; j<N_active; j++){
             if (reb_sigint) return;
+            printf("not working"); //TODO
             for (int i=N_active; i<N; i++){
                 const double dx = particles[j].x - particles[i].x; 
                 const double dy = particles[j].y - particles[i].y; 
@@ -435,7 +473,7 @@ void reb_integrator_hyla_part1(struct reb_simulation* r){
         // If particle number increased (or this is the first step), need to calculate critical radii
     }
 
-    r->gravity_ignore_terms = 2;
+    r->gravity = REB_GRAVITY_NONE;
 
     // Calculate collisions only with DIRECT method
     if (r->collision != REB_COLLISION_NONE && r->collision != REB_COLLISION_DIRECT){
