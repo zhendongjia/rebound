@@ -362,6 +362,7 @@ struct reb_simulation_integrator_hyla {
     unsigned int ordersubsteps;
     unsigned int safe_mode;
     double dt_frac; 
+    unsigned int Ncentral;
     unsigned int Nmaxshells;
     unsigned int Nstepspershell;        
     unsigned int** map;  // from shell to global       

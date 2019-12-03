@@ -100,208 +100,6 @@ static const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.00
 static const double y_4[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624269298081};
 static const double z_4[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
 
-void reb_hyla_predict_rmin2(struct reb_particle p1, struct reb_particle p2, double dt, double* rmin2_ab, double* rmin2_abc){ 
-    double dts = copysign(1.,dt); 
-    dt = fabs(dt);
-    const double dx1 = p1.x - p2.x; // distance at beginning
-    const double dy1 = p1.y - p2.y;
-    const double dz1 = p1.z - p2.z;
-    const double r1 = (dx1*dx1 + dy1*dy1 + dz1*dz1);
-    const double dvx1 = dts*(p1.vx - p2.vx); 
-    const double dvy1 = dts*(p1.vy - p2.vy);
-    const double dvz1 = dts*(p1.vz - p2.vz);
-    const double dx2 = dx1 +dt*dvx1; // distance at end
-    const double dy2 = dy1 +dt*dvy1;
-    const double dz2 = dz1 +dt*dvz1;
-    const double r2 = (dx2*dx2 + dy2*dy2 + dz2*dz2);
-    const double t_closest = (dx1*dvx1 + dy1*dvy1 + dz1*dvz1)/(dvx1*dvx1 + dvy1*dvy1 + dvz1*dvz1);
-    const double dx3 = dx1+t_closest*dvx1; // closest approach
-    const double dy3 = dy1+t_closest*dvy1;
-    const double dz3 = dz1+t_closest*dvz1;
-    const double r3 = (dx3*dx3 + dy3*dy3 + dz3*dz3);
-
-    *rmin2_ab = MIN(r1,r2);
-    if (t_closest/dt>=0. && t_closest/dt<=1.){
-        *rmin2_abc = MIN(*rmin2_ab, r3);
-    }else{
-        *rmin2_abc = *rmin2_ab;
-    }
-}
-
-static void reb_hyla_encounter_predict(struct reb_simulation* const r, double dt, int shell){
-    struct reb_simulation_integrator_hyla* rim = &(r->ri_hyla);
-    struct reb_particle* const particles = r->particles;
-    const double* const dcrit = rim->dcrit[shell];
-    const int N = rim->shellN[shell];
-    const int N_active = rim->shellN_active[shell];
-    unsigned int* map = rim->map[shell];
-
-    // Put all particles in current shell by default
-    for (int i=0; i<N; i++){
-        int mi = map[i]; 
-        rim->inshell[mi] = 1;
-    }
-    
-    if (shell+1>=rim->Nmaxshells){ // does sub-shell exist?
-        return;
-    }
-	
-    int collisions_N = 0;
-    
-    // Check if particles are in sub-shell
-    rim->shellN[shell+1] = 0;
-    rim->shellN_active[shell+1] = 0;
-
-    // Note: Need to find the active particles first
-    // TODO make this O(N^2/2)
-    for (int i=0; i<N_active; i++){
-        int mi = map[i]; 
-        for (int j=0; j<N; j++){
-            int mj = map[j]; 
-            if (i==j) continue;
-            double rmin2_ab, rmin2_abc;
-            reb_hyla_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
-            double rsum = particles[mi].r+particles[mj].r;
-            double dcritsum = dcrit[mi]+dcrit[mj];
-            // Only check if particles are overlapping at the beginning or end of the timestep.
-            // TODO: Add flag to also check for overlap during the timestep.
-            if (rmin2_ab<rsum*rsum){
-                ////printf("col found i=%d j=%d s=%d\n", mi,mj, shell);
-                //printf("part i m=%f xyz=%f %f %f \n", r->particles[mi].m, r->particles[mi].x, r->particles[mi].y, r->particles[mi].z );
-                //printf("part j m=%f xyz=%f %f %f \n", r->particles[mj].m, r->particles[mj].x, r->particles[mj].y, r->particles[mj].z );
-                // Collision occured.
-                // Note: No check if particles are approaching each other. 
-                // Add particles to collision array.
-                if (r->collisions_allocatedN<=collisions_N){
-                    // Allocate memory if there is no space in array.
-                    // Init to 32 if no space has been allocated yet, otherwise double it.
-                    r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
-                    r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
-                }
-                r->collisions[collisions_N].p1 = mi;
-                r->collisions[collisions_N].p2 = mj;
-                //r->collisions[collisions_N].gb = 0;
-                collisions_N++;
-                // Only mark collisions here. Resolve later.
-            }
-            if (rmin2_abc< dcritsum*dcritsum){ 
-                // j particle will be added later (active particles need to be in array first)
-                rim->inshell[mi] = 0;
-                rim->map[shell+1][rim->shellN[shell+1]] = mi;
-                rim->shellN[shell+1]++;
-                rim->shellN_active[shell+1]++;
-                break; // only add particle i once
-            }
-
-        }
-    }
-    for (int i=N_active; i<N; i++){
-        int mi = map[i]; 
-        for (int j=0; j<N_active; j++){
-            int mj = map[j]; 
-            double rmin2_ab, rmin2_abc;
-            reb_hyla_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
-            double rsum = particles[mi].r+particles[mj].r;
-            double dcritsum = dcrit[mi]+dcrit[mj];
-            // Only check if particles are overlapping at the beginning or end of the timestep.
-            // TODO: Add flag to also check for overlap during the timestep.
-            if (rmin2_ab<rsum*rsum){
-                // Collision occured.
-                // Note: No check if particles are approaching each other. 
-                // Add particles to collision array.
-                if (r->collisions_allocatedN<=collisions_N){
-                    // Allocate memory if there is no space in array.
-                    // Init to 32 if no space has been allocated yet, otherwise double it.
-                    r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
-                    r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
-                }
-                r->collisions[collisions_N].p1 = mi;
-                r->collisions[collisions_N].p2 = mj;
-                //r->collisions[collisions_N].gb = 0;
-                collisions_N++;
-                // Only mark collisions here. Resolve later.
-            }
-            if (rmin2_abc< dcritsum*dcritsum){ 
-                rim->inshell[mi] = 0;
-                rim->map[shell+1][rim->shellN[shell+1]] = mi;
-                rim->shellN[shell+1]++;
-                break; // only add particle i once
-            }
-        }
-    }
-	// randomize collisions
-	for (int i=0;i<collisions_N;i++){
-		int new = rand()%collisions_N;
-		struct reb_collision c1 = r->collisions[i];
-		r->collisions[i] = r->collisions[new];
-		r->collisions[new] = c1;
-	}
-	
-	int (*resolve) (struct reb_simulation* const r, struct reb_collision c) = r->collision_resolve;
-	if (resolve==NULL){
-		// Default is hard sphere
-		resolve = reb_collision_resolve_halt;
-	}
-    int N_orig = r->N;
-	for (int i=0;i<collisions_N;i++){
-        
-        struct reb_collision c = r->collisions[i];
-        if (c.p1 != -1 && c.p2 != -1){
-            // Resolve collision
-            int outcome = resolve(r, c);
-            //printf("resolce %d\n",outcome);
-            
-            // Remove particles
-            if (outcome & 1){
-                // Remove p1
-                if (c.p2==r->N-r->N_var-1 && !(r->tree_root)){
-                    // Particles swapped
-                    c.p2 = c.p1;
-                }
-                reb_remove(r,c.p1,r->collision_resolve_keep_sorted);
-                // Check for pair
-                for (int j=i+1;j<collisions_N;j++){
-                    struct reb_collision cp = r->collisions[j];
-                    if (cp.p1==c.p1 || cp.p2==c.p1){
-                        r->collisions[j].p1 = -1;
-                        r->collisions[j].p2 = -1;
-                        // Will be skipped.
-                    }
-                    if (cp.p1==r->N-r->N_var){
-                        r->collisions[j].p1 = c.p1;
-                    }
-                    if (cp.p2==r->N-r->N_var){
-                        r->collisions[j].p2 = c.p1;
-                    }
-                }
-            }
-            if (outcome & 2){
-                // Remove p2
-                reb_remove(r,c.p2,r->collision_resolve_keep_sorted);
-                // Check for pair
-                for (int j=i+1;j<collisions_N;j++){
-                    struct reb_collision cp = r->collisions[j];
-                    if (cp.p1==c.p2 || cp.p2==c.p2){
-                        r->collisions[j].p1 = -1;
-                        r->collisions[j].p2 = -1;
-                        // Will be skipped.
-                    }
-                    if (cp.p1==r->N-r->N_var){
-                        r->collisions[j].p1 = c.p2;
-                    }
-                    if (cp.p2==r->N-r->N_var){
-                        r->collisions[j].p2 = c.p2;
-                    }
-                }
-            }
-        }
-	}
-    if (N_orig!=r->N){
-        // redo prediction. Substeps might not be needed anymore
-        reb_hyla_encounter_predict(r, dt,shell);
-    }
-}
-    
 void reb_integrator_hyla_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
     //printf("drift s=%d\n",shell);
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
@@ -580,27 +378,46 @@ void reb_integrator_hyla_postprocessor(struct reb_simulation* const r, double dt
             break;
     }
 }
-void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int shell, int order){
+void reb_integrator_hyla_drift_shell1(struct reb_simulation* const r, double a){
+    struct reb_particle* restrict const particles = r->particles;
+    unsigned int N = r->N;
+    for (int i=0;i<N;i++){  
+        particles[mi].x += a*particles[mi].vx;
+        particles[mi].y += a*particles[mi].vy;
+        particles[mi].z += a*particles[mi].vz;
+    }
+}
+void reb_integrator_hyla_drift_shell0(struct reb_simulation* const r, double a){
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
+    double as = a/rim->Nstepspershell;
+    reb_integrator_hyla_preprocessor(r, as, rim->ordersubsteps);
+    for (int i=0;i<rim->Nstepspershell;i++){
+        reb_integrator_hyla_step(r, as, rim->ordersubsteps);
+    }
+    reb_integrator_hyla_postprocessor(r, as, rim->ordersubsteps);
+}
+
+void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*drift_kick)(struct reb_simulation* const r, double a)){
     switch(order){
         case 6:
-            reb_integrator_hyla_drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
-            reb_integrator_hyla_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell); 
-            reb_integrator_hyla_drift_step(r, dt*a_6[1], shell);
-            reb_integrator_hyla_interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., shell); 
-            reb_integrator_hyla_drift_step(r, dt*a_6[1], shell);
-            reb_integrator_hyla_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell);
-            reb_integrator_hyla_drift_step(r, dt*a_6[0], shell);
+            drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
+            interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell); 
+            drift_step(r, dt*a_6[1], shell);
+            interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., shell); 
+            drift_step(r, dt*a_6[1], shell);
+            interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell);
+            drift_step(r, dt*a_6[0], shell);
             break;
         case 4:
-            reb_integrator_hyla_drift_step(r, dt*0.5, shell); //TODO combine drift steps
-            reb_integrator_hyla_interaction_step(r, dt, dt*dt*dt/24.*2, shell); 
-            reb_integrator_hyla_drift_step(r, dt*0.5, shell);
+            drift_step(r, dt*0.5, shell); //TODO combine drift steps
+            interaction_step(r, dt, dt*dt*dt/24.*2, shell); 
+            drift_step(r, dt*0.5, shell);
             break;
         case 2:
         default:
-            reb_integrator_hyla_drift_step(r, dt*0.5, shell); //TODO combine drift steps
-            reb_integrator_hyla_interaction_step(r, dt, 0., shell);
-            reb_integrator_hyla_drift_step(r, dt*0.5, shell);
+            drift_step(r, dt*0.5, shell); //TODO combine drift steps
+            interaction_step(r, dt, 0., shell);
+            drift_step(r, dt*0.5, shell);
             break;
     }
 }
@@ -645,41 +462,10 @@ void reb_integrator_hyla_part1(struct reb_simulation* r){
 
         rim->allocatedN = N;
         // If particle number increased (or this is the first step), need to calculate critical radii
-        rim->recalculate_dcrit_this_timestep = 1;
     }
 
-    if (rim->recalculate_dcrit_this_timestep){
-        rim->recalculate_dcrit_this_timestep = 0;
-        if (rim->is_synchronized==0){
-            reb_integrator_hyla_synchronize(r);
-            reb_warning(r,"HYLA: Recalculating dcrit but pos/vel were not synchronized before.");
-        }
-        double dt_shell = r->dt;
-        for (int s=0;s<rim->Nmaxshells;s++){ // innermost shell has no dcrit
-            for (int i=0;i<N;i++){
-                // distance where dt/dt_frac is equal to dynamical timescale
-                // Note: particle radius not needed here.
-                double T = dt_shell/(rim->dt_frac*2.*M_PI);
-                double dcrit = sqrt3(T*T*r->G*r->particles[i].m);
-                rim->dcrit[s][i] = dcrit;
-            }
-            double longest_drift_step_in_shell = 0.5;                        // 2nd + 4th order
-            if ((s==0 && rim->order==6) || (s>0 && rim->ordersubsteps==6)){  // 6th order
-                longest_drift_step_in_shell = a_6[1];
-            }
-            dt_shell *= longest_drift_step_in_shell;
-            dt_shell /= rim->Nstepspershell;
-            // Initialize shell numbers to zero (not needed, but helps debugging)
-            rim->shellN[s] = 0;
-            rim->shellN_active[s] = 0;
-        }
-        for (int i=0;i<N;i++){
-            // Set map to identity for outer-most shell
-            rim->map[0][i] = i;
-        }
+    r->gravity_ignore_terms = 2;
 
-    }
-    
     // Calculate collisions only with DIRECT method
     if (r->collision != REB_COLLISION_NONE && r->collision != REB_COLLISION_DIRECT){
         reb_warning(r,"Mercurius only works with a direct collision search.");
@@ -718,6 +504,7 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
 void reb_integrator_hyla_synchronize(struct reb_simulation* r){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     if (rim->is_synchronized == 0){
+        r->gravity_ignore_terms = 2;
         if (rim->L == NULL){
             // Setting default switching function
             rim->L = reb_integrator_hyla_L_infinity;
@@ -732,10 +519,8 @@ void reb_integrator_hyla_reset(struct reb_simulation* r){
     if (r->ri_hyla.allocatedN){
         for (int i=0;i<r->ri_hyla.Nmaxshells;i++){
             free(r->ri_hyla.map[i]);
-            free(r->ri_hyla.dcrit[i]);
         }
         free(r->ri_hyla.map);
-        free(r->ri_hyla.dcrit);
         free(r->ri_hyla.inshell);
         free(r->ri_hyla.shellN);
         free(r->ri_hyla.shellN_active);
@@ -743,20 +528,18 @@ void reb_integrator_hyla_reset(struct reb_simulation* r){
     }
     r->ri_hyla.allocatedN = 0;
     r->ri_hyla.map = NULL;
-    r->ri_hyla.dcrit = NULL;
     r->ri_hyla.inshell = NULL;
     r->ri_hyla.shellN = NULL;
     r->ri_hyla.shellN_active = NULL;
     r->ri_hyla.jerk = NULL;
     
+    r->ri_hyla.Ncentral = 1;
     r->ri_hyla.order = 2;
     r->ri_hyla.ordersubsteps = 2;
     r->ri_hyla.safe_mode = 1;
-    r->ri_hyla.dt_frac = 0.1;
     r->ri_hyla.Nmaxshells = 10;
     r->ri_hyla.Nmaxshellused = 1;
     r->ri_hyla.Nstepspershell = 10;
-    r->ri_hyla.recalculate_dcrit_this_timestep = 0;
     r->ri_hyla.is_synchronized = 1;
     r->ri_hyla.L = NULL;
     r->ri_hyla.dLdr = NULL;

@@ -1958,6 +1958,7 @@ class reb_simulation_integrator_hyla(Structure):
                 ("ordersubsteps", c_uint),
                 ("safe_mode", c_uint),
                 ("dt_frac", c_double),
+                ("Ncentral", c_uint),
                 ("Nmaxshells", c_uint),
                 ("Nstepspershell", c_uint),
                 ("_map", POINTER(c_uint)),
