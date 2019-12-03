@@ -340,18 +340,18 @@ void reb_integrator_hyla_interaction_step(struct reb_simulation* r, double y, do
         particles[mi].vz += y*particles[mi].az + v*jerk[i].az;
     }
 }
-void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt, int shell, int order){
+void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double a)){
     switch(order){
         case 6:
             for (int i=0;i<6;i++){
-                reb_integrator_hyla_drift_step(r, dt*z_6[i], shell);
-                reb_integrator_hyla_interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2., shell);
+                drift_step(r, dt*z_6[i]/);
+                interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2.);
             }
             break;
         case 4:
             for (int i=0;i<3;i++){
-                reb_integrator_hyla_interaction_step(r, dt*y_4[i], 0., shell);
-                reb_integrator_hyla_drift_step(r, dt*z_4[i], shell);
+                interaction_step(r, dt*y_4[i], 0.);
+                drift_step(r, dt*z_4[i]);
             }
             break;
         case 2:
@@ -359,18 +359,18 @@ void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt,
             break;
     }
 }
-void reb_integrator_hyla_postprocessor(struct reb_simulation* const r, double dt, int shell, int order){
+void reb_integrator_hyla_postprocessor(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double a)){
     switch(order){
         case 6:
             for (int i=5;i>=0;i--){
-                reb_integrator_hyla_interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2., shell); 
-                reb_integrator_hyla_drift_step(r, -dt*z_6[i], shell);
+                interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2.); 
+                drift_step(r, -dt*z_6[i]);
              }
             break;
         case 4:
             for (int i=2;i>=0;i--){
-                reb_integrator_hyla_drift_step(r, -dt*z_4[i], shell);
-                reb_integrator_hyla_interaction_step(r, -dt*y_4[i], 0., shell); 
+                drift_step(r, -dt*z_4[i]);
+                interaction_step(r, -dt*y_4[i], 0.); 
              }
             break;
         case 2:
@@ -390,14 +390,14 @@ void reb_integrator_hyla_drift_shell1(struct reb_simulation* const r, double a){
 void reb_integrator_hyla_drift_shell0(struct reb_simulation* const r, double a){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     double as = a/rim->Nstepspershell;
-    reb_integrator_hyla_preprocessor(r, as, rim->ordersubsteps);
+    reb_integrator_hyla_preprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
     for (int i=0;i<rim->Nstepspershell;i++){
-        reb_integrator_hyla_step(r, as, rim->ordersubsteps);
+        reb_integrator_hyla_step(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
     }
-    reb_integrator_hyla_postprocessor(r, as, rim->ordersubsteps);
+    reb_integrator_hyla_postprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
 }
 
-void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*drift_kick)(struct reb_simulation* const r, double a)){
+void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double a)){
     switch(order){
         case 6:
             drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
