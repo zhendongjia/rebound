@@ -222,10 +222,10 @@ void reb_integrator_hyla_drift_shell1(struct reb_simulation* const r, double a){
     struct reb_particle* restrict const particles = r->particles;
     unsigned int N = r->N;
     for (int i=0;i<N;i++){  
-        particles[mi].x += a*particles[mi].vx;
-        particles[mi].y += a*particles[mi].vy;
-        particles[mi].z += a*particles[mi].vz;
-    }
+        particles[i].x += a*particles[i].vx;
+        particles[i].y += a*particles[i].vy;
+        particles[i].z += a*particles[i].vz;
+    
 }
 void reb_integrator_hyla_drift_shell0(struct reb_simulation* const r, double a){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
