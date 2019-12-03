@@ -612,20 +612,6 @@ int reb_collision_resolve_merge(struct reb_simulation* const r, struct reb_colli
             // TODO think about factor of 0.5
             Ei += - r->G*pi->m*pj->m/_r;
     
-                    const int _N_active = ((r->N_active==-1)?N:r->N_active) - N_var;
-                    const struct reb_particle* restrict const particles = r->particles;
-                    double e_pot = 0.;
-                    int N_interact = (r->testparticle_type==0)?_N_active:(N-N_var);
-                    for (int i=0;i<_N_active;i++){
-                        struct reb_particle pi = particles[i];
-                        for (int j=i+1;j<N_interact;j++){
-                            struct reb_particle pj = particles[j];
-                            double dx = pi.x - pj.x;
-                            double dy = pi.y - pj.y;
-                            double dz = pi.z - pj.z;
-                            e_pot -= r->G*pj.m*pi.m/sqrt(dx*dx + dy*dy + dz*dz);
-                        }
-                    }
         }
     }
     
