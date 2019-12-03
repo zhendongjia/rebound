@@ -324,6 +324,58 @@ struct reb_simulation_integrator_mercurana {
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
 };
 
+/**
+ * @brief This structure contains variables and pointer used by the MERCURANA integrator.
+ */
+struct reb_simulation_integrator_hyla {
+   /**
+    * @brief This is a function pointer to the force switching function used.
+    * @details If NULL (the default), the MERCURY switching function will be used.
+    * The argument d is the distance between two particles.
+    * The argument dcrit is the maximum of the critical distances of the two particles.
+    * The return value is a scalar between 0 and 1. If it always returns 1, then the
+    * integrator becomes the standard Wisdom-Holman integrator.
+    */
+    double (*L) (const struct reb_simulation* const r, double d, double dcrit, double fracin);  
+    double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin);  
+
+    /** 
+     * @brief Setting this flag to one will recalculate the critical switchover 
+     * distances dcrit at the the beginning of the next timestep. 
+     * @details After one timestep, the flag gets set back to 0. 
+     * If you want to recalculate dcrit at every every timestep, you 
+     * also need to set this flag to 1 before every timestep.
+     * Default is 0.
+     */ 
+    unsigned int recalculate_dcrit_this_timestep;
+
+    /**
+     * @brief If this flag is set (the default), the integrator will 
+     * recalculate heliocentric coordinates and synchronize after
+     * every timestep, to avoid problems with outputs or particle modifications
+     * between timesteps. 
+     * @details Setting it to 0 will result in a speedup, but care
+     * must be taken to synchronize and recalculate coordinates when needed.
+     */
+
+    unsigned int order;
+    unsigned int ordersubsteps;
+    unsigned int safe_mode;
+    double dt_frac; 
+    unsigned int Nmaxshells;
+    unsigned int Nstepspershell;        
+    unsigned int** map;  // from shell to global       
+    unsigned int* inshell;  // from global to shell
+    double** dcrit;       
+    unsigned int allocatedN; 
+    unsigned int* shellN;  
+    unsigned int* shellN_active; 
+    unsigned int Nmaxshellused;  
+    struct reb_particle* REBOUND_RESTRICT jerk;
+    unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
+};
+
+
 
 /**
  * @brief This structure contains variables used by the SEI integrator.
@@ -994,6 +1046,7 @@ struct reb_simulation {
         REB_INTEGRATOR_MERCURIUS = 9,///< MERCURIUS integrator 
         REB_INTEGRATOR_SABA = 10,    ///< SABA integrator family (Laskar and Robutel 2001)
         REB_INTEGRATOR_MERCURANA = 11,///< MERCURANA integrator 
+        REB_INTEGRATOR_HYLA = 12,    ///< HYLA integrator 
         } integrator;
 
     /**
@@ -1031,6 +1084,7 @@ struct reb_simulation {
     struct reb_simulation_integrator_ias15 ri_ias15;    ///< The IAS15 struct
     struct reb_simulation_integrator_mercurius ri_mercurius;      ///< The MERCURIUS struct
     struct reb_simulation_integrator_mercurana ri_mercurana;      ///< The MERCURANA struct
+    struct reb_simulation_integrator_hyla ri_hyla;      ///< The HYLA struct
     struct reb_simulation_integrator_janus ri_janus;    ///< The JANUS struct 
     /** @} */
 

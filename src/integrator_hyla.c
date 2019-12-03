@@ -1,12 +1,10 @@
 /**
- * @file    integrator_mercurana.c
- * @brief   MERCURANA, a modified version of John Chambers' MERCURY algorithm
- *          using the IAS15 integrator and WHFast. It works with planet-planry
- *          collisions, test particles, and additional forces.
+ * @file    integrator_hyla.c
+ * @brief   HYLA
  * @author  Hanno Rein, Dan Tamayo
  * 
  * @section LICENSE
- * Copyright (c) 2019 Hanno Rein, Dan Tamayo
+ * Copyright (c) 2019 Hanno Rein
  *
  * This file is part of rebound.
  *
@@ -34,7 +32,7 @@
 #include "rebound.h"
 #include "integrator.h"
 #include "gravity.h"
-#include "integrator_mercurana.h"
+#include "integrator_hyla.h"
 #include "integrator_ias15.h"
 #include "integrator_whfast.h"
 #include "collision.h"
@@ -61,7 +59,7 @@ static double dfdy(double x){
     return exp(-1./x)/(x*x);
 }
 
-double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r, double d, double ri, double ro){
+double reb_integrator_hyla_L_infinity(const struct reb_simulation* const r, double d, double ri, double ro){
     // Infinitely differentiable function.
     double y = (d-ri)/(ro-ri);
     if (y<0.){
@@ -72,7 +70,7 @@ double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r,
         return f(y) /(f(y) + f(1.-y));
     }
 }
-double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation* const r, double d, double ri, double ro){
+double reb_integrator_hyla_dLdr_infinity(const struct reb_simulation* const r, double d, double ri, double ro){
     // Infinitely differentiable function.
     double y = (d-ri)/(ro-ri);
     double dydr = 1./(ro-ri);
@@ -88,9 +86,9 @@ double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation* const
     }
 }
 
-void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, double dt, int shell, int order);
-void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, double dt, int shell, int order);
-void reb_integrator_mercurana_step(struct reb_simulation* const r, double dt, int shell, int order);
+void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt, int shell, int order);
+void reb_integrator_hyla_postprocessor(struct reb_simulation* const r, double dt, int shell, int order);
+void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int shell, int order);
 
 static const double a_6[2] = {-0.0682610383918630,0.568261038391863038121699}; // a1 a2
 static const double b_6[2] = {0.2621129352517028, 0.475774129496594366806050}; // b1 b2
@@ -102,7 +100,7 @@ static const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.00
 static const double y_4[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624269298081};
 static const double z_4[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
 
-void reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_particle p2, double dt, double* rmin2_ab, double* rmin2_abc){ 
+void reb_hyla_predict_rmin2(struct reb_particle p1, struct reb_particle p2, double dt, double* rmin2_ab, double* rmin2_abc){ 
     double dts = copysign(1.,dt); 
     dt = fabs(dt);
     const double dx1 = p1.x - p2.x; // distance at beginning
@@ -130,8 +128,8 @@ void reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_particle p2,
     }
 }
 
-static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt, int shell){
-    struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
+static void reb_hyla_encounter_predict(struct reb_simulation* const r, double dt, int shell){
+    struct reb_simulation_integrator_hyla* rim = &(r->ri_hyla);
     struct reb_particle* const particles = r->particles;
     const double* const dcrit = rim->dcrit[shell];
     const int N = rim->shellN[shell];
@@ -162,7 +160,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
             int mj = map[j]; 
             if (i==j) continue;
             double rmin2_ab, rmin2_abc;
-            reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
+            reb_hyla_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
             double rsum = particles[mi].r+particles[mj].r;
             double dcritsum = dcrit[mi]+dcrit[mj];
             // Only check if particles are overlapping at the beginning or end of the timestep.
@@ -202,7 +200,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         for (int j=0; j<N_active; j++){
             int mj = map[j]; 
             double rmin2_ab, rmin2_abc;
-            reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
+            reb_hyla_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
             double rsum = particles[mi].r+particles[mj].r;
             double dcritsum = dcrit[mi]+dcrit[mj];
             // Only check if particles are overlapping at the beginning or end of the timestep.
@@ -300,15 +298,15 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
 	}
     if (N_orig!=r->N){
         // redo prediction. Substeps might not be needed anymore
-        reb_mercurana_encounter_predict(r, dt,shell);
+        reb_hyla_encounter_predict(r, dt,shell);
     }
 }
     
-void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
+void reb_integrator_hyla_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
     //printf("drift s=%d\n",shell);
-    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     struct reb_particle* restrict const particles = r->particles;
-    reb_mercurana_encounter_predict(r, a, shell);
+    reb_hyla_encounter_predict(r, a, shell);
     unsigned int* map = rim->map[shell];
     unsigned int N = rim->shellN[shell];
     for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
@@ -324,18 +322,18 @@ void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double 
             rim->Nmaxshellused = MAX(rim->Nmaxshellused, shell+2);
             // advance all sub-shell particles
             double as = a/rim->Nstepspershell;
-            reb_integrator_mercurana_preprocessor(r, as, shell+1, rim->ordersubsteps);
+            reb_integrator_hyla_preprocessor(r, as, shell+1, rim->ordersubsteps);
             for (int i=0;i<rim->Nstepspershell;i++){
-                reb_integrator_mercurana_step(r, as, shell+1, rim->ordersubsteps);
+                reb_integrator_hyla_step(r, as, shell+1, rim->ordersubsteps);
             }
-            reb_integrator_mercurana_postprocessor(r, as, shell+1, rim->ordersubsteps);
+            reb_integrator_hyla_postprocessor(r, as, shell+1, rim->ordersubsteps);
         }
     }
 }
 
-void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int shell){
+void reb_integrator_hyla_interaction_step(struct reb_simulation* r, double y, double v, int shell){
     //printf("inter s=%d\n",shell);
-    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = rim->shellN[shell];
     const int N_active = rim->shellN_active[shell];
     struct reb_particle* jerk = rim->jerk; 
@@ -347,15 +345,15 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     const double* dcrit_i = NULL;
     const double* dcrit_o = NULL;
     if (shell<rim->Nmaxshells-1){
-        dcrit_ii = r->ri_mercurana.dcrit[shell+1];
+        dcrit_ii = r->ri_hyla.dcrit[shell+1];
     }
-    dcrit_i = r->ri_mercurana.dcrit[shell];
+    dcrit_i = r->ri_hyla.dcrit[shell];
     if (shell!=0){
-        dcrit_o = r->ri_mercurana.dcrit[shell-1];
+        dcrit_o = r->ri_hyla.dcrit[shell-1];
     }
 
-    double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
-    double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.dLdr;
+    double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_hyla.L;
+    double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_hyla.dLdr;
     // Normal force calculation 
     for (int i=0; i<N; i++){
         if (reb_sigint) return;
@@ -544,18 +542,18 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
         particles[mi].vz += y*particles[mi].az + v*jerk[i].az;
     }
 }
-void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, double dt, int shell, int order){
+void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt, int shell, int order){
     switch(order){
         case 6:
             for (int i=0;i<6;i++){
-                reb_integrator_mercurana_drift_step(r, dt*z_6[i], shell);
-                reb_integrator_mercurana_interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2., shell);
+                reb_integrator_hyla_drift_step(r, dt*z_6[i], shell);
+                reb_integrator_hyla_interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2., shell);
             }
             break;
         case 4:
             for (int i=0;i<3;i++){
-                reb_integrator_mercurana_interaction_step(r, dt*y_4[i], 0., shell);
-                reb_integrator_mercurana_drift_step(r, dt*z_4[i], shell);
+                reb_integrator_hyla_interaction_step(r, dt*y_4[i], 0., shell);
+                reb_integrator_hyla_drift_step(r, dt*z_4[i], shell);
             }
             break;
         case 2:
@@ -563,18 +561,18 @@ void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, doubl
             break;
     }
 }
-void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, double dt, int shell, int order){
+void reb_integrator_hyla_postprocessor(struct reb_simulation* const r, double dt, int shell, int order){
     switch(order){
         case 6:
             for (int i=5;i>=0;i--){
-                reb_integrator_mercurana_interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2., shell); 
-                reb_integrator_mercurana_drift_step(r, -dt*z_6[i], shell);
+                reb_integrator_hyla_interaction_step(r, -dt*y_6[i], -dt*dt*dt*v_6[i]*2., shell); 
+                reb_integrator_hyla_drift_step(r, -dt*z_6[i], shell);
              }
             break;
         case 4:
             for (int i=2;i>=0;i--){
-                reb_integrator_mercurana_drift_step(r, -dt*z_4[i], shell);
-                reb_integrator_mercurana_interaction_step(r, -dt*y_4[i], 0., shell); 
+                reb_integrator_hyla_drift_step(r, -dt*z_4[i], shell);
+                reb_integrator_hyla_interaction_step(r, -dt*y_4[i], 0., shell); 
              }
             break;
         case 2:
@@ -582,37 +580,37 @@ void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, doub
             break;
     }
 }
-void reb_integrator_mercurana_step(struct reb_simulation* const r, double dt, int shell, int order){
+void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int shell, int order){
     switch(order){
         case 6:
-            reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
-            reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell); 
-            reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
-            reb_integrator_mercurana_interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., shell); 
-            reb_integrator_mercurana_drift_step(r, dt*a_6[1], shell);
-            reb_integrator_mercurana_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell);
-            reb_integrator_mercurana_drift_step(r, dt*a_6[0], shell);
+            reb_integrator_hyla_drift_step(r, dt*a_6[0], shell); //TODO combine drift steps
+            reb_integrator_hyla_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell); 
+            reb_integrator_hyla_drift_step(r, dt*a_6[1], shell);
+            reb_integrator_hyla_interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2., shell); 
+            reb_integrator_hyla_drift_step(r, dt*a_6[1], shell);
+            reb_integrator_hyla_interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2., shell);
+            reb_integrator_hyla_drift_step(r, dt*a_6[0], shell);
             break;
         case 4:
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell); //TODO combine drift steps
-            reb_integrator_mercurana_interaction_step(r, dt, dt*dt*dt/24.*2, shell); 
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
+            reb_integrator_hyla_drift_step(r, dt*0.5, shell); //TODO combine drift steps
+            reb_integrator_hyla_interaction_step(r, dt, dt*dt*dt/24.*2, shell); 
+            reb_integrator_hyla_drift_step(r, dt*0.5, shell);
             break;
         case 2:
         default:
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell); //TODO combine drift steps
-            reb_integrator_mercurana_interaction_step(r, dt, 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
+            reb_integrator_hyla_drift_step(r, dt*0.5, shell); //TODO combine drift steps
+            reb_integrator_hyla_interaction_step(r, dt, 0., shell);
+            reb_integrator_hyla_drift_step(r, dt*0.5, shell);
             break;
     }
 }
 
-void reb_integrator_mercurana_part1(struct reb_simulation* r){
+void reb_integrator_hyla_part1(struct reb_simulation* r){
     if (r->var_config_N){
         reb_warning(r,"Mercurius does not work with variational equations.");
     }
     
-    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     
     if (rim->allocatedN<N){
@@ -653,8 +651,8 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     if (rim->recalculate_dcrit_this_timestep){
         rim->recalculate_dcrit_this_timestep = 0;
         if (rim->is_synchronized==0){
-            reb_integrator_mercurana_synchronize(r);
-            reb_warning(r,"MERCURANA: Recalculating dcrit but pos/vel were not synchronized before.");
+            reb_integrator_hyla_synchronize(r);
+            reb_warning(r,"HYLA: Recalculating dcrit but pos/vel were not synchronized before.");
         }
         double dt_shell = r->dt;
         for (int s=0;s<rim->Nmaxshells;s++){ // innermost shell has no dcrit
@@ -687,88 +685,81 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         reb_warning(r,"Mercurius only works with a direct collision search.");
     }
     
-    // Calculate gravity with special function
-    if (r->gravity != REB_GRAVITY_BASIC && r->gravity != REB_GRAVITY_MERCURANA){
-        reb_warning(r,"Mercurius has it's own gravity routine. Gravity routine set by the user will be ignored.");
-    }
-    r->gravity = REB_GRAVITY_MERCURANA;
-    
     if (rim->L == NULL){
         // Setting default switching function
-        rim->L = reb_integrator_mercurana_L_infinity;
-        rim->dLdr = reb_integrator_mercurana_dLdr_infinity;
+        rim->L = reb_integrator_hyla_L_infinity;
+        rim->dLdr = reb_integrator_hyla_dLdr_infinity;
     }
 }
 
-void reb_integrator_mercurana_part2(struct reb_simulation* const r){
-    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+void reb_integrator_hyla_part2(struct reb_simulation* const r){
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     rim->shellN[0] = r->N;
     rim->shellN_active[0] = r->N_active==-1?r->N:r->N_active;
 
     if (rim->is_synchronized){
-        reb_integrator_mercurana_preprocessor(r, r->dt, 0, rim->order);
+        reb_integrator_hyla_preprocessor(r, r->dt, 0, rim->order);
     }
     //double alpha1 = 1.35120719195965763404768780897;
-    //reb_integrator_mercurana_step(r, alpha1*r->dt, 0, rim->order);
-    //reb_integrator_mercurana_step(r, (1.-2.*alpha1)*r->dt, 0, rim->order);
-    //reb_integrator_mercurana_step(r, alpha1*r->dt, 0, rim->order);
-    reb_integrator_mercurana_step(r, r->dt, 0, rim->order);
+    //reb_integrator_hyla_step(r, alpha1*r->dt, 0, rim->order);
+    //reb_integrator_hyla_step(r, (1.-2.*alpha1)*r->dt, 0, rim->order);
+    //reb_integrator_hyla_step(r, alpha1*r->dt, 0, rim->order);
+    reb_integrator_hyla_step(r, r->dt, 0, rim->order);
 
     rim->is_synchronized = 0;
     if (rim->safe_mode){
-        reb_integrator_mercurana_synchronize(r);
+        reb_integrator_hyla_synchronize(r);
     }
 
     r->t+=r->dt;
     r->dt_last_done = r->dt;
 }
 
-void reb_integrator_mercurana_synchronize(struct reb_simulation* r){
-    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+void reb_integrator_hyla_synchronize(struct reb_simulation* r){
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     if (rim->is_synchronized == 0){
-        r->gravity = REB_GRAVITY_MERCURANA; // needed here again for SimulationArchive
         if (rim->L == NULL){
             // Setting default switching function
-            rim->L = reb_integrator_mercurana_L_infinity;
-            rim->dLdr = reb_integrator_mercurana_dLdr_infinity;
+            rim->L = reb_integrator_hyla_L_infinity;
+            rim->dLdr = reb_integrator_hyla_dLdr_infinity;
         }
-        reb_integrator_mercurana_postprocessor(r, r->dt, 0, rim->order);
+        reb_integrator_hyla_postprocessor(r, r->dt, 0, rim->order);
         rim->is_synchronized = 1;
     }
 }
 
-void reb_integrator_mercurana_reset(struct reb_simulation* r){
-    if (r->ri_mercurana.allocatedN){
-        for (int i=0;i<r->ri_mercurana.Nmaxshells;i++){
-            free(r->ri_mercurana.map[i]);
-            free(r->ri_mercurana.dcrit[i]);
+void reb_integrator_hyla_reset(struct reb_simulation* r){
+    if (r->ri_hyla.allocatedN){
+        for (int i=0;i<r->ri_hyla.Nmaxshells;i++){
+            free(r->ri_hyla.map[i]);
+            free(r->ri_hyla.dcrit[i]);
         }
-        free(r->ri_mercurana.map);
-        free(r->ri_mercurana.dcrit);
-        free(r->ri_mercurana.inshell);
-        free(r->ri_mercurana.shellN);
-        free(r->ri_mercurana.shellN_active);
-        free(r->ri_mercurana.jerk);
+        free(r->ri_hyla.map);
+        free(r->ri_hyla.dcrit);
+        free(r->ri_hyla.inshell);
+        free(r->ri_hyla.shellN);
+        free(r->ri_hyla.shellN_active);
+        free(r->ri_hyla.jerk);
     }
-    r->ri_mercurana.allocatedN = 0;
-    r->ri_mercurana.map = NULL;
-    r->ri_mercurana.dcrit = NULL;
-    r->ri_mercurana.inshell = NULL;
-    r->ri_mercurana.shellN = NULL;
-    r->ri_mercurana.shellN_active = NULL;
-    r->ri_mercurana.jerk = NULL;
+    r->ri_hyla.allocatedN = 0;
+    r->ri_hyla.map = NULL;
+    r->ri_hyla.dcrit = NULL;
+    r->ri_hyla.inshell = NULL;
+    r->ri_hyla.shellN = NULL;
+    r->ri_hyla.shellN_active = NULL;
+    r->ri_hyla.jerk = NULL;
     
-    r->ri_mercurana.order = 2;
-    r->ri_mercurana.ordersubsteps = 2;
-    r->ri_mercurana.safe_mode = 1;
-    r->ri_mercurana.dt_frac = 0.1;
-    r->ri_mercurana.Nmaxshells = 10;
-    r->ri_mercurana.Nmaxshellused = 1;
-    r->ri_mercurana.Nstepspershell = 10;
-    r->ri_mercurana.recalculate_dcrit_this_timestep = 0;
-    r->ri_mercurana.is_synchronized = 1;
-    r->ri_mercurana.L = NULL;
-    r->ri_mercurana.dLdr = NULL;
+    r->ri_hyla.order = 2;
+    r->ri_hyla.ordersubsteps = 2;
+    r->ri_hyla.safe_mode = 1;
+    r->ri_hyla.dt_frac = 0.1;
+    r->ri_hyla.Nmaxshells = 10;
+    r->ri_hyla.Nmaxshellused = 1;
+    r->ri_hyla.Nstepspershell = 10;
+    r->ri_hyla.recalculate_dcrit_this_timestep = 0;
+    r->ri_hyla.is_synchronized = 1;
+    r->ri_hyla.L = NULL;
+    r->ri_hyla.dLdr = NULL;
     
 }
 

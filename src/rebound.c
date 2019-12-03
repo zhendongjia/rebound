@@ -41,6 +41,7 @@
 #include "integrator_ias15.h"
 #include "integrator_mercurius.h"
 #include "integrator_mercurana.h"
+#include "integrator_hyla.h"
 #include "boundary.h"
 #include "gravity.h"
 #include "collision.h"
@@ -311,6 +312,7 @@ void reb_free_pointers(struct reb_simulation* const r){
     reb_integrator_ias15_reset(r);
     reb_integrator_mercurius_reset(r);
     reb_integrator_mercurana_reset(r);
+    reb_integrator_hyla_reset(r);
     if(r->free_particle_ap){
         for(int i=0; i<r->N; i++){
             r->free_particle_ap(&r->particles[i]);
@@ -383,6 +385,16 @@ void reb_reset_temporary_pointers(struct reb_simulation* const r){
     r->ri_mercurana.jerk = NULL;
     r->ri_mercurana.L = NULL;
     r->ri_mercurana.dLdr = NULL;
+    // ********** HYLA
+    r->ri_hyla.allocatedN = 0;
+    r->ri_hyla.map = NULL;
+    r->ri_hyla.inshell = NULL;
+    r->ri_hyla.dcrit = NULL;
+    r->ri_hyla.shellN = NULL;
+    r->ri_hyla.shellN_active = NULL;
+    r->ri_hyla.jerk = NULL;
+    r->ri_hyla.L = NULL;
+    r->ri_hyla.dLdr = NULL;
 
     // ********** JANUS
     r->ri_janus.allocated_N = 0;
@@ -597,6 +609,19 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_mercurana.is_synchronized = 1;
     //r->ri_mercurana.hillfac = 3;
     //r->ri_mercurana.Nsubsteps = 10;
+    
+    // ********** HYLA
+    r->ri_hyla.order = 2;
+    r->ri_hyla.ordersubsteps = 2;
+    r->ri_hyla.safe_mode = 1;
+    r->ri_hyla.dt_frac = 0.1;
+    r->ri_hyla.Nmaxshells = 10;
+    r->ri_hyla.Nmaxshellused = 1;
+    r->ri_hyla.Nstepspershell = 10;
+    r->ri_hyla.recalculate_dcrit_this_timestep = 0;
+    r->ri_hyla.is_synchronized = 1;
+    //r->ri_hyla.hillfac = 3;
+    //r->ri_hyla.Nsubsteps = 10;
 
     // Tree parameters. Will not be used unless gravity or collision search makes use of tree.
     r->tree_needs_update= 0;
