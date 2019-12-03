@@ -49,9 +49,140 @@ static const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.00
 static const double y_4[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624269298081};
 static const double z_4[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
 
-void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, double v, int shell){
+void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, double v){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
-    const int N = rim->N;
+    const int N = r->N;
+    const int N_active = r->N_active==-1?r->N:r->N_active;
+    const int N_central = rim->Ncentral;
+    struct reb_particle* jerk = rim->jerk; 
+    struct reb_particle* const particles = r->particles;
+    const int testparticle_type   = r->testparticle_type;
+    const double G = r->G;
+    
+    // Normal force calculation 
+    for (int i=N_central; i<N; i++){
+        if (reb_sigint) return;
+        particles[i].ax = 0; 
+        particles[i].ay = 0; 
+        particles[i].az = 0; 
+        if (reb_sigint) return;
+        for (int j=N_central; j<N_active; j++){
+            if (i==j) continue;
+            const double dx = particles[i].x - particles[j].x;
+            const double dy = particles[i].y - particles[j].y;
+            const double dz = particles[i].z - particles[j].z;
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+            const double prefact = -G*particles[j].m/(dr*dr*dr);
+            particles[i].ax    += prefact*dx;
+            particles[i].ay    += prefact*dy;
+            particles[i].az    += prefact*dz;
+        }
+    }
+    if (testparticle_type){
+        for (int i=N_central; i<N_active; i++){
+            if (reb_sigint) return;
+            for (int j=N_active; j<N; j++){
+                const double dx = particles[i].x - particles[j].x;
+                const double dy = particles[i].y - particles[j].y;
+                const double dz = particles[i].z - particles[j].z;
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+                const double prefact = -G*particles[j].m/(dr*dr*dr);
+                particles[i].ax    += prefact*dx;
+                particles[i].ay    += prefact*dy;
+                particles[i].az    += prefact*dz;
+            }
+        }
+    }
+    // Jerk calculation
+    for (int j=0; j<N; j++){
+        jerk[j].ax = 0; 
+        jerk[j].ay = 0; 
+        jerk[j].az = 0; 
+    }
+    if (v!=0.){ // is jerk even used?
+        for (int j=N_central; j<N_active; j++){
+            if (reb_sigint) return;
+            for (int i=N_central; i<j; i++){
+                const double dx = particles[j].x - particles[i].x; 
+                const double dy = particles[j].y - particles[i].y; 
+                const double dz = particles[j].z - particles[i].z; 
+                
+                const double dax = particles[j].ax - particles[i].ax; 
+                const double day = particles[j].ay - particles[i].ay; 
+                const double daz = particles[j].az - particles[i].az; 
+
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                const double alphasum = dax*dx+day*dy+daz*dz;
+                const double prefact2 = G /(dr*dr*dr);
+                const double prefact2i = prefact2*particles[i].m;
+                const double prefact2j = prefact2*particles[j].m;
+                jerk[j].ax    -= dax*prefact2i;
+                jerk[j].ay    -= day*prefact2i;
+                jerk[j].az    -= daz*prefact2i;
+                jerk[i].ax    += dax*prefact2j;
+                jerk[i].ay    += day*prefact2j;
+                jerk[i].az    += daz*prefact2j;
+                const double prefact1 = alphasum*prefact2/dr *3./dr;
+                const double prefact1i = prefact1*particles[i].m;
+                const double prefact1j = prefact1*particles[j].m;
+                jerk[j].ax    += dx*prefact1i;
+                jerk[j].ay    += dy*prefact1i;
+                jerk[j].az    += dz*prefact1i;
+                jerk[i].ax    -= dx*prefact1j;
+                jerk[i].ay    -= dy*prefact1j;
+                jerk[i].az    -= dz*prefact1j;
+            }
+        }
+        for (int j=N_central; j<N_active; j++){
+            if (reb_sigint) return;
+            for (int i=N_active; i<N; i++){
+                const double dx = particles[j].x - particles[i].x; 
+                const double dy = particles[j].y - particles[i].y; 
+                const double dz = particles[j].z - particles[i].z; 
+                
+                const double dax = particles[j].ax - particles[i].ax; 
+                const double day = particles[j].ay - particles[i].ay; 
+                const double daz = particles[j].az - particles[i].az; 
+
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                const double alphasum = dax*dx+day*dy+daz*dz;
+                const double prefact2 = G /(dr*dr*dr);
+                const double prefact2j = prefact2*particles[j].m;
+                if (testparticle_type){
+                    const double prefact2i = prefact2*particles[i].m;
+                    jerk[j].ax    -= dax*prefact2i;
+                    jerk[j].ay    -= day*prefact2i;
+                    jerk[j].az    -= daz*prefact2i;
+                }
+                jerk[i].ax    += dax*prefact2j;
+                jerk[i].ay    += day*prefact2j;
+                jerk[i].az    += daz*prefact2j;
+                const double prefact1 = alphasum*prefact2/dr*3./dr;
+                const double prefact1j = prefact1*particles[j].m;
+                if (testparticle_type){
+                    const double prefact1i = prefact1*particles[i].m;
+                    jerk[j].ax    += dx*prefact1i;
+                    jerk[j].ay    += dy*prefact1i;
+                    jerk[j].az    += dz*prefact1i;
+                }
+                jerk[i].ax    -= dx*prefact1j;
+                jerk[i].ay    -= dy*prefact1j;
+                jerk[i].az    -= dz*prefact1j;
+            }
+        }
+    }
+
+    for (int i=0;i<N;i++){
+        particles[i].vx += y*particles[i].ax + v*jerk[i].ax;
+        particles[i].vy += y*particles[i].ay + v*jerk[i].ay;
+        particles[i].vz += y*particles[i].az + v*jerk[i].az;
+    }
+}
+void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, double v){
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
+    const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
     const int N_central = rim->Ncentral;
     struct reb_particle* jerk = rim->jerk; 
@@ -184,7 +315,7 @@ void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt,
     switch(order){
         case 6:
             for (int i=0;i<6;i++){
-                drift_step(r, dt*z_6[i]/);
+                drift_step(r, dt*z_6[i]);
                 interaction_step(r, dt*y_6[i], dt*dt*dt*v_6[i]*2.);
             }
             break;
@@ -225,16 +356,7 @@ void reb_integrator_hyla_drift_shell1(struct reb_simulation* const r, double a){
         particles[i].x += a*particles[i].vx;
         particles[i].y += a*particles[i].vy;
         particles[i].z += a*particles[i].vz;
-    
-}
-void reb_integrator_hyla_drift_shell0(struct reb_simulation* const r, double a){
-    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
-    double as = a/rim->Nstepspershell;
-    reb_integrator_hyla_preprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
-    for (int i=0;i<rim->Nstepspershell;i++){
-        reb_integrator_hyla_step(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
-    }
-    reb_integrator_hyla_postprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
+    } 
 }
 
 void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
@@ -255,11 +377,20 @@ void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int ord
             break;
         case 2:
         default:
-            drift_step(r, dt*0.5, shell); //TODO combine drift steps
-            interaction_step(r, dt, 0., shell);
-            drift_step(r, dt*0.5, shell);
+            drift_step(r, dt*0.5); //TODO combine drift steps
+            interaction_step(r, dt, 0.);
+            drift_step(r, dt*0.5);
             break;
     }
+}
+void reb_integrator_hyla_drift_shell0(struct reb_simulation* const r, double a){
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
+    double as = a/rim->Nstepspershell;
+    reb_integrator_hyla_preprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
+    for (int i=0;i<rim->Nstepspershell;i++){
+        reb_integrator_hyla_step(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
+    }
+    reb_integrator_hyla_postprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
 }
 
 void reb_integrator_hyla_part1(struct reb_simulation* r){
@@ -311,11 +442,6 @@ void reb_integrator_hyla_part1(struct reb_simulation* r){
         reb_warning(r,"Mercurius only works with a direct collision search.");
     }
     
-    if (rim->L == NULL){
-        // Setting default switching function
-        rim->L = reb_integrator_hyla_L_infinity;
-        rim->dLdr = reb_integrator_hyla_dLdr_infinity;
-    }
 }
 
 void reb_integrator_hyla_part2(struct reb_simulation* const r){
@@ -326,7 +452,7 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
     if (rim->is_synchronized){
         reb_integrator_hyla_preprocessor(r, r->dt, rim->order, reb_integrator_hyla_drift_shell0, reb_integrator_hyla_interaction_shell0);
     }
-    reb_integrator_hyla_step(r, r->dt, rim->orde, reb_integrator_hyla_drift_shell0, reb_integrator_hyla_interaction_shell0);
+    reb_integrator_hyla_step(r, r->dt, rim->order, reb_integrator_hyla_drift_shell0, reb_integrator_hyla_interaction_shell0);
 
     rim->is_synchronized = 0;
     if (rim->safe_mode){
@@ -341,11 +467,6 @@ void reb_integrator_hyla_synchronize(struct reb_simulation* r){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     if (rim->is_synchronized == 0){
         r->gravity_ignore_terms = 2;
-        if (rim->L == NULL){
-            // Setting default switching function
-            rim->L = reb_integrator_hyla_L_infinity;
-            rim->dLdr = reb_integrator_hyla_dLdr_infinity;
-        }
         reb_integrator_hyla_postprocessor(r, r->dt, rim->order, reb_integrator_hyla_drift_shell0, reb_integrator_hyla_interaction_shell0);
         rim->is_synchronized = 1;
     }
@@ -377,8 +498,6 @@ void reb_integrator_hyla_reset(struct reb_simulation* r){
     r->ri_hyla.Nmaxshellused = 1;
     r->ri_hyla.Nstepspershell = 10;
     r->ri_hyla.is_synchronized = 1;
-    r->ri_hyla.L = NULL;
-    r->ri_hyla.dLdr = NULL;
     
 }
 
