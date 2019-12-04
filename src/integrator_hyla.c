@@ -49,7 +49,7 @@ static const double v_6[6] = {-0.034841228074994859, 0.031675672097525204, -0.00
 static const double y_4[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624269298081};
 static const double z_4[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
 
-void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, double v){
+static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, double v){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
@@ -65,10 +65,28 @@ void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, 
     }
     
     // Normal force calculation 
-    for (int i=N_central; i<N; i++){
+    for (int i=N_central; i<N_active; i++){
+        if (reb_sigint) return;
+        for (int j=N_central; j<i; j++){
+            const double dx = particles[i].x - particles[j].x;
+            const double dy = particles[i].y - particles[j].y;
+            const double dz = particles[i].z - particles[j].z;
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+            const double prefact = G/(dr*dr*dr);
+            const double prefactj = -prefact*particles[j].m;
+            particles[i].ax    += prefactj*dx;
+            particles[i].ay    += prefactj*dy;
+            particles[i].az    += prefactj*dz;
+            const double prefacti = prefact*particles[i].m;
+            particles[j].ax    += prefacti*dx;
+            particles[j].ay    += prefacti*dy;
+            particles[j].az    += prefacti*dz;
+        }
+    }
+    for (int i=N_active; i<N; i++){
         if (reb_sigint) return;
         for (int j=N_central; j<N_active; j++){
-            if (i==j) continue;
             const double dx = particles[i].x - particles[j].x;
             const double dy = particles[i].y - particles[j].y;
             const double dz = particles[i].z - particles[j].z;
@@ -186,7 +204,7 @@ void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, 
         }
     }
 }
-void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, double v){
+static inline void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, double v){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
@@ -204,8 +222,25 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
 
     // Normal force calculation 
     for (int i=0; i<N_central; i++){
-        for (int j=0; j<N_active; j++){
-            if (i==j) continue;
+        for (int j=0; j<i; j++){
+            const double dx = particles[i].x - particles[j].x;
+            const double dy = particles[i].y - particles[j].y;
+            const double dz = particles[i].z - particles[j].z;
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+            const double prefact = G/(dr*dr*dr);
+            const double prefactj = -prefact*particles[j].m;
+            particles[i].ax    += prefactj*dx;
+            particles[i].ay    += prefactj*dy;
+            particles[i].az    += prefactj*dz;
+            const double prefacti = prefact*particles[i].m;
+            particles[j].ax    += prefacti*dx;
+            particles[j].ay    += prefacti*dy;
+            particles[j].az    += prefacti*dz;
+        }
+    }
+    for (int i=0; i<N_central; i++){
+        for (int j=N_central; j<N_active; j++){
             const double dx = particles[i].x - particles[j].x;
             const double dy = particles[i].y - particles[j].y;
             const double dz = particles[i].z - particles[j].z;
@@ -219,7 +254,6 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
     }
     for (int i=N_central; i<N; i++){
         for (int j=0; j<N_central; j++){
-            if (i==j) continue;
             const double dx = particles[i].x - particles[j].x;
             const double dy = particles[i].y - particles[j].y;
             const double dz = particles[i].z - particles[j].z;
@@ -310,8 +344,8 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
         }
         for (int j=N_central; j<N_active; j++){
             if (reb_sigint) return;
-            printf("not working"); //TODO
             for (int i=N_active; i<N; i++){
+            printf("not working"); //TODO
                 const double dx = particles[j].x - particles[i].x; 
                 const double dy = particles[j].y - particles[i].y; 
                 const double dz = particles[j].z - particles[i].z; 
@@ -360,7 +394,7 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
     }
 
 }
-void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
+static inline void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
     switch(order){
         case 6:
             for (int i=0;i<6;i++){
@@ -379,7 +413,7 @@ void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt,
             break;
     }
 }
-void reb_integrator_hyla_postprocessor(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
+static inline void reb_integrator_hyla_postprocessor(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
     switch(order){
         case 6:
             for (int i=5;i>=0;i--){
@@ -398,7 +432,7 @@ void reb_integrator_hyla_postprocessor(struct reb_simulation* const r, double dt
             break;
     }
 }
-void reb_integrator_hyla_drift_shell1(struct reb_simulation* const r, double a){
+static inline void reb_integrator_hyla_drift_shell1(struct reb_simulation* const r, double a){
     struct reb_particle* restrict const particles = r->particles;
     unsigned int N = r->N;
     for (int i=0;i<N;i++){  
@@ -408,36 +442,71 @@ void reb_integrator_hyla_drift_shell1(struct reb_simulation* const r, double a){
     } 
 }
 
-static inline void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
-    switch(order){
+void reb_integrator_hyla_drift_shell0(struct reb_simulation* const r, double a){
+    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
+    const int Nstepspershell = rim->Nstepspershell;
+    const double as = a/Nstepspershell;
+    reb_integrator_hyla_preprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
+    switch(rim->ordersubsteps){
         case 6:
-            drift_step(r, dt*a_6[0]); //TODO combine drift steps
-            interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2.); 
-            drift_step(r, dt*a_6[1]);
-            interaction_step(r, dt*b_6[1], dt*dt*dt*c_6[1]*2.); 
-            drift_step(r, dt*a_6[1]);
-            interaction_step(r, dt*b_6[0], dt*dt*dt*c_6[0]*2.);
-            drift_step(r, dt*a_6[0]);
+            for (int i=0;i<Nstepspershell;i++){
+                reb_integrator_hyla_drift_shell1(r, as*a_6[0]); //TODO combine drift steps
+                reb_integrator_hyla_interaction_shell1(r, as*b_6[0], as*as*as*c_6[0]*2.); 
+                reb_integrator_hyla_drift_shell1(r, as*a_6[1]);
+                reb_integrator_hyla_interaction_shell1(r, as*b_6[1], as*as*as*c_6[1]*2.); 
+                reb_integrator_hyla_drift_shell1(r, as*a_6[1]);
+                reb_integrator_hyla_interaction_shell1(r, as*b_6[0], as*as*as*c_6[0]*2.);
+                reb_integrator_hyla_drift_shell1(r, as*a_6[0]);
+            }
             break;
         case 4:
-            drift_step(r, dt*0.5); //TODO combine drift steps
-            interaction_step(r, dt, dt*dt*dt/24.*2); 
-            drift_step(r, dt*0.5);
+            reb_integrator_hyla_drift_shell1(r, as*0.5); //TODO combine drift steps
+            for (int i=0;i<Nstepspershell-1;i++){
+                reb_integrator_hyla_interaction_shell1(r, as, as*as*as/24.*2); 
+                reb_integrator_hyla_drift_shell1(r, as);
+            }
+            reb_integrator_hyla_interaction_shell1(r, as, as*as*as/24.*2); 
+            reb_integrator_hyla_drift_shell1(r, as*0.5);
+            break;
+        case 41:
+            reb_integrator_hyla_drift_shell1(r, as*0.5); 
+            for (int i=0;i<Nstepspershell-1;i++){
+                reb_integrator_hyla_interaction_shell1(r, as, as*as*as/24.*2); 
+                reb_integrator_hyla_drift_shell1(r, as);
+            }
+            reb_integrator_hyla_interaction_shell1(r, as, as*as*as/24.*2); 
+            reb_integrator_hyla_drift_shell1(r, as*0.5);
+            break;
+        case 40:
+            {
+            double alpha1 = 1.35120719195965763404768780897;
+            reb_integrator_hyla_drift_shell1(r, as*alpha1*0.5);
+            for (int i=0;i<Nstepspershell-1;i++){
+                reb_integrator_hyla_interaction_shell1(r, as*alpha1, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(1.-alpha1)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*(1.-2.*alpha1), 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(1.-alpha1)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*alpha1, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*alpha1);
+            }
+            reb_integrator_hyla_interaction_shell1(r, as*alpha1, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(1.-alpha1)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*(1.-2.*alpha1), 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(1.-alpha1)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*alpha1, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*alpha1*0.5);
+            }
             break;
         case 2:
         default:
-            drift_step(r, dt*0.5); //TODO combine drift steps
-            interaction_step(r, dt, 0.);
-            drift_step(r, dt*0.5);
+            reb_integrator_hyla_drift_shell1(r, as*0.5); 
+            for (int i=0;i<Nstepspershell-1;i++){
+                reb_integrator_hyla_interaction_shell1(r, as, 0.);
+                reb_integrator_hyla_drift_shell1(r, as);
+            }
+            reb_integrator_hyla_interaction_shell1(r, as, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*0.5);
             break;
-    }
-}
-void reb_integrator_hyla_drift_shell0(struct reb_simulation* const r, double a){
-    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
-    double as = a/rim->Nstepspershell;
-    reb_integrator_hyla_preprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
-    for (int i=0;i<rim->Nstepspershell;i++){
-        reb_integrator_hyla_step(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
     }
     reb_integrator_hyla_postprocessor(r, as, rim->ordersubsteps, reb_integrator_hyla_drift_shell1, reb_integrator_hyla_interaction_shell1);
 }
@@ -468,11 +537,52 @@ void reb_integrator_hyla_part1(struct reb_simulation* r){
 
 void reb_integrator_hyla_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
+    const double dt = r->dt;
 
     if (rim->is_synchronized){
         reb_integrator_hyla_preprocessor(r, r->dt, rim->order, reb_integrator_hyla_drift_shell0, reb_integrator_hyla_interaction_shell0);
+        switch(rim->order){
+            case 6:
+                reb_integrator_hyla_drift_shell0(r, dt*a_6[0]); 
+                break;
+            case 4:
+                reb_integrator_hyla_drift_shell0(r, dt*0.5); 
+                break;
+            case 2:
+            default:
+                reb_integrator_hyla_drift_shell0(r, dt*0.5);
+                break;
+        }
+    }else{
+        switch(rim->order){
+            case 6:
+                reb_integrator_hyla_drift_shell0(r, 2.*dt*a_6[0]); 
+                break;
+            case 4:
+                reb_integrator_hyla_drift_shell0(r, dt); 
+                break;
+            case 2:
+            default:
+                reb_integrator_hyla_drift_shell0(r, dt);
+                break;
+        }
     }
-    reb_integrator_hyla_step(r, r->dt, rim->order, reb_integrator_hyla_drift_shell0, reb_integrator_hyla_interaction_shell0);
+    switch(rim->order){
+        case 6:
+            reb_integrator_hyla_interaction_shell0(r, dt*b_6[0], dt*dt*dt*c_6[0]*2.); 
+            reb_integrator_hyla_drift_shell0(r, dt*a_6[1]);
+            reb_integrator_hyla_interaction_shell0(r, dt*b_6[1], dt*dt*dt*c_6[1]*2.); 
+            reb_integrator_hyla_drift_shell0(r, dt*a_6[1]);
+            reb_integrator_hyla_interaction_shell0(r, dt*b_6[0], dt*dt*dt*c_6[0]*2.);
+            break;
+        case 4:
+            reb_integrator_hyla_interaction_shell0(r, dt, dt*dt*dt/24.*2); 
+            break;
+        case 2:
+        default:
+            reb_integrator_hyla_interaction_shell0(r, dt, 0.);
+            break;
+    }
 
     rim->is_synchronized = 0;
     if (rim->safe_mode){
@@ -485,8 +595,21 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
 
 void reb_integrator_hyla_synchronize(struct reb_simulation* r){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
+    const double dt = r->dt;
     if (rim->is_synchronized == 0){
         r->gravity_ignore_terms = 2;
+        switch(rim->order){
+            case 6:
+                reb_integrator_hyla_drift_shell0(r, dt*a_6[0]); 
+                break;
+            case 4:
+                reb_integrator_hyla_drift_shell0(r, dt*0.5); 
+                break;
+            case 2:
+            default:
+                reb_integrator_hyla_drift_shell0(r, dt*0.5);
+                break;
+        }
         reb_integrator_hyla_postprocessor(r, r->dt, rim->order, reb_integrator_hyla_drift_shell0, reb_integrator_hyla_interaction_shell0);
         rim->is_synchronized = 1;
     }
