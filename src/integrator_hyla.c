@@ -50,10 +50,8 @@ static const double y_4[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624
 static const double z_4[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
 
 static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, double v){
-    struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
-    struct reb_particle* jerk = rim->jerk; 
     struct reb_particle* const particles = r->particles;
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
@@ -148,9 +146,9 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
                 particles[i].vz    -= dz*prefact1j;
             }
         }
-        for (int j=1; j<N_active; j++){
+        for (int i=N_active; i<N; i++){
             if (reb_sigint) return;
-            for (int i=N_active; i<N; i++){
+            for (int j=1; j<N_active; j++){
                 const double dx = particles[j].x - particles[i].x; 
                 const double dy = particles[j].y - particles[i].y; 
                 const double dz = particles[j].z - particles[i].z; 
@@ -186,18 +184,17 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
             }
         }
     }
-        for (int i=0;i<N;i++){
-            particles[i].vx += y*particles[i].ax;
-            particles[i].vy += y*particles[i].ay;
-            particles[i].vz += y*particles[i].az;
-        }
+    for (int i=0;i<N;i++){
+        particles[i].vx += y*particles[i].ax;
+        particles[i].vy += y*particles[i].ay;
+        particles[i].vz += y*particles[i].az;
+    }
 }
 static inline void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, double v){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
     struct reb_particle* const particles = r->particles;
-    const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
     
     if (v!=0.){ // is jerk even used?
@@ -395,13 +392,6 @@ void reb_integrator_hyla_part1(struct reb_simulation* r){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     
-    if (rim->allocatedN<N){
-        // jerk
-        rim->jerk = realloc(rim->jerk, sizeof(struct reb_particle)*N);
-        rim->allocatedN = N;
-        // If particle number increased (or this is the first step), need to calculate critical radii
-    }
-
     r->gravity = REB_GRAVITY_NONE;
 
     // Calculate collisions only with DIRECT method
@@ -410,6 +400,8 @@ void reb_integrator_hyla_part1(struct reb_simulation* r){
     }
     
 }
+
+static double alpha42 = 0.211324865405187117745425609749;
 
 void reb_integrator_hyla_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
@@ -424,6 +416,9 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
             case 4:
                 reb_integrator_hyla_drift_shell0(r, dt*0.5); 
                 break;
+            case 42:
+                reb_integrator_hyla_drift_shell0(r, dt*alpha42); 
+                break;
             case 2:
             default:
                 reb_integrator_hyla_drift_shell0(r, dt*0.5);
@@ -436,6 +431,9 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
                 break;
             case 4:
                 reb_integrator_hyla_drift_shell0(r, dt); 
+                break;
+            case 42:
+                reb_integrator_hyla_drift_shell0(r, 2.*dt*alpha42); 
                 break;
             case 2:
             default:
@@ -453,6 +451,11 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
             break;
         case 4:
             reb_integrator_hyla_interaction_shell0(r, dt, dt*dt*dt/24.*2); 
+            break;
+        case 42: // page 90 
+            reb_integrator_hyla_interaction_shell0(r, dt*0.5, 0.); 
+            reb_integrator_hyla_drift_shell0(r, dt*(1.-2.*alpha42));
+            reb_integrator_hyla_interaction_shell0(r, dt*0.5, 0.); 
             break;
         case 2:
         default:
@@ -481,6 +484,9 @@ void reb_integrator_hyla_synchronize(struct reb_simulation* r){
             case 4:
                 reb_integrator_hyla_drift_shell0(r, dt*0.5); 
                 break;
+            case 42:
+                reb_integrator_hyla_drift_shell0(r, dt*alpha42); 
+                break;
             case 2:
             default:
                 reb_integrator_hyla_drift_shell0(r, dt*0.5);
@@ -492,12 +498,6 @@ void reb_integrator_hyla_synchronize(struct reb_simulation* r){
 }
 
 void reb_integrator_hyla_reset(struct reb_simulation* r){
-    if (r->ri_hyla.allocatedN){
-        free(r->ri_hyla.jerk);
-    }
-    r->ri_hyla.allocatedN = 0;
-    r->ri_hyla.jerk = NULL;
-    
     r->ri_hyla.order = 2;
     r->ri_hyla.ordersubsteps = 2;
     r->ri_hyla.safe_mode = 1;
