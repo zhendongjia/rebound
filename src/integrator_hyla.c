@@ -115,11 +115,6 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
     }
     // Jerk calculation
     if (v!=0.){ // is jerk even used?
-        for (int j=0; j<N; j++){
-            jerk[j].ax = 0; 
-            jerk[j].ay = 0; 
-            jerk[j].az = 0; 
-        }
         for (int j=1; j<N_active; j++){
             if (reb_sigint) return;
             for (int i=1; i<j; i++){
@@ -133,24 +128,24 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
 
                 const double dr = sqrt(dx*dx + dy*dy + dz*dz);
                 const double alphasum = dax*dx+day*dy+daz*dz;
-                const double prefact2 = G /(dr*dr*dr);
+                const double prefact2 = v*G /(dr*dr*dr);
                 const double prefact2i = prefact2*particles[i].m;
                 const double prefact2j = prefact2*particles[j].m;
-                jerk[j].ax    -= dax*prefact2i;
-                jerk[j].ay    -= day*prefact2i;
-                jerk[j].az    -= daz*prefact2i;
-                jerk[i].ax    += dax*prefact2j;
-                jerk[i].ay    += day*prefact2j;
-                jerk[i].az    += daz*prefact2j;
+                particles[j].vx    -= dax*prefact2i;
+                particles[j].vy    -= day*prefact2i;
+                particles[j].vz    -= daz*prefact2i;
+                particles[i].vx    += dax*prefact2j;
+                particles[i].vy    += day*prefact2j;
+                particles[i].vz    += daz*prefact2j;
                 const double prefact1 = alphasum*prefact2/dr *3./dr;
                 const double prefact1i = prefact1*particles[i].m;
                 const double prefact1j = prefact1*particles[j].m;
-                jerk[j].ax    += dx*prefact1i;
-                jerk[j].ay    += dy*prefact1i;
-                jerk[j].az    += dz*prefact1i;
-                jerk[i].ax    -= dx*prefact1j;
-                jerk[i].ay    -= dy*prefact1j;
-                jerk[i].az    -= dz*prefact1j;
+                particles[j].vx    += dx*prefact1i;
+                particles[j].vy    += dy*prefact1i;
+                particles[j].vz    += dz*prefact1i;
+                particles[i].vx    -= dx*prefact1j;
+                particles[i].vy    -= dy*prefact1j;
+                particles[i].vz    -= dz*prefact1j;
             }
         }
         for (int j=1; j<N_active; j++){
@@ -166,48 +161,41 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
 
                 const double dr = sqrt(dx*dx + dy*dy + dz*dz);
                 const double alphasum = dax*dx+day*dy+daz*dz;
-                const double prefact2 = G /(dr*dr*dr);
+                const double prefact2 = v*G /(dr*dr*dr);
                 const double prefact2j = prefact2*particles[j].m;
                 if (testparticle_type){
                     const double prefact2i = prefact2*particles[i].m;
-                    jerk[j].ax    -= dax*prefact2i;
-                    jerk[j].ay    -= day*prefact2i;
-                    jerk[j].az    -= daz*prefact2i;
+                    particles[j].vx    -= dax*prefact2i;
+                    particles[j].vy    -= day*prefact2i;
+                    particles[j].vz    -= daz*prefact2i;
                 }
-                jerk[i].ax    += dax*prefact2j;
-                jerk[i].ay    += day*prefact2j;
-                jerk[i].az    += daz*prefact2j;
+                particles[i].vx    += dax*prefact2j;
+                particles[i].vy    += day*prefact2j;
+                particles[i].vz    += daz*prefact2j;
                 const double prefact1 = alphasum*prefact2/dr*3./dr;
                 const double prefact1j = prefact1*particles[j].m;
                 if (testparticle_type){
                     const double prefact1i = prefact1*particles[i].m;
-                    jerk[j].ax    += dx*prefact1i;
-                    jerk[j].ay    += dy*prefact1i;
-                    jerk[j].az    += dz*prefact1i;
+                    particles[j].vx    += dx*prefact1i;
+                    particles[j].vy    += dy*prefact1i;
+                    particles[j].vz    += dz*prefact1i;
                 }
-                jerk[i].ax    -= dx*prefact1j;
-                jerk[i].ay    -= dy*prefact1j;
-                jerk[i].az    -= dz*prefact1j;
+                particles[i].vx    -= dx*prefact1j;
+                particles[i].vy    -= dy*prefact1j;
+                particles[i].vz    -= dz*prefact1j;
             }
         }
-        for (int i=0;i<N;i++){
-            particles[i].vx += y*particles[i].ax + v*jerk[i].ax;
-            particles[i].vy += y*particles[i].ay + v*jerk[i].ay;
-            particles[i].vz += y*particles[i].az + v*jerk[i].az;
-        }
-    }else{
+    }
         for (int i=0;i<N;i++){
             particles[i].vx += y*particles[i].ax;
             particles[i].vy += y*particles[i].ay;
             particles[i].vz += y*particles[i].az;
         }
-    }
 }
 static inline void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, double v){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
-    struct reb_particle* jerk = rim->jerk; 
     struct reb_particle* const particles = r->particles;
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
