@@ -53,7 +53,6 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
-    const int N_central = rim->Ncentral;
     struct reb_particle* jerk = rim->jerk; 
     struct reb_particle* const particles = r->particles;
     const int testparticle_type   = r->testparticle_type;
@@ -65,9 +64,9 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
     }
     
     // Normal force calculation 
-    for (int i=N_central; i<N_active; i++){
+    for (int i=1; i<N_active; i++){
         if (reb_sigint) return;
-        for (int j=N_central; j<i; j++){
+        for (int j=1; j<i; j++){
             const double dx = particles[i].x - particles[j].x;
             const double dy = particles[i].y - particles[j].y;
             const double dz = particles[i].z - particles[j].z;
@@ -86,7 +85,7 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
     }
     for (int i=N_active; i<N; i++){
         if (reb_sigint) return;
-        for (int j=N_central; j<N_active; j++){
+        for (int j=1; j<N_active; j++){
             const double dx = particles[i].x - particles[j].x;
             const double dy = particles[i].y - particles[j].y;
             const double dz = particles[i].z - particles[j].z;
@@ -99,7 +98,7 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
         }
     }
     if (testparticle_type){
-        for (int i=N_central; i<N_active; i++){
+        for (int i=1; i<N_active; i++){
             if (reb_sigint) return;
             for (int j=N_active; j<N; j++){
                 const double dx = particles[i].x - particles[j].x;
@@ -121,9 +120,9 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
             jerk[j].ay = 0; 
             jerk[j].az = 0; 
         }
-        for (int j=N_central; j<N_active; j++){
+        for (int j=1; j<N_active; j++){
             if (reb_sigint) return;
-            for (int i=N_central; i<j; i++){
+            for (int i=1; i<j; i++){
                 const double dx = particles[j].x - particles[i].x; 
                 const double dy = particles[j].y - particles[i].y; 
                 const double dz = particles[j].z - particles[i].z; 
@@ -154,7 +153,7 @@ static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation*
                 jerk[i].az    -= dz*prefact1j;
             }
         }
-        for (int j=N_central; j<N_active; j++){
+        for (int j=1; j<N_active; j++){
             if (reb_sigint) return;
             for (int i=N_active; i<N; i++){
                 const double dx = particles[j].x - particles[i].x; 
@@ -208,188 +207,77 @@ static inline void reb_integrator_hyla_interaction_shell1(struct reb_simulation*
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
-    const int N_central = rim->Ncentral;
     struct reb_particle* jerk = rim->jerk; 
     struct reb_particle* const particles = r->particles;
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
     
-    for (int i=0; i<N; i++){
-        particles[i].ax = 0; 
-        particles[i].ay = 0; 
-        particles[i].az = 0; 
-    }
-
-    // Normal force calculation 
-    for (int i=0; i<N_central; i++){
-        for (int j=0; j<i; j++){
-            const double dx = particles[i].x - particles[j].x;
-            const double dy = particles[i].y - particles[j].y;
-            const double dz = particles[i].z - particles[j].z;
-            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-
-            const double prefact = G/(dr*dr*dr);
-            const double prefactj = -prefact*particles[j].m;
-            particles[i].ax    += prefactj*dx;
-            particles[i].ay    += prefactj*dy;
-            particles[i].az    += prefactj*dz;
-            const double prefacti = prefact*particles[i].m;
-            particles[j].ax    += prefacti*dx;
-            particles[j].ay    += prefacti*dy;
-            particles[j].az    += prefacti*dz;
-        }
-    }
-    for (int i=0; i<N_central; i++){
-        for (int j=N_central; j<N_active; j++){
-            const double dx = particles[i].x - particles[j].x;
-            const double dy = particles[i].y - particles[j].y;
-            const double dz = particles[i].z - particles[j].z;
-            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-
-            const double prefact = -G*particles[j].m/(dr*dr*dr);
-            particles[i].ax    += prefact*dx;
-            particles[i].ay    += prefact*dy;
-            particles[i].az    += prefact*dz;
-        }
-    }
-    for (int i=N_central; i<N; i++){
-        for (int j=0; j<N_central; j++){
-            const double dx = particles[i].x - particles[j].x;
-            const double dy = particles[i].y - particles[j].y;
-            const double dz = particles[i].z - particles[j].z;
-            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-
-            const double prefact = -G*particles[j].m/(dr*dr*dr);
-            particles[i].ax    += prefact*dx;
-            particles[i].ay    += prefact*dy;
-            particles[i].az    += prefact*dz;
-        }
-    }
-    if (testparticle_type){
-        // TODO
-        printf("not working");
-        for (int i=N_central; i<N_active; i++){
-            if (reb_sigint) return;
-            for (int j=N_active; j<N; j++){
-                const double dx = particles[i].x - particles[j].x;
-                const double dy = particles[i].y - particles[j].y;
-                const double dz = particles[i].z - particles[j].z;
-                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-
-                const double prefact = -G*particles[j].m/(dr*dr*dr);
-                particles[i].ax    += prefact*dx;
-                particles[i].ay    += prefact*dy;
-                particles[i].az    += prefact*dz;
-            }
-        }
-    }
-    // Jerk calculation
     if (v!=0.){ // is jerk even used?
-        for (int j=0; j<N; j++){
-            jerk[j].ax = 0; 
-            jerk[j].ay = 0; 
-            jerk[j].az = 0; 
-        }
-        for (int j=0; j<N_central; j++){
-            if (reb_sigint) return;
-            for (int i=0; i<N_active; i++){
-                if (i==j) continue;
-                const double dx = particles[j].x - particles[i].x; 
-                const double dy = particles[j].y - particles[i].y; 
-                const double dz = particles[j].z - particles[i].z; 
+            // Normal force calculation 
+            particles[0].ax = 0;
+            particles[0].ay = 0;
+            particles[0].az = 0;
+            for (int j=1; j<N_active; j++){
+                const double dx = particles[0].x - particles[j].x;
+                const double dy = particles[0].y - particles[j].y;
+                const double dz = particles[0].z - particles[j].z;
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+                const double prefact = G/(dr*dr*dr);
+                const double prefactj = -prefact*particles[j].m;
+                particles[0].ax    += prefactj*dx;
+                particles[0].ay    += prefactj*dy;
+                particles[0].az    += prefactj*dz;
+                const double prefacti = prefact*particles[0].m;
+                particles[j].ax    = prefacti*dx;
+                particles[j].ay    = prefacti*dy;
+                particles[j].az    = prefacti*dz;
+            }
+            // Jerk calculation
+            for (int i=1; i<N_active; i++){
+                const double dx = particles[0].x - particles[i].x; 
+                const double dy = particles[0].y - particles[i].y; 
+                const double dz = particles[0].z - particles[i].z; 
                 
-                const double dax = particles[j].ax - particles[i].ax; 
-                const double day = particles[j].ay - particles[i].ay; 
-                const double daz = particles[j].az - particles[i].az; 
+                const double dax = particles[0].ax - particles[i].ax; 
+                const double day = particles[0].ay - particles[i].ay; 
+                const double daz = particles[0].az - particles[i].az; 
 
                 const double dr = sqrt(dx*dx + dy*dy + dz*dz);
                 const double alphasum = dax*dx+day*dy+daz*dz;
-                const double prefact2 = G /(dr*dr*dr);
+                const double prefact2 = v*G /(dr*dr*dr);
                 const double prefact2i = prefact2*particles[i].m;
-                jerk[j].ax    -= dax*prefact2i;
-                jerk[j].ay    -= day*prefact2i;
-                jerk[j].az    -= daz*prefact2i;
+                const double prefact2j = prefact2*particles[0].m;
                 const double prefact1 = alphasum*prefact2/dr *3./dr;
                 const double prefact1i = prefact1*particles[i].m;
-                jerk[j].ax    += dx*prefact1i;
-                jerk[j].ay    += dy*prefact1i;
-                jerk[j].az    += dz*prefact1i;
+                const double prefact1j = prefact1*particles[0].m;
+                particles[0].vx    += -dax*prefact2i + dx*prefact1i;
+                particles[0].vy    += -day*prefact2i + dy*prefact1i;
+                particles[0].vz    += -daz*prefact2i + dz*prefact1i;
+                particles[i].vx    += y*particles[i].ax + dax*prefact2j - dx*prefact1j;
+                particles[i].vy    += y*particles[i].ay + day*prefact2j - dy*prefact1j;
+                particles[i].vz    += y*particles[i].az + daz*prefact2j - dz*prefact1j;
             }
-        }
-        for (int i=0; i<N_central; i++){
-            if (reb_sigint) return;
-            for (int j=0; j<N_active; j++){
-                if (i==j) continue;
-                const double dx = particles[j].x - particles[i].x; 
-                const double dy = particles[j].y - particles[i].y; 
-                const double dz = particles[j].z - particles[i].z; 
-                
-                const double dax = particles[j].ax - particles[i].ax; 
-                const double day = particles[j].ay - particles[i].ay; 
-                const double daz = particles[j].az - particles[i].az; 
-
-                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                const double alphasum = dax*dx+day*dy+daz*dz;
-                const double prefact2 = G /(dr*dr*dr);
-                const double prefact2i = prefact2*particles[i].m;
-                jerk[j].ax    -= dax*prefact2i;
-                jerk[j].ay    -= day*prefact2i;
-                jerk[j].az    -= daz*prefact2i;
-                const double prefact1 = alphasum*prefact2/dr *3./dr;
-                const double prefact1i = prefact1*particles[i].m;
-                jerk[j].ax    += dx*prefact1i;
-                jerk[j].ay    += dy*prefact1i;
-                jerk[j].az    += dz*prefact1i;
-            }
-        }
-        for (int j=N_central; j<N_active; j++){
-            if (reb_sigint) return;
-            for (int i=N_active; i<N; i++){
-            printf("not working"); //TODO
-                const double dx = particles[j].x - particles[i].x; 
-                const double dy = particles[j].y - particles[i].y; 
-                const double dz = particles[j].z - particles[i].z; 
-                
-                const double dax = particles[j].ax - particles[i].ax; 
-                const double day = particles[j].ay - particles[i].ay; 
-                const double daz = particles[j].az - particles[i].az; 
-
-                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                const double alphasum = dax*dx+day*dy+daz*dz;
-                const double prefact2 = G /(dr*dr*dr);
-                const double prefact2j = prefact2*particles[j].m;
-                if (testparticle_type){
-                    const double prefact2i = prefact2*particles[i].m;
-                    jerk[j].ax    -= dax*prefact2i;
-                    jerk[j].ay    -= day*prefact2i;
-                    jerk[j].az    -= daz*prefact2i;
-                }
-                jerk[i].ax    += dax*prefact2j;
-                jerk[i].ay    += day*prefact2j;
-                jerk[i].az    += daz*prefact2j;
-                const double prefact1 = alphasum*prefact2/dr*3./dr;
-                const double prefact1j = prefact1*particles[j].m;
-                if (testparticle_type){
-                    const double prefact1i = prefact1*particles[i].m;
-                    jerk[j].ax    += dx*prefact1i;
-                    jerk[j].ay    += dy*prefact1i;
-                    jerk[j].az    += dz*prefact1i;
-                }
-                jerk[i].ax    -= dx*prefact1j;
-                jerk[i].ay    -= dy*prefact1j;
-                jerk[i].az    -= dz*prefact1j;
-            }
-        }
-        for (int i=0;i<N;i++){
-            particles[i].vx += y*particles[i].ax + v*jerk[i].ax;
-            particles[i].vy += y*particles[i].ay + v*jerk[i].ay;
-            particles[i].vz += y*particles[i].az + v*jerk[i].az;
-        }
+            particles[0].vx += y*particles[0].ax;
+            particles[0].vy += y*particles[0].ay;
+            particles[0].vz += y*particles[0].az;
     }else{
-        for (int i=0;i<N;i++){
-            particles[i].vx += y*particles[i].ax;
-            particles[i].vy += y*particles[i].ay;
-            particles[i].vz += y*particles[i].az;
+        // Normal force calculation 
+        for (int j=1; j<N_active; j++){
+            const double dx = particles[0].x - particles[j].x;
+            const double dy = particles[0].y - particles[j].y;
+            const double dz = particles[0].z - particles[j].z;
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+            const double prefact = y*G/(dr*dr*dr);
+            const double prefactj = -prefact*particles[j].m;
+            particles[0].vx    += prefactj*dx;
+            particles[0].vy    += prefactj*dy;
+            particles[0].vz    += prefactj*dz;
+            const double prefacti = prefact*particles[0].m;
+            particles[j].vx    += prefacti*dx;
+            particles[j].vy    += prefacti*dy;
+            particles[j].vz    += prefacti*dz;
         }
     }
 
@@ -622,7 +510,6 @@ void reb_integrator_hyla_reset(struct reb_simulation* r){
     r->ri_hyla.allocatedN = 0;
     r->ri_hyla.jerk = NULL;
     
-    r->ri_hyla.Ncentral = 1;
     r->ri_hyla.order = 2;
     r->ri_hyla.ordersubsteps = 2;
     r->ri_hyla.safe_mode = 1;
