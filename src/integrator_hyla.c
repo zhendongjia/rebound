@@ -97,12 +97,12 @@ void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, 
         }
     }
     // Jerk calculation
-    for (int j=0; j<N; j++){
-        jerk[j].ax = 0; 
-        jerk[j].ay = 0; 
-        jerk[j].az = 0; 
-    }
     if (v!=0.){ // is jerk even used?
+        for (int j=0; j<N; j++){
+            jerk[j].ax = 0; 
+            jerk[j].ay = 0; 
+            jerk[j].az = 0; 
+        }
         for (int j=N_central; j<N_active; j++){
             if (reb_sigint) return;
             for (int i=N_central; i<j; i++){
@@ -173,12 +173,17 @@ void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, 
                 jerk[i].az    -= dz*prefact1j;
             }
         }
-    }
-
-    for (int i=0;i<N;i++){
-        particles[i].vx += y*particles[i].ax + v*jerk[i].ax;
-        particles[i].vy += y*particles[i].ay + v*jerk[i].ay;
-        particles[i].vz += y*particles[i].az + v*jerk[i].az;
+        for (int i=0;i<N;i++){
+            particles[i].vx += y*particles[i].ax + v*jerk[i].ax;
+            particles[i].vy += y*particles[i].ay + v*jerk[i].ay;
+            particles[i].vz += y*particles[i].az + v*jerk[i].az;
+        }
+    }else{
+        for (int i=0;i<N;i++){
+            particles[i].vx += y*particles[i].ax;
+            particles[i].vy += y*particles[i].ay;
+            particles[i].vz += y*particles[i].az;
+        }
     }
 }
 void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, double v){
@@ -212,8 +217,8 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
             particles[i].az    += prefact*dz;
         }
     }
-    for (int j=0; j<N_central; j++){
-        for (int i=0; i<N; i++){
+    for (int i=N_central; i<N; i++){
+        for (int j=0; j<N_central; j++){
             if (i==j) continue;
             const double dx = particles[i].x - particles[j].x;
             const double dy = particles[i].y - particles[j].y;
@@ -245,12 +250,12 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
         }
     }
     // Jerk calculation
-    for (int j=0; j<N; j++){
-        jerk[j].ax = 0; 
-        jerk[j].ay = 0; 
-        jerk[j].az = 0; 
-    }
     if (v!=0.){ // is jerk even used?
+        for (int j=0; j<N; j++){
+            jerk[j].ax = 0; 
+            jerk[j].ay = 0; 
+            jerk[j].az = 0; 
+        }
         for (int j=0; j<N_central; j++){
             if (reb_sigint) return;
             for (int i=0; i<N_active; i++){
@@ -341,13 +346,19 @@ void reb_integrator_hyla_interaction_shell1(struct reb_simulation* r, double y, 
                 jerk[i].az    -= dz*prefact1j;
             }
         }
+        for (int i=0;i<N;i++){
+            particles[i].vx += y*particles[i].ax + v*jerk[i].ax;
+            particles[i].vy += y*particles[i].ay + v*jerk[i].ay;
+            particles[i].vz += y*particles[i].az + v*jerk[i].az;
+        }
+    }else{
+        for (int i=0;i<N;i++){
+            particles[i].vx += y*particles[i].ax;
+            particles[i].vy += y*particles[i].ay;
+            particles[i].vz += y*particles[i].az;
+        }
     }
 
-    for (int i=0;i<N;i++){
-        particles[i].vx += y*particles[i].ax + v*jerk[i].ax;
-        particles[i].vy += y*particles[i].ay + v*jerk[i].ay;
-        particles[i].vz += y*particles[i].az + v*jerk[i].az;
-    }
 }
 void reb_integrator_hyla_preprocessor(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
     switch(order){
@@ -397,7 +408,7 @@ void reb_integrator_hyla_drift_shell1(struct reb_simulation* const r, double a){
     } 
 }
 
-void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
+static inline void reb_integrator_hyla_step(struct reb_simulation* const r, double dt, int order, void (*drift_step)(struct reb_simulation* const r, double a), void (*interaction_step)(struct reb_simulation* const r, double y, double v)){
     switch(order){
         case 6:
             drift_step(r, dt*a_6[0]); //TODO combine drift steps
@@ -440,35 +451,8 @@ void reb_integrator_hyla_part1(struct reb_simulation* r){
     const int N = r->N;
     
     if (rim->allocatedN<N){
-        // dcrit
-        if (rim->dcrit){
-            for (int i=0;i<rim->Nmaxshells;i++){
-                free(rim->dcrit[i]);
-            }
-        }
-        rim->dcrit = realloc(rim->dcrit, sizeof(double*)*(rim->Nmaxshells));
-        for (int i=0;i<rim->Nmaxshells;i++){
-            rim->dcrit[i] = malloc(sizeof(double)*N);
-        }
-        // map
-        if (rim->map){
-            for (int i=0;i<rim->Nmaxshells;i++){
-                free(rim->map[i]);
-            }
-        }
-        rim->map = realloc(rim->map, sizeof(unsigned int*)*rim->Nmaxshells);
-        for (int i=0;i<rim->Nmaxshells;i++){
-            rim->map[i] = malloc(sizeof(unsigned int)*N);
-        }
-        // inshell
-        rim->inshell = realloc(rim->inshell, sizeof(unsigned int)*N);
         // jerk
         rim->jerk = realloc(rim->jerk, sizeof(struct reb_particle)*N);
-        // shellN
-        rim->shellN = realloc(rim->shellN, sizeof(unsigned int)*rim->Nmaxshells);
-        // shellN_active
-        rim->shellN_active = realloc(rim->shellN_active, sizeof(unsigned int)*rim->Nmaxshells);
-
         rim->allocatedN = N;
         // If particle number increased (or this is the first step), need to calculate critical radii
     }
@@ -484,8 +468,6 @@ void reb_integrator_hyla_part1(struct reb_simulation* r){
 
 void reb_integrator_hyla_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_hyla* const rim = &(r->ri_hyla);
-    rim->shellN[0] = r->N;
-    rim->shellN_active[0] = r->N_active==-1?r->N:r->N_active;
 
     if (rim->is_synchronized){
         reb_integrator_hyla_preprocessor(r, r->dt, rim->order, reb_integrator_hyla_drift_shell0, reb_integrator_hyla_interaction_shell0);
@@ -512,28 +494,15 @@ void reb_integrator_hyla_synchronize(struct reb_simulation* r){
 
 void reb_integrator_hyla_reset(struct reb_simulation* r){
     if (r->ri_hyla.allocatedN){
-        for (int i=0;i<r->ri_hyla.Nmaxshells;i++){
-            free(r->ri_hyla.map[i]);
-        }
-        free(r->ri_hyla.map);
-        free(r->ri_hyla.inshell);
-        free(r->ri_hyla.shellN);
-        free(r->ri_hyla.shellN_active);
         free(r->ri_hyla.jerk);
     }
     r->ri_hyla.allocatedN = 0;
-    r->ri_hyla.map = NULL;
-    r->ri_hyla.inshell = NULL;
-    r->ri_hyla.shellN = NULL;
-    r->ri_hyla.shellN_active = NULL;
     r->ri_hyla.jerk = NULL;
     
     r->ri_hyla.Ncentral = 1;
     r->ri_hyla.order = 2;
     r->ri_hyla.ordersubsteps = 2;
     r->ri_hyla.safe_mode = 1;
-    r->ri_hyla.Nmaxshells = 10;
-    r->ri_hyla.Nmaxshellused = 1;
     r->ri_hyla.Nstepspershell = 10;
     r->ri_hyla.is_synchronized = 1;
     
