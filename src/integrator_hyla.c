@@ -66,6 +66,11 @@ static const double y3_764 = 0.8348493592472594;
 static const double y4_764 = -0.0511253369989315;
 static const double y5_764 = 0.5633782670698199; 
 static const double y6_764 = -0.5;
+static const double a1_69 = 0.1867; //page 89, [176]
+static const double a2_69 = 0.5554970237124784;
+static const double a3_69 = 0.1294669489134754;
+static const double a4_69 = -0.843265623387734;
+static const double a5_69 = 0.9432033015235604;
                 
 static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, double v){
     const int N = r->N;
@@ -402,6 +407,47 @@ void reb_integrator_hyla_drift_shell0(struct reb_simulation* const r, double a){
             reb_integrator_hyla_interaction_shell1(r, as*alpha1, 0.);
             reb_integrator_hyla_drift_shell1(r, as*alpha1*0.5);
             break;
+        case 69:
+            reb_integrator_hyla_drift_shell1(r, as*a1_69*0.5);
+            for (int i=0;i<Nstepspershell-1;i++){
+                reb_integrator_hyla_interaction_shell1(r, as*a1_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(a1_69+a2_69)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*a2_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(a2_69+a3_69)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*a3_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(a3_69+a4_69)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*a4_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(a4_69+a5_69)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*a5_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(a4_69+a5_69)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*a4_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(a3_69+a4_69)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*a3_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(a2_69+a3_69)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*a2_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*(a1_69+a2_69)*0.5);
+                reb_integrator_hyla_interaction_shell1(r, as*a1_69, 0.);
+                reb_integrator_hyla_drift_shell1(r, as*a1_69);
+            }
+            reb_integrator_hyla_interaction_shell1(r, as*a1_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(a1_69+a2_69)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*a2_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(a2_69+a3_69)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*a3_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(a3_69+a4_69)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*a4_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(a4_69+a5_69)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*a5_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(a4_69+a5_69)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*a4_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(a3_69+a4_69)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*a3_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(a2_69+a3_69)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*a2_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*(a1_69+a2_69)*0.5);
+            reb_integrator_hyla_interaction_shell1(r, as*a1_69, 0.);
+            reb_integrator_hyla_drift_shell1(r, as*a1_69*0.5);
+            break; 
         case 2:
         default:
             reb_integrator_hyla_drift_shell1(r, as*0.5); 
