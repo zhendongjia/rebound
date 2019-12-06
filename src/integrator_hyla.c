@@ -71,6 +71,15 @@ static const double a2_69 = 0.5554970237124784;
 static const double a3_69 = 0.1294669489134754;
 static const double a4_69 = -0.843265623387734;
 static const double a5_69 = 0.9432033015235604;
+
+static const double a1_864 = 0.0711334264982231177779387300061549964174;
+static const double a2_864 = 0.241153427956640098736487795326289649618;
+static const double a3_864 = 0.521411761772814789212136078067994229991;
+static const double a4_864 = -0.333698616227678005726562603400438876027; // ABA(8,6,4)
+static const double b1_864 = 0.183083687472197221961703757166430291072;
+static const double b2_864 = 0.310782859898574869507522291054262796375;
+static const double b3_864 = -0.0265646185119588006972121379164987592663;
+static const double b4_864 = 0.0653961422823734184559721793911134363710; // ABA(8,6,4)
                 
 static inline void reb_integrator_hyla_interaction_shell0(struct reb_simulation* r, double y, double v){
     const int N = r->N;
@@ -499,6 +508,9 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
             case 764:
                 reb_integrator_hyla_drift_shell0(r, dt*a1_764);   
                 break;
+            case 864:
+                reb_integrator_hyla_drift_shell0(r, dt*a1_864);   
+                break;
             case 2:
             default:
                 reb_integrator_hyla_drift_shell0(r, dt*0.5);
@@ -520,6 +532,9 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
                 break;
             case 764:
                 reb_integrator_hyla_drift_shell0(r, 2.*dt*a1_764);   
+                break;
+            case 864:
+                reb_integrator_hyla_drift_shell0(r, 2.*dt*a1_864);   
                 break;
             case 2:
             default:
@@ -557,6 +572,21 @@ void reb_integrator_hyla_part2(struct reb_simulation* const r){
             reb_integrator_hyla_drift_shell0(r, a2_764*dt);   
             reb_integrator_hyla_interaction_shell0(r, b1_764*dt,0);
             break;
+        case 864:
+            reb_integrator_hyla_interaction_shell0(r, b1_864*dt,0);
+            reb_integrator_hyla_drift_shell0(r, a2_864*dt);   
+            reb_integrator_hyla_interaction_shell0(r, b2_864*dt,0);
+            reb_integrator_hyla_drift_shell0(r, a3_864*dt);   
+            reb_integrator_hyla_interaction_shell0(r, b3_864*dt,0);
+            reb_integrator_hyla_drift_shell0(r, a4_864*dt);   
+            reb_integrator_hyla_interaction_shell0(r, b4_864*dt,0);
+            reb_integrator_hyla_drift_shell0(r, a4_864*dt);   
+            reb_integrator_hyla_interaction_shell0(r, b3_864*dt,0);
+            reb_integrator_hyla_drift_shell0(r, a3_864*dt);   
+            reb_integrator_hyla_interaction_shell0(r, b2_864*dt,0);
+            reb_integrator_hyla_drift_shell0(r, a2_864*dt);   
+            reb_integrator_hyla_interaction_shell0(r, b1_864*dt,0);
+            break;
         case 2:
         default:
             reb_integrator_hyla_interaction_shell0(r, dt, 0.);
@@ -591,6 +621,9 @@ void reb_integrator_hyla_synchronize(struct reb_simulation* r){
                 break;
             case 764:
                 reb_integrator_hyla_drift_shell0(r, dt*a1_764);   
+                break;
+            case 864:
+                reb_integrator_hyla_drift_shell0(r, dt*a1_864);   
                 break;
             case 2:
             default:
