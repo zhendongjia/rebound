@@ -371,7 +371,6 @@ void reb_reset_temporary_pointers(struct reb_simulation* const r){
     r->ri_mercurius.particles_backup = NULL;
     r->ri_mercurius.particles_backup_additionalforces = NULL;
     r->ri_mercurius.encounter_map = NULL;
-
     // ********** JANUS
     r->ri_janus.allocated_N = 0;
     r->ri_janus.p_int = NULL;
@@ -572,6 +571,13 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_mercurius.is_synchronized = 1;
     r->ri_mercurius.encounterN = 0;
     r->ri_mercurius.hillfac = 3;
+    
+    // ********** EOS
+    r->ri_eos.n = 2;
+    r->ri_eos.Phi0 = REB_EOS_LF;
+    r->ri_eos.Phi1 = REB_EOS_LF;
+    r->ri_eos.safe_mode = 1;
+    r->ri_eos.is_synchronized = 1;
 
     // Tree parameters. Will not be used unless gravity or collision search makes use of tree.
     r->tree_needs_update= 0;
