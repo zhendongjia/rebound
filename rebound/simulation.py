@@ -1891,7 +1891,7 @@ class reb_simulation_integrator_eos(Structure):
             if value in EOS_TYPES: 
                 self._phi0 = EOS_TYPES[value]
             else:
-                raise ValueError("Warning. EOS type not found.")
+                raise ValueError("Warning. EOS type %s not found."%value)
     @property
     def phi1(self):
         """
@@ -1911,7 +1911,7 @@ class reb_simulation_integrator_eos(Structure):
             if value in EOS_TYPES: 
                 self._phi1 = EOS_TYPES[value]
             else:
-                raise ValueError("Warning. EOS type not found.")
+                raise ValueError("Warning. EOS type %s not found."%value)
     _fields_ = [
                 ("_phi0",c_uint),
                 ("_phi1",c_uint),
