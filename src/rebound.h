@@ -448,9 +448,12 @@ struct reb_simulation_integrator_whfast {
  * @brief Available opperator splitting methods for Phi0 and Phi1 in EOS integrators.
  */
 enum REB_EOS_TYPE {
-    REB_EOS_LF = 0x00, // Leap-frog
-    REB_EOS_LF4 = 0x01, // Leap-frog, fourth order, three function evaluations
-    REB_EOS_LF8 = 0x02, // Leap-frog, eighth order, seventeen funtion evaluations // Blanes & Casa (2016), p91
+    REB_EOS_LF = 0x00, // 2nd order, standard leap-frog
+    REB_EOS_LF4 = 0x01, // 4th order, three function evaluations
+    REB_EOS_LF6 = 0x02, // 6th order, nine function evaluations
+    REB_EOS_LF8 = 0x03, // 8th order, seventeen funtion evaluations, see Blanes & Casa (2016), p91
+    REB_EOS_PMLF4 = 0x04, // 4th order, one modified force evaluation, pre- and post-processors, Blanes et al. (1999)
+    REB_EOS_PMLF6 = 0x05, // 6th order, three modified force evaluations, pre- and post-processors, Blanes et al. (1999)
 };
 
 /**
