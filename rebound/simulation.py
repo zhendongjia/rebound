@@ -1859,6 +1859,15 @@ class reb_simulation_integrator_janus(Structure):
                 ("_allocated_N",c_uint),
                 ]
 
+class reb_simulation_integrator_eos(Structure):
+    _fields_ = [
+                ("_Phi0",c_uint),
+                ("_Phi1",c_uint),
+                ("n",c_uint),
+                ("safe_mode",c_uint),
+                ("is_synchonized",c_uint),
+                ]
+
 class reb_simulation_integrator_mercurius(Structure):
     """
     This class is an abstraction of the C-struct reb_simulation_integrator_mercurius.
@@ -2004,6 +2013,7 @@ Simulation._fields_ = [
                 ("ri_ias15", reb_simulation_integrator_ias15),
                 ("ri_mercurius", reb_simulation_integrator_mercurius),
                 ("ri_janus", reb_simulation_integrator_janus),
+                ("ri_eos", reb_simulation_integrator_eos),
                 ("_additional_forces", CFUNCTYPE(None,POINTER(Simulation))),
                 ("_pre_timestep_modifications", CFUNCTYPE(None,POINTER(Simulation))),
                 ("_post_timestep_modifications", CFUNCTYPE(None,POINTER(Simulation))),
