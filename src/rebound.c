@@ -574,8 +574,8 @@ void reb_init_simulation(struct reb_simulation* r){
     
     // ********** EOS
     r->ri_eos.n = 2;
-    r->ri_eos.Phi0 = REB_EOS_LF;
-    r->ri_eos.Phi1 = REB_EOS_LF;
+    r->ri_eos.phi0 = REB_EOS_LF;
+    r->ri_eos.phi1 = REB_EOS_LF;
     r->ri_eos.safe_mode = 1;
     r->ri_eos.is_synchronized = 1;
 

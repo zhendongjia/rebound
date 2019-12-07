@@ -383,8 +383,8 @@ void reb_integrator_eos_drift_shell0(struct reb_simulation* const r, double a){
     struct reb_simulation_integrator_eos* const reos = &(r->ri_eos);
     const int n = reos->n;
     const double as = a/n;
-    reb_integrator_eos_preprocessor(r, as, reos->Phi1, reb_integrator_eos_drift_shell1, reb_integrator_eos_interaction_shell1);
-    switch(reos->Phi1){
+    reb_integrator_eos_preprocessor(r, as, reos->phi1, reb_integrator_eos_drift_shell1, reb_integrator_eos_interaction_shell1);
+    switch(reos->phi1){
         case REB_EOS_PMLF6:
             for (int i=0;i<n;i++){
                 reb_integrator_eos_drift_shell1(r, as*a_6[0]); //TODO combine drift steps
@@ -547,7 +547,7 @@ void reb_integrator_eos_drift_shell0(struct reb_simulation* const r, double a){
             reb_integrator_eos_drift_shell1(r, as*0.5);
             break;
     }
-    reb_integrator_eos_postprocessor(r, as, reos->Phi1, reb_integrator_eos_drift_shell1, reb_integrator_eos_interaction_shell1);
+    reb_integrator_eos_postprocessor(r, as, reos->phi1, reb_integrator_eos_drift_shell1, reb_integrator_eos_interaction_shell1);
 }
 
 void reb_integrator_eos_part1(struct reb_simulation* r){
@@ -570,8 +570,8 @@ void reb_integrator_eos_part2(struct reb_simulation* const r){
     const double dt = r->dt;
 
     if (reos->is_synchronized){
-        reb_integrator_eos_preprocessor(r, r->dt, reos->Phi0, reb_integrator_eos_drift_shell0, reb_integrator_eos_interaction_shell0);
-        switch(reos->Phi0){
+        reb_integrator_eos_preprocessor(r, r->dt, reos->phi0, reb_integrator_eos_drift_shell0, reb_integrator_eos_interaction_shell0);
+        switch(reos->phi0){
             case REB_EOS_PMLF6:
                 reb_integrator_eos_drift_shell0(r, dt*a_6[0]); 
                 break;
@@ -596,7 +596,7 @@ void reb_integrator_eos_part2(struct reb_simulation* const r){
                 break;
         }
     }else{
-        switch(reos->Phi0){
+        switch(reos->phi0){
             case REB_EOS_PMLF6:
                 reb_integrator_eos_drift_shell0(r, 2.*dt*a_6[0]); 
                 break;
@@ -621,7 +621,7 @@ void reb_integrator_eos_part2(struct reb_simulation* const r){
                 break;
         }
     }
-    switch(reos->Phi0){
+    switch(reos->phi0){
         case REB_EOS_PMLF6:
             reb_integrator_eos_interaction_shell0(r, dt*b_6[0], dt*dt*dt*c_6[0]*2.); 
             reb_integrator_eos_drift_shell0(r, dt*a_6[1]);
@@ -685,7 +685,7 @@ void reb_integrator_eos_synchronize(struct reb_simulation* r){
     struct reb_simulation_integrator_eos* const reos = &(r->ri_eos);
     const double dt = r->dt;
     if (reos->is_synchronized == 0){
-        switch(reos->Phi0){
+        switch(reos->phi0){
             case REB_EOS_PMLF6:
                 reb_integrator_eos_drift_shell0(r, dt*a_6[0]); 
                 break;
@@ -709,15 +709,15 @@ void reb_integrator_eos_synchronize(struct reb_simulation* r){
                 reb_integrator_eos_drift_shell0(r, dt*0.5);
                 break;
         }
-        reb_integrator_eos_postprocessor(r, r->dt, reos->Phi0, reb_integrator_eos_drift_shell0, reb_integrator_eos_interaction_shell0);
+        reb_integrator_eos_postprocessor(r, r->dt, reos->phi0, reb_integrator_eos_drift_shell0, reb_integrator_eos_interaction_shell0);
         reos->is_synchronized = 1;
     }
 }
 
 void reb_integrator_eos_reset(struct reb_simulation* r){
     r->ri_eos.n = 2;
-    r->ri_eos.Phi0 = REB_EOS_LF;
-    r->ri_eos.Phi1 = REB_EOS_LF;
+    r->ri_eos.phi0 = REB_EOS_LF;
+    r->ri_eos.phi1 = REB_EOS_LF;
     r->ri_eos.safe_mode = 1;
     r->ri_eos.is_synchronized = 1;
 }

@@ -445,7 +445,7 @@ struct reb_simulation_integrator_whfast {
 };
 
 /**
- * @brief Available opperator splitting methods for Phi0 and Phi1 in EOS integrators.
+ * @brief Available opperator splitting methods for phi0 and phi1 in EOS integrators.
  */
 enum REB_EOS_TYPE {
     REB_EOS_LF = 0x00,      // 2nd order, standard leap-frog
@@ -463,11 +463,11 @@ enum REB_EOS_TYPE {
  * @brief This structure contains variables used by the EOS integrator family.
  */
 struct reb_simulation_integrator_eos {
-    enum REB_EOS_TYPE Phi0;         ///< Outer opperator splitting scheme
-    enum REB_EOS_TYPE Phi1;         ///< Inner opperator splitting scheme
+    enum REB_EOS_TYPE phi0;         ///< Outer opperator splitting scheme
+    enum REB_EOS_TYPE phi1;         ///< Inner opperator splitting scheme
     unsigned int n;                 ///
 
-    unsigned int safe_mode;         ///< If set to 0, always combine drift steps at the beginning and end of Phi0. If set to 1, n needs to be bigger than 1.
+    unsigned int safe_mode;         ///< If set to 0, always combine drift steps at the beginning and end of phi0. If set to 1, n needs to be bigger than 1.
     unsigned int is_synchronized;   ///< Flag to indicate if the drift step at the end of the last timestep has been taken.
 };
 
@@ -966,6 +966,7 @@ struct reb_simulation {
         REB_INTEGRATOR_JANUS = 8,    ///< Bit-wise reversible JANUS integrator.
         REB_INTEGRATOR_MERCURIUS = 9,///< MERCURIUS integrator 
         REB_INTEGRATOR_SABA = 10,    ///< SABA integrator family (Laskar and Robutel 2001)
+        REB_INTEGRATOR_EOS = 11,     ///< Embedded Operator Splitting (EOS) integrator family (Rein 2019)
         } integrator;
 
     /**
