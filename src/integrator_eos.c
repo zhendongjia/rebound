@@ -517,11 +517,6 @@ void reb_integrator_eos_part1(struct reb_simulation* r){
     
     r->gravity = REB_GRAVITY_NONE;
 
-    // Calculate collisions only with DIRECT method
-    if (r->collision != REB_COLLISION_NONE && r->collision != REB_COLLISION_DIRECT){
-        reb_warning(r,"Mercurius only works with a direct collision search.");
-    }
-    
 }
 
 
@@ -551,7 +546,6 @@ void reb_integrator_eos_part2(struct reb_simulation* const r){
                 reb_integrator_eos_drift_shell0(r, dt*lf8_6_4_a[0]);   
                 break;
             case REB_EOS_LF:
-            default:
                 reb_integrator_eos_drift_shell0(r, dt*0.5);
                 break;
         }
@@ -575,7 +569,7 @@ void reb_integrator_eos_part2(struct reb_simulation* const r){
             case REB_EOS_LF8_6_4:
                 reb_integrator_eos_drift_shell0(r, 2.*dt*lf8_6_4_a[0]);   
                 break;
-            default:
+            case REB_EOS_LF:
                 reb_integrator_eos_drift_shell0(r, dt);
                 break;
         }
@@ -625,7 +619,7 @@ void reb_integrator_eos_part2(struct reb_simulation* const r){
             reb_integrator_eos_drift_shell0(r, lf8_6_4_a[1]*dt);   
             reb_integrator_eos_interaction_shell0(r, lf8_6_4_b[0]*dt,0);
             break;
-        default:
+        case REB_EOS_LF:
             reb_integrator_eos_interaction_shell0(r, dt, 0.);
             break;
     }
@@ -662,7 +656,7 @@ void reb_integrator_eos_synchronize(struct reb_simulation* r){
             case REB_EOS_LF8_6_4:
                 reb_integrator_eos_drift_shell0(r, dt*lf8_6_4_a[0]);   
                 break;
-            default:
+            case REB_EOS_LF:
                 reb_integrator_eos_drift_shell0(r, dt*0.5);
                 break;
         }
