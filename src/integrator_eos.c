@@ -65,7 +65,7 @@ static const double plf7_6_4_y[6] = {-1.6218101180868010, 0.0061709468110142, 0.
 static inline void reb_integrator_eos_interaction_shell0(struct reb_simulation* r, double y, double v){
     const int N = r->N;
     const int N_active = r->N_active==-1?r->N:r->N_active;
-    struct reb_particle* const particles = r->particles;
+    struct reb_particle* restrict const particles = r->particles;
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
     for (int i=0; i<N; i++){
@@ -205,7 +205,8 @@ static inline void reb_integrator_eos_interaction_shell0(struct reb_simulation* 
 }
 static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* r, double y, double v){
     const int N_active = r->N_active==-1?r->N:r->N_active;
-    struct reb_particle* const particles = r->particles;
+    struct reb_particle* restrict const particles = r->particles;
+
     const double G = r->G;
     
     if (v!=0.){ // is jerk even used?
@@ -326,20 +327,20 @@ static inline void reb_integrator_eos_postprocessor(struct reb_simulation* const
             break;
     }
 }
-static inline void reb_integrator_eos_drift_shell1(struct reb_simulation* const r, double a){
+static inline void reb_integrator_eos_drift_shell1(struct reb_simulation* const r, double dt){
     struct reb_particle* restrict const particles = r->particles;
     unsigned int N = r->N;
     for (int i=0;i<N;i++){  
-        particles[i].x += a*particles[i].vx;
-        particles[i].y += a*particles[i].vy;
-        particles[i].z += a*particles[i].vz;
+        particles[i].x += dt*particles[i].vx;
+        particles[i].y += dt*particles[i].vy;
+        particles[i].z += dt*particles[i].vz;
     } 
 }
 
-void reb_integrator_eos_drift_shell0(struct reb_simulation* const r, double a){
+void reb_integrator_eos_drift_shell0(struct reb_simulation* const r, double _dt){
     struct reb_simulation_integrator_eos* const reos = &(r->ri_eos);
     const int n = reos->n;
-    const double dt = a/n;
+    const double dt = _dt/n;
     reb_integrator_eos_preprocessor(r, dt, reos->phi1, reb_integrator_eos_drift_shell1, reb_integrator_eos_interaction_shell1);
     switch(reos->phi1){
         case REB_EOS_PMLF6:
