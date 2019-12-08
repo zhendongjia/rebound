@@ -75,6 +75,7 @@ static inline void reb_integrator_eos_interaction_shell0(struct reb_simulation* 
     }
     
     // Normal force calculation 
+    // All interactions between active particles
     for (int i=1; i<N_active; i++){
         if (reb_sigint) return;
         for (int j=1; j<i; j++){
@@ -94,6 +95,7 @@ static inline void reb_integrator_eos_interaction_shell0(struct reb_simulation* 
             particles[j].az    += prefacti*dz;
         }
     }
+    // Interactions between active particles and test particles
     for (int i=N_active; i<N; i++){
         if (reb_sigint) return;
         for (int j=1; j<N_active; j++){
@@ -102,25 +104,16 @@ static inline void reb_integrator_eos_interaction_shell0(struct reb_simulation* 
             const double dz = particles[i].z - particles[j].z;
             const double dr = sqrt(dx*dx + dy*dy + dz*dz);
 
-            const double prefact = -G*particles[j].m/(dr*dr*dr);
-            particles[i].ax    += prefact*dx;
-            particles[i].ay    += prefact*dy;
-            particles[i].az    += prefact*dz;
-        }
-    }
-    if (testparticle_type){
-        for (int i=1; i<N_active; i++){
-            if (reb_sigint) return;
-            for (int j=N_active; j<N; j++){
-                const double dx = particles[i].x - particles[j].x;
-                const double dy = particles[i].y - particles[j].y;
-                const double dz = particles[i].z - particles[j].z;
-                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-
-                const double prefact = -G*particles[j].m/(dr*dr*dr);
-                particles[i].ax    += prefact*dx;
-                particles[i].ay    += prefact*dy;
-                particles[i].az    += prefact*dz;
+            const double prefact = G/(dr*dr*dr);
+            const double prefacti = prefact*particles[i].m;
+            particles[j].ax    += prefacti*dx;
+            particles[j].ay    += prefacti*dy;
+            particles[j].az    += prefacti*dz;
+            if (testparticle_type){
+                const double prefactj = -prefact*particles[j].m;
+                particles[i].ax    += prefactj*dx;
+                particles[i].ay    += prefactj*dy;
+                particles[i].az    += prefactj*dz;
             }
         }
     }
@@ -204,7 +197,9 @@ static inline void reb_integrator_eos_interaction_shell0(struct reb_simulation* 
     }
 }
 static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* r, double y, double v){
-    const int N_active = r->N_active==-1?r->N:r->N_active;
+    const int N = r->N;
+    const int N_active = r->N_active==-1?N:r->N_active;
+    const int testparticle_type   = r->testparticle_type;
     struct reb_particle* restrict const particles = r->particles;
 
     const double G = r->G;
@@ -214,6 +209,7 @@ static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* 
             particles[0].ax = 0;
             particles[0].ay = 0;
             particles[0].az = 0;
+            // Interactions between central object and all other active particles
             for (int j=1; j<N_active; j++){
                 const double dx = particles[0].x - particles[j].x;
                 const double dy = particles[0].y - particles[j].y;
@@ -229,6 +225,25 @@ static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* 
                 particles[j].ax    = prefacti*dx;
                 particles[j].ay    = prefacti*dy;
                 particles[j].az    = prefacti*dz;
+            }
+            // Interactions between central object and all test particles
+            for (int j=N_active; j<N; j++){
+                const double dx = particles[0].x - particles[j].x;
+                const double dy = particles[0].y - particles[j].y;
+                const double dz = particles[0].z - particles[j].z;
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+                const double prefact = G/(dr*dr*dr);
+                const double prefacti = prefact*particles[0].m;
+                particles[j].ax    = prefacti*dx;
+                particles[j].ay    = prefacti*dy;
+                particles[j].az    = prefacti*dz;
+                if (testparticle_type){
+                    const double prefactj = -prefact*particles[j].m;
+                    particles[0].ax    += prefactj*dx;
+                    particles[0].ay    += prefactj*dy;
+                    particles[0].az    += prefactj*dz;
+                }
             }
             // Jerk calculation
             for (int i=1; i<N_active; i++){
@@ -260,6 +275,7 @@ static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* 
             particles[0].vz += y*particles[0].az;
     }else{
         // Normal force calculation 
+        // Interactions between central object and all other active particles
         for (int j=1; j<N_active; j++){
             const double dx = particles[0].x - particles[j].x;
             const double dy = particles[0].y - particles[j].y;
@@ -275,6 +291,25 @@ static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* 
             particles[j].vx    += prefacti*dx;
             particles[j].vy    += prefacti*dy;
             particles[j].vz    += prefacti*dz;
+        }
+        // Interactions between central object and all test particles
+        for (int j=N_active; j<N; j++){
+            const double dx = particles[0].x - particles[j].x;
+            const double dy = particles[0].y - particles[j].y;
+            const double dz = particles[0].z - particles[j].z;
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+
+            const double prefact = y*G/(dr*dr*dr);
+            const double prefacti = prefact*particles[0].m;
+            particles[j].vx    += prefacti*dx;
+            particles[j].vy    += prefacti*dy;
+            particles[j].vz    += prefacti*dz;
+            if (testparticle_type){
+                const double prefactj = -prefact*particles[j].m;
+                particles[0].vx    += prefactj*dx;
+                particles[0].vy    += prefactj*dy;
+                particles[0].vz    += prefactj*dz;
+            }
         }
     }
 
