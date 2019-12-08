@@ -105,88 +105,77 @@ static inline void reb_integrator_eos_interaction_shell0(struct reb_simulation* 
             const double dr = sqrt(dx*dx + dy*dy + dz*dz);
 
             const double prefact = G/(dr*dr*dr);
-            const double prefacti = prefact*particles[i].m;
-            particles[j].ax    += prefacti*dx;
-            particles[j].ay    += prefacti*dy;
-            particles[j].az    += prefacti*dz;
+            const double prefactj = -prefact*particles[j].m;
+            particles[i].ax    += prefactj*dx;
+            particles[i].ay    += prefactj*dy;
+            particles[i].az    += prefactj*dz;
+
             if (testparticle_type){
-                const double prefactj = -prefact*particles[j].m;
-                particles[i].ax    += prefactj*dx;
-                particles[i].ay    += prefactj*dy;
-                particles[i].az    += prefactj*dz;
+                const double prefacti = prefact*particles[i].m;
+                particles[j].ax    += prefacti*dx;
+                particles[j].ay    += prefacti*dy;
+                particles[j].az    += prefacti*dz;
             }
         }
     }
     // Jerk calculation
     if (v!=0.){ // is jerk even used?
-        for (int j=1; j<N_active; j++){
+        // All interactions between active particles
+        for (int i=1; i<N_active; i++){
             if (reb_sigint) return;
-            for (int i=1; i<j; i++){
-                const double dx = particles[j].x - particles[i].x; 
-                const double dy = particles[j].y - particles[i].y; 
-                const double dz = particles[j].z - particles[i].z; 
+            for (int j=1; j<i; j++){
+                const double dx = particles[i].x - particles[j].x; 
+                const double dy = particles[i].y - particles[j].y; 
+                const double dz = particles[i].z - particles[j].z; 
                 
-                const double dax = particles[j].ax - particles[i].ax; 
-                const double day = particles[j].ay - particles[i].ay; 
-                const double daz = particles[j].az - particles[i].az; 
+                const double dax = particles[i].ax - particles[j].ax; 
+                const double day = particles[i].ay - particles[j].ay; 
+                const double daz = particles[i].az - particles[j].az; 
 
                 const double dr = sqrt(dx*dx + dy*dy + dz*dz);
                 const double alphasum = dax*dx+day*dy+daz*dz;
                 const double prefact2 = 2.*v*G /(dr*dr*dr);
-                const double prefact2i = prefact2*particles[i].m;
-                const double prefact2j = prefact2*particles[j].m;
-                particles[j].vx    -= dax*prefact2i;
-                particles[j].vy    -= day*prefact2i;
-                particles[j].vz    -= daz*prefact2i;
-                particles[i].vx    += dax*prefact2j;
-                particles[i].vy    += day*prefact2j;
-                particles[i].vz    += daz*prefact2j;
+                const double prefact2i = prefact2*particles[j].m;
+                const double prefact2j = prefact2*particles[i].m;
                 const double prefact1 = alphasum*prefact2/dr *3./dr;
-                const double prefact1i = prefact1*particles[i].m;
-                const double prefact1j = prefact1*particles[j].m;
-                particles[j].vx    += dx*prefact1i;
-                particles[j].vy    += dy*prefact1i;
-                particles[j].vz    += dz*prefact1i;
-                particles[i].vx    -= dx*prefact1j;
-                particles[i].vy    -= dy*prefact1j;
-                particles[i].vz    -= dz*prefact1j;
+                const double prefact1i = prefact1*particles[j].m;
+                const double prefact1j = prefact1*particles[i].m;
+                particles[i].vx    += dx*prefact1i - dax*prefact2i;
+                particles[i].vy    += dy*prefact1i - day*prefact2i;
+                particles[i].vz    += dz*prefact1i - daz*prefact2i;
+                particles[j].vx    += dax*prefact2j - dx*prefact1j;
+                particles[j].vy    += day*prefact2j - dy*prefact1j;
+                particles[j].vz    += daz*prefact2j - dz*prefact1j;
             }
         }
+        // Interactions between active particles and test particles
         for (int i=N_active; i<N; i++){
             if (reb_sigint) return;
             for (int j=1; j<N_active; j++){
-                const double dx = particles[j].x - particles[i].x; 
-                const double dy = particles[j].y - particles[i].y; 
-                const double dz = particles[j].z - particles[i].z; 
+                const double dx = particles[i].x - particles[j].x; 
+                const double dy = particles[i].y - particles[j].y; 
+                const double dz = particles[i].z - particles[j].z; 
                 
-                const double dax = particles[j].ax - particles[i].ax; 
-                const double day = particles[j].ay - particles[i].ay; 
-                const double daz = particles[j].az - particles[i].az; 
+                const double dax = particles[i].ax - particles[j].ax; 
+                const double day = particles[i].ay - particles[j].ay; 
+                const double daz = particles[i].az - particles[j].az; 
 
                 const double dr = sqrt(dx*dx + dy*dy + dz*dz);
                 const double alphasum = dax*dx+day*dy+daz*dz;
                 const double prefact2 = 2.*v*G /(dr*dr*dr);
-                const double prefact2j = prefact2*particles[j].m;
+                const double prefact1 = alphasum*prefact2/dr *3./dr;
+                const double prefact1i = prefact1*particles[j].m;
+                const double prefact2i = prefact2*particles[j].m;
+                particles[i].vx    += dx*prefact1i - dax*prefact2i;
+                particles[i].vy    += dy*prefact1i - day*prefact2i;
+                particles[i].vz    += dz*prefact1i - daz*prefact2i;
                 if (testparticle_type){
-                    const double prefact2i = prefact2*particles[i].m;
-                    particles[j].vx    -= dax*prefact2i;
-                    particles[j].vy    -= day*prefact2i;
-                    particles[j].vz    -= daz*prefact2i;
+                    const double prefact1j = prefact1*particles[i].m;
+                    const double prefact2j = prefact2*particles[i].m;
+                    particles[j].vx    += dax*prefact2j - dx*prefact1j;
+                    particles[j].vy    += day*prefact2j - dy*prefact1j;
+                    particles[j].vz    += daz*prefact2j - dz*prefact1j;
                 }
-                particles[i].vx    += dax*prefact2j;
-                particles[i].vy    += day*prefact2j;
-                particles[i].vz    += daz*prefact2j;
-                const double prefact1 = alphasum*prefact2/dr*3./dr;
-                const double prefact1j = prefact1*particles[j].m;
-                if (testparticle_type){
-                    const double prefact1i = prefact1*particles[i].m;
-                    particles[j].vx    += dx*prefact1i;
-                    particles[j].vy    += dy*prefact1i;
-                    particles[j].vz    += dz*prefact1i;
-                }
-                particles[i].vx    -= dx*prefact1j;
-                particles[i].vy    -= dy*prefact1j;
-                particles[i].vz    -= dz*prefact1j;
             }
         }
     }
@@ -246,6 +235,7 @@ static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* 
                 }
             }
             // Jerk calculation
+            // Interactions between central object and all other active particles
             for (int i=1; i<N_active; i++){
                 const double dx = particles[0].x - particles[i].x; 
                 const double dy = particles[0].y - particles[i].y; 
@@ -266,6 +256,33 @@ static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* 
                 particles[0].vx    += -dax*prefact2i + dx*prefact1i;
                 particles[0].vy    += -day*prefact2i + dy*prefact1i;
                 particles[0].vz    += -daz*prefact2i + dz*prefact1i;
+                particles[i].vx    += y*particles[i].ax + dax*prefact2j - dx*prefact1j;
+                particles[i].vy    += y*particles[i].ay + day*prefact2j - dy*prefact1j;
+                particles[i].vz    += y*particles[i].az + daz*prefact2j - dz*prefact1j;
+            }
+            // Interactions between central object and all test particles
+            for (int i=N_active; i<N; i++){
+                const double dx = particles[0].x - particles[i].x; 
+                const double dy = particles[0].y - particles[i].y; 
+                const double dz = particles[0].z - particles[i].z; 
+                
+                const double dax = particles[0].ax - particles[i].ax; 
+                const double day = particles[0].ay - particles[i].ay; 
+                const double daz = particles[0].az - particles[i].az; 
+
+                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                const double alphasum = dax*dx+day*dy+daz*dz;
+                const double prefact2 = 2.*v*G /(dr*dr*dr);
+                const double prefact2j = prefact2*particles[0].m;
+                const double prefact1 = alphasum*prefact2/dr *3./dr;
+                const double prefact1j = prefact1*particles[0].m;
+                if (testparticle_type){
+                    const double prefact2i = prefact2*particles[i].m;
+                    const double prefact1i = prefact1*particles[i].m;
+                    particles[0].vx    += -dax*prefact2i + dx*prefact1i;
+                    particles[0].vy    += -day*prefact2i + dy*prefact1i;
+                    particles[0].vz    += -daz*prefact2i + dz*prefact1i;
+                }
                 particles[i].vx    += y*particles[i].ax + dax*prefact2j - dx*prefact1j;
                 particles[i].vy    += y*particles[i].ay + day*prefact2j - dy*prefact1j;
                 particles[i].vz    += y*particles[i].az + daz*prefact2j - dz*prefact1j;
