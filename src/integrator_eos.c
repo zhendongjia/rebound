@@ -540,7 +540,7 @@ void reb_integrator_eos_part2(struct reb_simulation* const r){
             reb_integrator_eos_interaction_shell0(r, dt*2.*lf4_a, 0.);
             reb_integrator_eos_drift_shell0(r, dt*(0.5-lf4_a));
             reb_integrator_eos_interaction_shell0(r, dt*(1.-4.*lf4_a), 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(2.-lf4_a));
+            reb_integrator_eos_drift_shell0(r, dt*(0.5-lf4_a));
             reb_integrator_eos_interaction_shell0(r, dt*2.*lf4_a, 0.);
             break;
         case REB_EOS_LF6:

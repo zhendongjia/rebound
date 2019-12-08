@@ -454,7 +454,7 @@ enum REB_EOS_TYPE {
     REB_EOS_LF8 = 0x03,     // 8th order, seventeen funtion evaluations, see Blanes & Casa (2016), p91
     REB_EOS_LF4_2 = 0x04,   // generalized order (4,2), two force evaluations, McLachlan 1995
     REB_EOS_LF8_6_4= 0x05,  // generalized order (8,6,4), seven force evaluations
-    REB_EOS_PLF7_6_4= 0x06, // generalized order (7,6,4), seven force evaluations, pre- and post-processors
+    REB_EOS_PLF7_6_4= 0x06, // generalized order (7,6,4), three force evaluations, pre- and post-processors
     REB_EOS_PMLF4 = 0x07,   // 4th order, one modified force evaluation, pre- and post-processors, Blanes et al. (1999)
     REB_EOS_PMLF6 = 0x08,   // 6th order, three modified force evaluations, pre- and post-processors, Blanes et al. (1999)
 };
