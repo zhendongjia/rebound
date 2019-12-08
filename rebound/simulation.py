@@ -1872,6 +1872,31 @@ class reb_simulation_integrator_janus(Structure):
                 ]
 
 class reb_simulation_integrator_eos(Structure):
+    """
+    This class is an abstraction of the C-struct reb_simulation_integrator_eos.
+    It controls the behaviour of the Embedded Operator Splitting methods. See Rein (2019) 
+    for more details.
+    
+    :ivar int,string phi0      
+        Sets the Phi_0 operator splitting method
+    :ivar int,string phi1     
+        Sets the Phi_1 operator splitting method
+    :ivar int n     
+        Sets the number of substeps taken by Phi_1
+    :ivar int safe_mode  
+        By default safe_mode is on (1). Set to 0 (off) to combine
+        drift step at the beginning and end of the Phi0 integrator steps.
+
+    Example usage:
+    
+    >>> sim = rebound.Simulation()
+    >>> sim.integrator = "eos"
+    >>> sim.ri_eos.phi0 = "LF8_6_4"
+    >>> sim.ri_eos.phi1 = "LF8"
+    >>> sim.ri_eos.n = 1
+    >>> sim.ri_eos.safe_mode = 0
+
+    """
     @property
     def phi0(self):
         """
