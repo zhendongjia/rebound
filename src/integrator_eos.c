@@ -515,7 +515,9 @@ void reb_integrator_eos_part1(struct reb_simulation* r){
     if (r->var_config_N){
         reb_warning(r,"EOS does currently not support variational equations.");
     }
-    
+   
+    // Force calculation is handled by integrator internally for now. 
+    // This will change in the futue.  
     r->gravity = REB_GRAVITY_NONE;
 
 }
