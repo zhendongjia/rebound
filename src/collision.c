@@ -46,7 +46,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))    ///< Returns the maximum of a and b
 
 static void reb_tree_get_nearest_neighbour_in_cell(struct reb_simulation* const r, int* collisions_N, struct reb_ghostbox gb, struct reb_ghostbox gbunmod, int ri, double p1_r,  double* nearest_r2, struct reb_collision* collision_nearest, struct reb_treecell* c);
-static void reb_tree_check_for_overlapping_trajectories_in_cell(struct reb_simulation* const r, int* collisions_N, struct reb_ghostbox gb, struct reb_ghostbox gbunmod, int ri, double p1_r, struct reb_collision* collision_nearest, struct reb_treecell* c);
+static void reb_tree_check_for_overlapping_trajectories_in_cell(struct reb_simulation* const r, int* collisions_N, struct reb_ghostbox gb, struct reb_ghostbox gbunmod, int ri, double p1_r, double p1_r_plus_dtv, struct reb_collision* collision_nearest, struct reb_treecell* c);
 
 void reb_collision_search(struct reb_simulation* const r){
 	int N = r->N - r->N_var;
@@ -289,7 +289,7 @@ void reb_collision_search(struct reb_simulation* const r){
 				collision_nearest.p2 = -1;
 				double p1_r = p1.r;
                 // Add drift during last timestep
-                p1_r += r->dt*sqrt(p1.vx*p1.vx + p1.vy*p1.vy + p1.vz*p1.vz);
+                double p1_r_plus_dtv = p1_r + r->dt*sqrt(p1.vx*p1.vx + p1.vy*p1.vy + p1.vz*p1.vz);
 				// Loop over ghost boxes.
 				for (int gbx=-nghostxcol; gbx<=nghostxcol; gbx++){
 				for (int gby=-nghostycol; gby<=nghostycol; gby++){
@@ -307,7 +307,7 @@ void reb_collision_search(struct reb_simulation* const r){
 					for (int ri=0;ri<r->root_n;ri++){
 						struct reb_treecell* rootcell = r->tree_root[ri];
 						if (rootcell!=NULL){
-							reb_tree_check_for_overlapping_trajectories_in_cell(r, &collisions_N, gb, gbunmod,ri,p1_r,&collision_nearest,rootcell);
+							reb_tree_check_for_overlapping_trajectories_in_cell(r, &collisions_N, gb, gbunmod,ri,p1_r,p1_r_plus_dtv,&collision_nearest,rootcell);
 						}
 					}
 				}
@@ -497,85 +497,65 @@ static void reb_tree_get_nearest_neighbour_in_cell(struct reb_simulation* const 
 }
 
 
-static void reb_tree_check_for_overlapping_trajectories_in_cell(struct reb_simulation* const r, int* collisions_N, struct reb_ghostbox gb, struct reb_ghostbox gbunmod, int ri, double p1_r, struct reb_collision* collision_nearest, struct reb_treecell* c){
-	const struct reb_particle* const particles = r->particles;
-	if (c->pt>=0){ 	
-		// c is a leaf node
-		int condition 	= 1;
-#ifdef MPI
-		int isloc	= 1 ;
-		isloc = reb_communication_mpi_rootbox_is_local(r, ri);
-		if (isloc==1){
-#endif // MPI
-			/**
-			 * If this is a local cell, make sure particle is not colliding with itself.
-			 * If this is a remote cell, the particle number might be the same, even for 
-			 * different particles. 
-			 * TODO: This can probably be written in a cleaner way.
-			 */
-			condition = (c->pt != collision_nearest->p1);
-#ifdef MPI
-		}
-#endif // MPI
-		if (condition){
-			struct reb_particle p2;
-#ifdef MPI
-			if (isloc==1){
-#endif // MPI
-				p2 = particles[c->pt];
-#ifdef MPI
-			}else{
-				int root_n_per_node = r->root_n/r->mpi_num;
-				int proc_id = ri/root_n_per_node;
-				p2 = r->particles_recv[proc_id][c->pt];
-			}
-#endif // MPI
-
-			double dx = gb.shiftx - p2.x;
-			double dy = gb.shifty - p2.y;
-			double dz = gb.shiftz - p2.z;
-			double r2 = dx*dx+dy*dy+dz*dz;
-			// A closer neighbour has already been found 
-			double rp = p1_r+p2.r;
-			// reb_particles are not overlapping 
-			if (r2 > rp*rp) return;
-			double dvx = gb.shiftvx - p2.vx;
-			double dvy = gb.shiftvy - p2.vy;
-			double dvz = gb.shiftvz - p2.vz;
-			// reb_particles are not approaching each other
-			if (dvx*dx + dvy*dy + dvz*dz >0) return;
-			collision_nearest->ri = ri;
-			collision_nearest->p2 = c->pt;
-			collision_nearest->gb = gbunmod;
-			// Save collision in collisions array.
+static void reb_tree_check_for_overlapping_trajectories_in_cell(struct reb_simulation* const r, int* collisions_N, struct reb_ghostbox gb, struct reb_ghostbox gbunmod, int ri, double p1_r, double p1_r_plus_dtv, struct reb_collision* collision_nearest, struct reb_treecell* c){
+    const struct reb_particle* const particles = r->particles;
+    if (c->pt>=0){     
+        // c is a leaf node
+        if (c->pt != collision_nearest->p1){
+                        struct reb_particle p2 = particles[c->pt];
+                        double ax = gb.shiftx - p2.x; 
+                        double ay = gb.shifty - p2.y; 
+                        double az = gb.shiftz - p2.z; 
+                        double dx = (gb.shiftvx - p2.vx); 
+                        double dy = (gb.shiftvy - p2.vy); 
+                        double dz = (gb.shiftvz - p2.vz); 
+                        double dn2 = dx*dx + dy*dy + dz*dz;
+                        double sr2 = (p1_r + p2.r)*(p1_r + p2.r); 
+                        double a = dn2;
+                        double b = 2.*(ax*dx + ay*dy + az*dz);
+                        double ca = ax*ax + ay*ay + az*az - sr2;
+                        double s = sqrt(b*b-4.*a*ca);
+                        double t1 = (-b+s)/(2.*a);
+                        double t2 = (-b-s)/(2.*a);
+                        double tmin = MIN(t1,t2);
+                        // No relative motion. Should come up with more reasonable number to check against. 
+                        if (dn2<1e-30) return;
+                        // Check if a collision occured in the last timestep
+                        // - checks if first contact was in last timestep (ignore second contact to avoid double counting)
+                        // - only works for forward integrations
+                        if ( tmin<-r->dt_last_done || tmin>0. || isnan(tmin) ) return;
+            collision_nearest->ri = ri;
+            collision_nearest->p2 = c->pt;
+            collision_nearest->gb = gbunmod;
+            // Save collision in collisions array.
 #pragma omp critical
-			{
-				if (r->collisions_allocatedN<=(*collisions_N)){
-					// Init to 32 if no space has been allocated yet, otherwise double it.
-					r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
-					r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
-				}
-				r->collisions[(*collisions_N)] = *collision_nearest;
-				(*collisions_N)++;
-			}
-		}
-	}else{		
-		// c is not a leaf node
-		double dx = gb.shiftx - c->x;
-		double dy = gb.shifty - c->y;
-		double dz = gb.shiftz - c->z;
-		double r2 = dx*dx + dy*dy + dz*dz;
-		double rp  = p1_r + r->max_radius[1] + 0.86602540378443*c->w;
-		// Check if we need to decent into daughter cells
-		if (r2 < rp*rp ){
-			for (int o=0;o<8;o++){
-				struct reb_treecell* d = c->oct[o];
-				if (d!=NULL){
-					reb_tree_check_for_overlapping_trajectories_in_cell(r, collisions_N, gb,gbunmod,ri,p1_r,collision_nearest,d);
-				}
-			}
-		}
-	}
+            {
+                if (r->collisions_allocatedN<=(*collisions_N)){
+                    // Init to 32 if no space has been allocated yet, otherwise double it.
+                    r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
+                    r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
+                }
+                r->collisions[(*collisions_N)] = *collision_nearest;
+                (*collisions_N)++;
+            }
+        }
+    }else{        
+        // c is not a leaf node
+        double dx = gb.shiftx - c->x;
+        double dy = gb.shifty - c->y;
+        double dz = gb.shiftz - c->z;
+        double r2 = dx*dx + dy*dy + dz*dz;
+        double rp  = p1_r + r->max_radius[1] + 0.86602540378443*c->w;
+        // Check if we need to decent into daughter cells
+        if (r2 < rp*rp ){
+            for (int o=0;o<8;o++){
+                struct reb_treecell* d = c->oct[o];
+                if (d!=NULL){
+                    reb_tree_check_for_overlapping_trajectories_in_cell(r, collisions_N, gb,gbunmod,ri,p1_r,p1_r_plus_dtv,collision_nearest,d);
+                }
+            }
+        }
+    }
 }
 
 
