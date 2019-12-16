@@ -274,6 +274,7 @@ void reb_collision_search(struct reb_simulation* const r){
                 vmax2 = MAX(vmax2, p1.vx*p1.vx + p1.vy*p1.vy + p1.vz*p1.vz);
             }
             double maxdrift = r->dt*sqrt(vmax2);
+            //printf("r->boxsize=%f  maxdrif=%f\n",r->boxsize.x,maxdrift);
 			// Update and simplify tree. 
 			// Prepare particles for distribution to other nodes. 
 			reb_tree_update(r);          
@@ -532,7 +533,8 @@ static void reb_tree_check_for_overlapping_trajectories_in_cell(struct reb_simul
             if (t_closest/dt>=0. && t_closest/dt<=1.){
                 rmin2_ab = MIN(rmin2_ab, r3);
             }
-            if (rmin2_ab>p1_r + p2.r) return;
+            double rsum = p1_r + p2.r;
+            if (rmin2_ab>rsum*rsum) return;
             collision_nearest->ri = ri;
             collision_nearest->p2 = c->pt;
             collision_nearest->gb = gbunmod;
