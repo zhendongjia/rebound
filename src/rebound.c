@@ -378,6 +378,15 @@ void reb_reset_temporary_pointers(struct reb_simulation* const r){
     r->ri_janus.order = 6;
     r->ri_janus.scale_pos = 1e-16;
     r->ri_janus.scale_vel = 1e-16;
+    // ********** MERCURANA
+    r->ri_mercurana.allocatedN = 0;
+    r->ri_mercurana.map = NULL;
+    r->ri_mercurana.dcrit = NULL;
+    r->ri_mercurana.inshell = NULL;
+    r->ri_mercurana.shellN = NULL;
+    r->ri_mercurana.shellN_active = NULL;
+    r->ri_mercurana.jerk = NULL;
+    
 }
 
 int reb_reset_function_pointers(struct reb_simulation* const r){
@@ -578,6 +587,19 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_eos.phi1 = REB_EOS_LF;
     r->ri_eos.safe_mode = 1;
     r->ri_eos.is_synchronized = 1;
+    
+    // ********** MERCURANA
+    r->ri_mercurana.order = 2;
+    r->ri_mercurana.ordersubsteps = 2;
+    r->ri_mercurana.safe_mode = 1;
+    r->ri_mercurana.dt_frac = 0.1;
+    r->ri_mercurana.Nmaxshells = 10;
+    r->ri_mercurana.Nmaxshellused = 1;
+    r->ri_mercurana.Nstepspershell = 10;
+    r->ri_mercurana.recalculate_dcrit_this_timestep = 0;
+    r->ri_mercurana.is_synchronized = 1;
+    r->ri_mercurana.L = NULL;
+    r->ri_mercurana.dLdr = NULL;
 
     // Tree parameters. Will not be used unless gravity or collision search makes use of tree.
     r->tree_needs_update= 0;
