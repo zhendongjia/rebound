@@ -138,6 +138,17 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     const int N_active = rim->shellN_active[shell];
     unsigned int* map = rim->map[shell];
 
+    if (shell==0){ // for WH splitting
+        for (int i=0; i<N; i++){
+            int mi = map[i]; 
+            rim->inshell[mi] = 0;
+            rim->map[shell+1][i] = mi;
+        }
+        rim->shellN[shell+1] = N;
+        rim->shellN_active[shell+1] = N_active;
+        return;
+    }
+
     // Put all particles in current shell by default
     for (int i=0; i<N; i++){
         int mi = map[i]; 
@@ -236,7 +247,7 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
         dcrit_ii = r->ri_mercurana.dcrit[shell+1];
     }
     dcrit_i = r->ri_mercurana.dcrit[shell];
-    if (shell!=0){
+    if (shell>0){
         dcrit_o = r->ri_mercurana.dcrit[shell-1];
     }
 
@@ -257,20 +268,28 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
             const double dy = particles[mi].y - particles[mj].y;
             const double dz = particles[mi].z - particles[mj].z;
             const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+            if (shell==0 && (i==0 || j==0)){
+                // Planet star interactions are not in shell 0, but at least in shell 1
+                continue;
+            }
             const double dc_i = dcrit_i[mi]+dcrit_i[mj];
             double Lsum = 0.;
             double dc_o = 0;
-            if (dcrit_o){
-                dc_o = dcrit_o[mi]+dcrit_o[mj];
-                Lsum -= _L(r,dr,dc_i,dc_o);
-            }
-            double dc_ii = 0;
-            if (dcrit_ii){
-                dc_ii = dcrit_ii[mi]+dcrit_ii[mj];
-                Lsum += _L(r,dr,dc_ii,dc_i);
-            }else{
-                Lsum += 1; // Innermost
-            }
+           if (dcrit_o){
+                if (shell==1 && (i==0 || j==0)){
+                   // Do not subtract anything. Is part of planet/star interactions
+                }else{
+                   dc_o = dcrit_o[mi]+dcrit_o[mj];
+                   Lsum -= _L(r,dr,dc_i,dc_o);
+                }
+           }
+           double dc_ii = 0;
+           if (dcrit_ii){
+               dc_ii = dcrit_ii[mi]+dcrit_ii[mj];
+               Lsum += _L(r,dr,dc_ii,dc_i);
+           }else{
+               Lsum += 1; // Innermost
+           }
 
             const double prefact = -G*particles[mj].m*Lsum/(dr*dr*dr);
             particles[mi].ax    += prefact*dx;
