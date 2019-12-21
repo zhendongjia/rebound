@@ -1961,17 +1961,57 @@ class reb_simulation_integrator_mercurana(Structure):
     >>> sim.ri_mercurana.hillfac = 3.
 
     """
+    @property
+    def phi0(self):
+        """
+        Get or set the type of operator splitting type for phi0.
+        """
+        i = self._phi0
+        for name, _i in EOS_TYPES.items():
+            if i==_i:
+                return name
+        return i
+    @phi0.setter
+    def phi0(self, value):
+        if isinstance(value, int):
+            self._phi0 = value
+        elif isinstance(value, basestring):
+            value = value.lower().replace(" ", "").replace("(", "").replace(")", "")
+            if value in EOS_TYPES: 
+                self._phi0 = EOS_TYPES[value]
+            else:
+                raise ValueError("Warning. EOS type %s not found."%value)
+    @property
+    def phi1(self):
+        """
+        Get or set the type of operator splitting type for phi1.
+        """
+        i = self._phi1
+        for name, _i in EOS_TYPES.items():
+            if i==_i:
+                return name
+        return i
+    @phi1.setter
+    def phi1(self, value):
+        if isinstance(value, int):
+            self._phi1 = value
+        elif isinstance(value, basestring):
+            value = value.lower().replace(" ", "").replace("(", "").replace(")", "")
+            if value in EOS_TYPES: 
+                self._phi1 = EOS_TYPES[value]
+            else:
+                raise ValueError("Warning. EOS type %s not found."%value)
     _fields_ = [
                 ("L", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
                 ("dLdr", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
                 ("recalculate_dcrit_this_timestep", c_uint),
-                ("order", c_uint),
-                ("ordersubsteps", c_uint),
+                ("_phi0", c_uint),
+                ("_phi1", c_uint),
                 ("whsplitting", c_uint),
                 ("safe_mode", c_uint),
                 ("dt_frac", c_double),
                 ("Nmaxshells", c_uint),
-                ("Nstepspershell", c_uint),
+                ("n", c_uint),
                 ("_map", POINTER(c_uint)),
                 ("_inshell", POINTER(c_uint)),
                 ("_dcrit", POINTER(POINTER(c_double))),
