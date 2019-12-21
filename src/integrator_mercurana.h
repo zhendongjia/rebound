@@ -28,5 +28,4 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r);          ///< Int
 void reb_integrator_mercurana_part2(struct reb_simulation* r);          ///< Internal function used to call a specific integrator
 void reb_integrator_mercurana_synchronize(struct reb_simulation* r);    ///< Internal function used to call a specific integrator
 void reb_integrator_mercurana_reset(struct reb_simulation* r);          ///< Internal function used to call a specific integrator
-void reb_integrator_mercurana_inertial_to_dh(struct reb_simulation* r); ///< Internal in-place coordinate transformation
 #endif
