@@ -37,31 +37,31 @@
 #define MIN(a, b) ((a) > (b) ? (b) : (a))    ///< Returns the minimum of a and b
 #define MAX(a, b) ((a) > (b) ? (a) : (b))    ///< Returns the maximum of a and b
 
-static const double lf4_a = 0.675603595979828817023843904485;
+const double reb_eos_lf4_a = 0.675603595979828817023843904485;
 
-static const double lf6_a[5] = {0.1867, 0.5554970237124784, 0.1294669489134754, -0.843265623387734, 0.9432033015235604};
+const double reb_eos_lf6_a[5] = {0.1867, 0.5554970237124784, 0.1294669489134754, -0.843265623387734, 0.9432033015235604};
 
-static const double lf8_a[9] = {0.128865979381443, 0.581514087105251, -0.410175371469850, 0.1851469357165877, -0.4095523434208514, 0.1444059410800120, 0.2783355003936797, 0.3149566839162949, -0.6269948254051343979}; 
+const double reb_eos_lf8_a[9] = {0.128865979381443, 0.581514087105251, -0.410175371469850, 0.1851469357165877, -0.4095523434208514, 0.1444059410800120, 0.2783355003936797, 0.3149566839162949, -0.6269948254051343979}; 
 
-static const double lf4_2_a = 0.211324865405187117745425609749;
+const double reb_eos_lf4_2_a = 0.211324865405187117745425609749;
 
-static const double lf8_6_4_a[4] = {0.0711334264982231177779387300061549964174, 0.241153427956640098736487795326289649618, 0.521411761772814789212136078067994229991, -0.333698616227678005726562603400438876027};
-static const double lf8_6_4_b[4] = {0.183083687472197221961703757166430291072, 0.310782859898574869507522291054262796375, -0.0265646185119588006972121379164987592663, 0.0653961422823734184559721793911134363710};
+const double reb_eos_lf8_6_4_a[4] = {0.0711334264982231177779387300061549964174, 0.241153427956640098736487795326289649618, 0.521411761772814789212136078067994229991, -0.333698616227678005726562603400438876027};
+const double reb_eos_lf8_6_4_b[4] = {0.183083687472197221961703757166430291072, 0.310782859898574869507522291054262796375, -0.0265646185119588006972121379164987592663, 0.0653961422823734184559721793911134363710};
 
-static const double pmlf6_a[2] = {-0.0682610383918630,0.568261038391863038121699}; 
-static const double pmlf6_b[2] = {0.2621129352517028, 0.475774129496594366806050}; 
-static const double pmlf6_c[2] = {0., 0.0164011128160783}; 
-static const double pmlf6_z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.564398710666239478150885};
-static const double pmlf6_y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, -0.680252073928462652752103};
-static const double pmlf6_v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
+const double reb_eos_pmlf6_a[2] = {-0.0682610383918630,0.568261038391863038121699}; 
+const double reb_eos_pmlf6_b[2] = {0.2621129352517028, 0.475774129496594366806050}; 
+const double reb_eos_pmlf6_c[2] = {0., 0.0164011128160783}; 
+const double reb_eos_pmlf6_z[6] = { 0.07943288242455420, 0.02974829169467665, -0.7057074964815896, 0.3190423451260838, -0.2869147334299646, 0.564398710666239478150885};
+const double reb_eos_pmlf6_y[6] = {1.3599424487455264, -0.6505973747535132, -0.033542814598338416, -0.040129915275115030, 0.044579729809902803, -0.680252073928462652752103};
+const double reb_eos_pmlf6_v[6] = {-0.034841228074994859, 0.031675672097525204, -0.005661054677711889, 0.004262222269023640, 0.005, -0.005};
 
-static const double pmlf4_y[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624269298081};
-static const double pmlf4_z[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
+const double reb_eos_pmlf4_y[3] = {0.1859353996846055, 0.0731969797858114, -0.1576624269298081};
+const double reb_eos_pmlf4_z[3] = {0.8749306155955435, -0.237106680151022, -0.5363539829039128};
 
-static const double plf7_6_4_a[2] = {0.5600879810924619,-0.060087981092461900000};
-static const double plf7_6_4_b[2] = {1.5171479707207228, -2.0342959414414456000};
-static const double plf7_6_4_z[6] = {-0.3346222298730800, 1.0975679907321640, -1.0380887460967830, 0.6234776317921379, -1.1027532063031910, -0.0141183222088869};
-static const double plf7_6_4_y[6] = {-1.6218101180868010, 0.0061709468110142, 0.8348493592472594, -0.0511253369989315, 0.5633782670698199, -0.5};
+const double reb_eos_plf7_6_4_a[2] = {0.5600879810924619,-0.060087981092461900000};
+const double reb_eos_plf7_6_4_b[2] = {1.5171479707207228, -2.0342959414414456000};
+const double reb_eos_plf7_6_4_z[6] = {-0.3346222298730800, 1.0975679907321640, -1.0380887460967830, 0.6234776317921379, -1.1027532063031910, -0.0141183222088869};
+const double reb_eos_plf7_6_4_y[6] = {-1.6218101180868010, 0.0061709468110142, 0.8348493592472594, -0.0511253369989315, 0.5633782670698199, -0.5};
                 
 static inline void reb_integrator_eos_interaction_shell0(struct reb_simulation* r, double y, double v){
     // Calculate gravity using standard gravity routine
@@ -309,20 +309,20 @@ static inline void reb_integrator_eos_preprocessor(struct reb_simulation* const 
     switch(type){
         case REB_EOS_PMLF6:
             for (int i=0;i<6;i++){
-                drift_step(r, dt*pmlf6_z[i]);
-                interaction_step(r, dt*pmlf6_y[i], dt*dt*dt*pmlf6_v[i]);
+                drift_step(r, dt*reb_eos_pmlf6_z[i]);
+                interaction_step(r, dt*reb_eos_pmlf6_y[i], dt*dt*dt*reb_eos_pmlf6_v[i]);
             }
             break;
         case REB_EOS_PMLF4:
             for (int i=0;i<3;i++){
-                interaction_step(r, dt*pmlf4_y[i], 0.);
-                drift_step(r, dt*pmlf4_z[i]);
+                interaction_step(r, dt*reb_eos_pmlf4_y[i], 0.);
+                drift_step(r, dt*reb_eos_pmlf4_z[i]);
             }
             break;
         case REB_EOS_PLF7_6_4:
             for (int i=0;i<6;i++){
-                drift_step(r, dt*plf7_6_4_z[i]);
-                interaction_step(r, dt*plf7_6_4_y[i], 0.);
+                drift_step(r, dt*reb_eos_plf7_6_4_z[i]);
+                interaction_step(r, dt*reb_eos_plf7_6_4_y[i], 0.);
             }
             break;
         default:
@@ -333,20 +333,20 @@ static inline void reb_integrator_eos_postprocessor(struct reb_simulation* const
     switch(type){
         case REB_EOS_PMLF6:
             for (int i=5;i>=0;i--){
-                interaction_step(r, -dt*pmlf6_y[i], -dt*dt*dt*pmlf6_v[i]); 
-                drift_step(r, -dt*pmlf6_z[i]);
+                interaction_step(r, -dt*reb_eos_pmlf6_y[i], -dt*dt*dt*reb_eos_pmlf6_v[i]); 
+                drift_step(r, -dt*reb_eos_pmlf6_z[i]);
              }
             break;
         case REB_EOS_PMLF4:
             for (int i=2;i>=0;i--){
-                drift_step(r, -dt*pmlf4_z[i]);
-                interaction_step(r, -dt*pmlf4_y[i], 0.); 
+                drift_step(r, -dt*reb_eos_pmlf4_z[i]);
+                interaction_step(r, -dt*reb_eos_pmlf4_y[i], 0.); 
              }
             break;
         case REB_EOS_PLF7_6_4:
             for (int i=5;i>=0;i--){
-                interaction_step(r, -dt*plf7_6_4_y[i], 0.);
-                drift_step(r, -dt*plf7_6_4_z[i]);
+                interaction_step(r, -dt*reb_eos_plf7_6_4_y[i], 0.);
+                drift_step(r, -dt*reb_eos_plf7_6_4_z[i]);
             }
             break;
         default:
@@ -380,120 +380,120 @@ static void reb_integrator_eos_drift_shell0(struct reb_simulation* const r, doub
             reb_integrator_eos_drift_shell1(r, dt*0.5);
             break;
         case REB_EOS_LF4:
-            reb_integrator_eos_drift_shell1(r, dt*lf4_a);
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf4_a);
             for (int i=0;i<n;i++){
-                reb_integrator_eos_interaction_shell1(r, dt*2.*lf4_a, 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(0.5-lf4_a));
-                reb_integrator_eos_interaction_shell1(r, dt*(1.-4.*lf4_a), 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(0.5-lf4_a));
-                reb_integrator_eos_interaction_shell1(r, dt*2.*lf4_a, 0.);
+                reb_integrator_eos_interaction_shell1(r, dt*2.*reb_eos_lf4_a, 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(0.5-reb_eos_lf4_a));
+                reb_integrator_eos_interaction_shell1(r, dt*(1.-4.*reb_eos_lf4_a), 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(0.5-reb_eos_lf4_a));
+                reb_integrator_eos_interaction_shell1(r, dt*2.*reb_eos_lf4_a, 0.);
                 if (i<n-1){
-                    reb_integrator_eos_drift_shell1(r, dt*2.*lf4_a);
+                    reb_integrator_eos_drift_shell1(r, dt*2.*reb_eos_lf4_a);
                 }
             }
-            reb_integrator_eos_drift_shell1(r, dt*lf4_a);
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf4_a);
             break;
         case REB_EOS_LF6:
-            reb_integrator_eos_drift_shell1(r, dt*lf6_a[0]*0.5);
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf6_a[0]*0.5);
             for (int i=0;i<n;i++){
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[0], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf6_a[0]+lf6_a[1])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[1], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf6_a[1]+lf6_a[2])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[2], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf6_a[2]+lf6_a[3])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[3], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf6_a[3]+lf6_a[4])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[4], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf6_a[3]+lf6_a[4])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[3], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf6_a[2]+lf6_a[3])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[2], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf6_a[1]+lf6_a[2])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[1], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf6_a[0]+lf6_a[1])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf6_a[0], 0.);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[0], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf6_a[0]+reb_eos_lf6_a[1])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[1], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf6_a[1]+reb_eos_lf6_a[2])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[2], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf6_a[2]+reb_eos_lf6_a[3])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[3], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf6_a[3]+reb_eos_lf6_a[4])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[4], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf6_a[3]+reb_eos_lf6_a[4])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[3], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf6_a[2]+reb_eos_lf6_a[3])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[2], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf6_a[1]+reb_eos_lf6_a[2])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[1], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf6_a[0]+reb_eos_lf6_a[1])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf6_a[0], 0.);
                 if (i<n-1){
-                    reb_integrator_eos_drift_shell1(r, dt*lf6_a[0]);
+                    reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf6_a[0]);
                 }
             }
-            reb_integrator_eos_drift_shell1(r, dt*lf6_a[0]*0.5);
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf6_a[0]*0.5);
             break; 
         case REB_EOS_LF8: 
-            reb_integrator_eos_drift_shell1(r, dt*lf8_a[0]*0.5);
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf8_a[0]*0.5);
             for (int i=0;i<n;i++){
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[0], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[0]+lf8_a[1])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[1], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[1]+lf8_a[2])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[2], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[2]+lf8_a[3])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[3], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[3]+lf8_a[4])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[4], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[4]+lf8_a[5])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[5], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[5]+lf8_a[6])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[6], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[6]+lf8_a[7])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[7], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[7]+lf8_a[8])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[8], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[7]+lf8_a[8])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[7], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[6]+lf8_a[7])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[6], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[5]+lf8_a[6])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[5], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[4]+lf8_a[5])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[4], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[3]+lf8_a[4])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[3], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[2]+lf8_a[3])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[2], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[1]+lf8_a[2])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[1], 0.);
-                reb_integrator_eos_drift_shell1(r, dt*(lf8_a[0]+lf8_a[1])*0.5);
-                reb_integrator_eos_interaction_shell1(r, dt*lf8_a[0], 0.);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[0], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[0]+reb_eos_lf8_a[1])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[1], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[1]+reb_eos_lf8_a[2])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[2], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[2]+reb_eos_lf8_a[3])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[3], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[3]+reb_eos_lf8_a[4])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[4], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[4]+reb_eos_lf8_a[5])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[5], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[5]+reb_eos_lf8_a[6])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[6], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[6]+reb_eos_lf8_a[7])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[7], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[7]+reb_eos_lf8_a[8])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[8], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[7]+reb_eos_lf8_a[8])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[7], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[6]+reb_eos_lf8_a[7])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[6], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[5]+reb_eos_lf8_a[6])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[5], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[4]+reb_eos_lf8_a[5])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[4], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[3]+reb_eos_lf8_a[4])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[3], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[2]+reb_eos_lf8_a[3])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[2], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[1]+reb_eos_lf8_a[2])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[1], 0.);
+                reb_integrator_eos_drift_shell1(r, dt*(reb_eos_lf8_a[0]+reb_eos_lf8_a[1])*0.5);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_lf8_a[0], 0.);
                 if (i<n-1){
-                    reb_integrator_eos_drift_shell1(r, dt*lf8_a[0]);
+                    reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf8_a[0]);
                 }
             }
-            reb_integrator_eos_drift_shell1(r, dt*lf8_a[0]*0.5);
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf8_a[0]*0.5);
             break;
         case REB_EOS_LF4_2: 
-            reb_integrator_eos_drift_shell1(r, dt*lf4_2_a); 
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf4_2_a); 
             for (int i=0;i<n;i++){
                 reb_integrator_eos_interaction_shell1(r, dt*0.5, 0.); 
-                reb_integrator_eos_drift_shell1(r, dt*(1.-2.*lf4_2_a));
+                reb_integrator_eos_drift_shell1(r, dt*(1.-2.*reb_eos_lf4_2_a));
                 reb_integrator_eos_interaction_shell1(r, dt*0.5, 0.); 
                 if (i<n-1){
-                    reb_integrator_eos_drift_shell1(r, 2.*dt*lf4_2_a); 
+                    reb_integrator_eos_drift_shell1(r, 2.*dt*reb_eos_lf4_2_a); 
                 }
             }
-            reb_integrator_eos_drift_shell1(r, dt*lf4_2_a); 
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf4_2_a); 
             break;
         case REB_EOS_LF8_6_4:
-            reb_integrator_eos_drift_shell1(r, dt*lf8_6_4_a[0]);   
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf8_6_4_a[0]);   
             for (int i=0;i<n;i++){
-                reb_integrator_eos_interaction_shell1(r, lf8_6_4_b[0]*dt,0);
-                reb_integrator_eos_drift_shell1(r, lf8_6_4_a[1]*dt);   
-                reb_integrator_eos_interaction_shell1(r, lf8_6_4_b[1]*dt,0);
-                reb_integrator_eos_drift_shell1(r, lf8_6_4_a[2]*dt);   
-                reb_integrator_eos_interaction_shell1(r, lf8_6_4_b[2]*dt,0);
-                reb_integrator_eos_drift_shell1(r, lf8_6_4_a[3]*dt);   
-                reb_integrator_eos_interaction_shell1(r, lf8_6_4_b[3]*dt,0);
-                reb_integrator_eos_drift_shell1(r, lf8_6_4_a[3]*dt);   
-                reb_integrator_eos_interaction_shell1(r, lf8_6_4_b[2]*dt,0);
-                reb_integrator_eos_drift_shell1(r, lf8_6_4_a[2]*dt);   
-                reb_integrator_eos_interaction_shell1(r, lf8_6_4_b[1]*dt,0);
-                reb_integrator_eos_drift_shell1(r, lf8_6_4_a[1]*dt);   
-                reb_integrator_eos_interaction_shell1(r, lf8_6_4_b[0]*dt,0);
+                reb_integrator_eos_interaction_shell1(r, reb_eos_lf8_6_4_b[0]*dt,0);
+                reb_integrator_eos_drift_shell1(r, reb_eos_lf8_6_4_a[1]*dt);   
+                reb_integrator_eos_interaction_shell1(r, reb_eos_lf8_6_4_b[1]*dt,0);
+                reb_integrator_eos_drift_shell1(r, reb_eos_lf8_6_4_a[2]*dt);   
+                reb_integrator_eos_interaction_shell1(r, reb_eos_lf8_6_4_b[2]*dt,0);
+                reb_integrator_eos_drift_shell1(r, reb_eos_lf8_6_4_a[3]*dt);   
+                reb_integrator_eos_interaction_shell1(r, reb_eos_lf8_6_4_b[3]*dt,0);
+                reb_integrator_eos_drift_shell1(r, reb_eos_lf8_6_4_a[3]*dt);   
+                reb_integrator_eos_interaction_shell1(r, reb_eos_lf8_6_4_b[2]*dt,0);
+                reb_integrator_eos_drift_shell1(r, reb_eos_lf8_6_4_a[2]*dt);   
+                reb_integrator_eos_interaction_shell1(r, reb_eos_lf8_6_4_b[1]*dt,0);
+                reb_integrator_eos_drift_shell1(r, reb_eos_lf8_6_4_a[1]*dt);   
+                reb_integrator_eos_interaction_shell1(r, reb_eos_lf8_6_4_b[0]*dt,0);
                 if (i<n-1){
-                    reb_integrator_eos_drift_shell1(r, 2.*dt*lf8_6_4_a[0]);   
+                    reb_integrator_eos_drift_shell1(r, 2.*dt*reb_eos_lf8_6_4_a[0]);   
                 }
             }
-            reb_integrator_eos_drift_shell1(r, dt*lf8_6_4_a[0]);   
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_lf8_6_4_a[0]);   
             break;
         case REB_EOS_PMLF4:
             reb_integrator_eos_drift_shell1(r, dt*0.5); 
@@ -506,32 +506,32 @@ static void reb_integrator_eos_drift_shell0(struct reb_simulation* const r, doub
             reb_integrator_eos_drift_shell1(r, dt*0.5);
             break;
         case REB_EOS_PMLF6:
-            reb_integrator_eos_drift_shell1(r, dt*pmlf6_a[0]); 
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_pmlf6_a[0]); 
             for (int i=0;i<n;i++){
-                reb_integrator_eos_interaction_shell1(r, dt*pmlf6_b[0], dt*dt*dt*pmlf6_c[0]); 
-                reb_integrator_eos_drift_shell1(r, dt*pmlf6_a[1]);
-                reb_integrator_eos_interaction_shell1(r, dt*pmlf6_b[1], dt*dt*dt*pmlf6_c[1]); 
-                reb_integrator_eos_drift_shell1(r, dt*pmlf6_a[1]);
-                reb_integrator_eos_interaction_shell1(r, dt*pmlf6_b[0], dt*dt*dt*pmlf6_c[0]);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_pmlf6_b[0], dt*dt*dt*reb_eos_pmlf6_c[0]); 
+                reb_integrator_eos_drift_shell1(r, dt*reb_eos_pmlf6_a[1]);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_pmlf6_b[1], dt*dt*dt*reb_eos_pmlf6_c[1]); 
+                reb_integrator_eos_drift_shell1(r, dt*reb_eos_pmlf6_a[1]);
+                reb_integrator_eos_interaction_shell1(r, dt*reb_eos_pmlf6_b[0], dt*dt*dt*reb_eos_pmlf6_c[0]);
                 if (i<n-1){
-                    reb_integrator_eos_drift_shell1(r, 2.*dt*pmlf6_a[0]);
+                    reb_integrator_eos_drift_shell1(r, 2.*dt*reb_eos_pmlf6_a[0]);
                 }
             }
-            reb_integrator_eos_drift_shell1(r, dt*pmlf6_a[0]);
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_pmlf6_a[0]);
             break;
         case REB_EOS_PLF7_6_4:
-            reb_integrator_eos_drift_shell1(r, dt*plf7_6_4_a[0]);   
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_plf7_6_4_a[0]);   
             for (int i=0;i<n;i++){
-                reb_integrator_eos_interaction_shell1(r, plf7_6_4_b[0]*dt,0);
-                reb_integrator_eos_drift_shell1(r, plf7_6_4_a[1]*dt);   
-                reb_integrator_eos_interaction_shell1(r, plf7_6_4_b[1]*dt,0);
-                reb_integrator_eos_drift_shell1(r, plf7_6_4_a[1]*dt);   
-                reb_integrator_eos_interaction_shell1(r, plf7_6_4_b[0]*dt,0);
+                reb_integrator_eos_interaction_shell1(r, reb_eos_plf7_6_4_b[0]*dt,0);
+                reb_integrator_eos_drift_shell1(r, reb_eos_plf7_6_4_a[1]*dt);   
+                reb_integrator_eos_interaction_shell1(r, reb_eos_plf7_6_4_b[1]*dt,0);
+                reb_integrator_eos_drift_shell1(r, reb_eos_plf7_6_4_a[1]*dt);   
+                reb_integrator_eos_interaction_shell1(r, reb_eos_plf7_6_4_b[0]*dt,0);
                 if (i<n-1){
-                    reb_integrator_eos_drift_shell1(r, 2.*dt*plf7_6_4_a[0]);   
+                    reb_integrator_eos_drift_shell1(r, 2.*dt*reb_eos_plf7_6_4_a[0]);   
                 }
             }
-            reb_integrator_eos_drift_shell1(r, dt*plf7_6_4_a[0]);   
+            reb_integrator_eos_drift_shell1(r, dt*reb_eos_plf7_6_4_a[0]);   
             break;
     }
     reb_integrator_eos_postprocessor(r, dt, reos->phi1, reb_integrator_eos_drift_shell1, reb_integrator_eos_interaction_shell1);
@@ -563,110 +563,110 @@ void reb_integrator_eos_part2(struct reb_simulation* const r){
             reb_integrator_eos_interaction_shell0(r, dt, 0.);
             break;
         case REB_EOS_LF4:
-            reb_integrator_eos_drift_shell0(r, dt*lf4_a*dtfac);
-            reb_integrator_eos_interaction_shell0(r, dt*2.*lf4_a, 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(0.5-lf4_a));
-            reb_integrator_eos_interaction_shell0(r, dt*(1.-4.*lf4_a), 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(0.5-lf4_a));
-            reb_integrator_eos_interaction_shell0(r, dt*2.*lf4_a, 0.);
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf4_a*dtfac);
+            reb_integrator_eos_interaction_shell0(r, dt*2.*reb_eos_lf4_a, 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(0.5-reb_eos_lf4_a));
+            reb_integrator_eos_interaction_shell0(r, dt*(1.-4.*reb_eos_lf4_a), 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(0.5-reb_eos_lf4_a));
+            reb_integrator_eos_interaction_shell0(r, dt*2.*reb_eos_lf4_a, 0.);
             break;
         case REB_EOS_LF6:
-            reb_integrator_eos_drift_shell0(r, dt*lf6_a[0]*0.5*dtfac);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[0], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf6_a[0]+lf6_a[1])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[1], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf6_a[1]+lf6_a[2])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[2], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf6_a[2]+lf6_a[3])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[3], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf6_a[3]+lf6_a[4])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[4], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf6_a[3]+lf6_a[4])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[3], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf6_a[2]+lf6_a[3])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[2], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf6_a[1]+lf6_a[2])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[1], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf6_a[0]+lf6_a[1])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf6_a[0], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf6_a[0]*0.5*dtfac);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[0], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf6_a[0]+reb_eos_lf6_a[1])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[1], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf6_a[1]+reb_eos_lf6_a[2])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[2], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf6_a[2]+reb_eos_lf6_a[3])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[3], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf6_a[3]+reb_eos_lf6_a[4])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[4], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf6_a[3]+reb_eos_lf6_a[4])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[3], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf6_a[2]+reb_eos_lf6_a[3])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[2], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf6_a[1]+reb_eos_lf6_a[2])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[1], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf6_a[0]+reb_eos_lf6_a[1])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf6_a[0], 0.);
             break; 
         case REB_EOS_LF8: 
-            reb_integrator_eos_drift_shell0(r, dt*lf8_a[0]*0.5*dtfac);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[0], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[0]+lf8_a[1])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[1], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[1]+lf8_a[2])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[2], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[2]+lf8_a[3])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[3], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[3]+lf8_a[4])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[4], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[4]+lf8_a[5])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[5], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[5]+lf8_a[6])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[6], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[6]+lf8_a[7])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[7], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[7]+lf8_a[8])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[8], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[7]+lf8_a[8])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[7], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[6]+lf8_a[7])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[6], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[5]+lf8_a[6])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[5], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[4]+lf8_a[5])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[4], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[3]+lf8_a[4])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[3], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[2]+lf8_a[3])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[2], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[1]+lf8_a[2])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[1], 0.);
-            reb_integrator_eos_drift_shell0(r, dt*(lf8_a[0]+lf8_a[1])*0.5);
-            reb_integrator_eos_interaction_shell0(r, dt*lf8_a[0], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf8_a[0]*0.5*dtfac);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[0], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[0]+reb_eos_lf8_a[1])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[1], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[1]+reb_eos_lf8_a[2])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[2], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[2]+reb_eos_lf8_a[3])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[3], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[3]+reb_eos_lf8_a[4])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[4], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[4]+reb_eos_lf8_a[5])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[5], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[5]+reb_eos_lf8_a[6])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[6], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[6]+reb_eos_lf8_a[7])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[7], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[7]+reb_eos_lf8_a[8])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[8], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[7]+reb_eos_lf8_a[8])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[7], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[6]+reb_eos_lf8_a[7])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[6], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[5]+reb_eos_lf8_a[6])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[5], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[4]+reb_eos_lf8_a[5])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[4], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[3]+reb_eos_lf8_a[4])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[3], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[2]+reb_eos_lf8_a[3])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[2], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[1]+reb_eos_lf8_a[2])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[1], 0.);
+            reb_integrator_eos_drift_shell0(r, dt*(reb_eos_lf8_a[0]+reb_eos_lf8_a[1])*0.5);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_lf8_a[0], 0.);
             break;
         case REB_EOS_LF4_2: 
-            reb_integrator_eos_drift_shell0(r, dt*lf4_2_a*dtfac); 
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf4_2_a*dtfac); 
             reb_integrator_eos_interaction_shell0(r, dt*0.5, 0.); 
-            reb_integrator_eos_drift_shell0(r, dt*(1.-2.*lf4_2_a));
+            reb_integrator_eos_drift_shell0(r, dt*(1.-2.*reb_eos_lf4_2_a));
             reb_integrator_eos_interaction_shell0(r, dt*0.5, 0.); 
             break;
         case REB_EOS_LF8_6_4:
-            reb_integrator_eos_drift_shell0(r, dt*lf8_6_4_a[0]*dtfac);   
-            reb_integrator_eos_interaction_shell0(r, lf8_6_4_b[0]*dt,0);
-            reb_integrator_eos_drift_shell0(r, lf8_6_4_a[1]*dt);   
-            reb_integrator_eos_interaction_shell0(r, lf8_6_4_b[1]*dt,0);
-            reb_integrator_eos_drift_shell0(r, lf8_6_4_a[2]*dt);   
-            reb_integrator_eos_interaction_shell0(r, lf8_6_4_b[2]*dt,0);
-            reb_integrator_eos_drift_shell0(r, lf8_6_4_a[3]*dt);   
-            reb_integrator_eos_interaction_shell0(r, lf8_6_4_b[3]*dt,0);
-            reb_integrator_eos_drift_shell0(r, lf8_6_4_a[3]*dt);   
-            reb_integrator_eos_interaction_shell0(r, lf8_6_4_b[2]*dt,0);
-            reb_integrator_eos_drift_shell0(r, lf8_6_4_a[2]*dt);   
-            reb_integrator_eos_interaction_shell0(r, lf8_6_4_b[1]*dt,0);
-            reb_integrator_eos_drift_shell0(r, lf8_6_4_a[1]*dt);   
-            reb_integrator_eos_interaction_shell0(r, lf8_6_4_b[0]*dt,0);
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf8_6_4_a[0]*dtfac);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_lf8_6_4_b[0]*dt,0);
+            reb_integrator_eos_drift_shell0(r, reb_eos_lf8_6_4_a[1]*dt);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_lf8_6_4_b[1]*dt,0);
+            reb_integrator_eos_drift_shell0(r, reb_eos_lf8_6_4_a[2]*dt);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_lf8_6_4_b[2]*dt,0);
+            reb_integrator_eos_drift_shell0(r, reb_eos_lf8_6_4_a[3]*dt);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_lf8_6_4_b[3]*dt,0);
+            reb_integrator_eos_drift_shell0(r, reb_eos_lf8_6_4_a[3]*dt);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_lf8_6_4_b[2]*dt,0);
+            reb_integrator_eos_drift_shell0(r, reb_eos_lf8_6_4_a[2]*dt);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_lf8_6_4_b[1]*dt,0);
+            reb_integrator_eos_drift_shell0(r, reb_eos_lf8_6_4_a[1]*dt);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_lf8_6_4_b[0]*dt,0);
             break;
         case REB_EOS_PMLF4:
             reb_integrator_eos_drift_shell0(r, dt*0.5*dtfac); 
             reb_integrator_eos_interaction_shell0(r, dt, dt*dt*dt/24.); 
             break;
         case REB_EOS_PMLF6:
-            reb_integrator_eos_drift_shell0(r, dt*pmlf6_a[0]*dtfac); 
-            reb_integrator_eos_interaction_shell0(r, dt*pmlf6_b[0], dt*dt*dt*pmlf6_c[0]); 
-            reb_integrator_eos_drift_shell0(r, dt*pmlf6_a[1]);
-            reb_integrator_eos_interaction_shell0(r, dt*pmlf6_b[1], dt*dt*dt*pmlf6_c[1]); 
-            reb_integrator_eos_drift_shell0(r, dt*pmlf6_a[1]);
-            reb_integrator_eos_interaction_shell0(r, dt*pmlf6_b[0], dt*dt*dt*pmlf6_c[0]);
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_pmlf6_a[0]*dtfac); 
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_pmlf6_b[0], dt*dt*dt*reb_eos_pmlf6_c[0]); 
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_pmlf6_a[1]);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_pmlf6_b[1], dt*dt*dt*reb_eos_pmlf6_c[1]); 
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_pmlf6_a[1]);
+            reb_integrator_eos_interaction_shell0(r, dt*reb_eos_pmlf6_b[0], dt*dt*dt*reb_eos_pmlf6_c[0]);
             break;
         case REB_EOS_PLF7_6_4:
-            reb_integrator_eos_drift_shell0(r, dt*plf7_6_4_a[0]*dtfac);   
-            reb_integrator_eos_interaction_shell0(r, plf7_6_4_b[0]*dt,0);
-            reb_integrator_eos_drift_shell0(r, plf7_6_4_a[1]*dt);   
-            reb_integrator_eos_interaction_shell0(r, plf7_6_4_b[1]*dt,0);
-            reb_integrator_eos_drift_shell0(r, plf7_6_4_a[1]*dt);   
-            reb_integrator_eos_interaction_shell0(r, plf7_6_4_b[0]*dt,0);
+            reb_integrator_eos_drift_shell0(r, dt*reb_eos_plf7_6_4_a[0]*dtfac);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_plf7_6_4_b[0]*dt,0);
+            reb_integrator_eos_drift_shell0(r, reb_eos_plf7_6_4_a[1]*dt);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_plf7_6_4_b[1]*dt,0);
+            reb_integrator_eos_drift_shell0(r, reb_eos_plf7_6_4_a[1]*dt);   
+            reb_integrator_eos_interaction_shell0(r, reb_eos_plf7_6_4_b[0]*dt,0);
             break;
     }
 
@@ -697,25 +697,25 @@ void reb_integrator_eos_synchronize(struct reb_simulation* r){
                 reb_integrator_eos_drift_shell0(r, dt*0.5); 
                 break;
             case REB_EOS_PMLF6:
-                reb_integrator_eos_drift_shell0(r, dt*pmlf6_a[0]); 
+                reb_integrator_eos_drift_shell0(r, dt*reb_eos_pmlf6_a[0]); 
                 break;
             case REB_EOS_LF4:
-                reb_integrator_eos_drift_shell0(r, dt*lf4_a);
+                reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf4_a);
                 break;
             case REB_EOS_LF4_2:
-                reb_integrator_eos_drift_shell0(r, dt*lf4_2_a); 
+                reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf4_2_a); 
                 break;
             case REB_EOS_PLF7_6_4:
-                reb_integrator_eos_drift_shell0(r, dt*plf7_6_4_a[0]);   
+                reb_integrator_eos_drift_shell0(r, dt*reb_eos_plf7_6_4_a[0]);   
                 break;
             case REB_EOS_LF8_6_4:
-                reb_integrator_eos_drift_shell0(r, dt*lf8_6_4_a[0]);   
+                reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf8_6_4_a[0]);   
                 break;
             case REB_EOS_LF6:
-                reb_integrator_eos_drift_shell0(r, dt*lf6_a[0]*0.5);
+                reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf6_a[0]*0.5);
                 break;
             case REB_EOS_LF8: 
-                reb_integrator_eos_drift_shell0(r, dt*lf8_a[0]*0.5);
+                reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf8_a[0]*0.5);
                 break;
         }
         reb_integrator_eos_postprocessor(r, r->dt, reos->phi0, reb_integrator_eos_drift_shell0, reb_integrator_eos_interaction_shell0);

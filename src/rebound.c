@@ -589,14 +589,14 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_eos.is_synchronized = 1;
     
     // ********** MERCURANA
-    r->ri_mercurana.order = 2;
-    r->ri_mercurana.ordersubsteps = 2;
+    r->ri_mercurana.phi0 = REB_EOS_LF;
+    r->ri_mercurana.phi1 = REB_EOS_LF;
+    r->ri_mercurana.n = 10;
     r->ri_mercurana.whsplitting = 1;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.dt_frac = 0.1;
     r->ri_mercurana.Nmaxshells = 10;
     r->ri_mercurana.Nmaxshellused = 1;
-    r->ri_mercurana.Nstepspershell = 10;
     r->ri_mercurana.recalculate_dcrit_this_timestep = 0;
     r->ri_mercurana.is_synchronized = 1;
     r->ri_mercurana.L = NULL;

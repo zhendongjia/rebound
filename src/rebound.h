@@ -505,13 +505,13 @@ struct reb_simulation_integrator_mercurana {
      * must be taken to synchronize and recalculate coordinates when needed.
      */
 
-    unsigned int order;
-    unsigned int ordersubsteps;
+    enum REB_EOS_TYPE phi0;         ///< Outer opperator splitting scheme
+    enum REB_EOS_TYPE phi1;         ///< Inner opperator splitting scheme
     unsigned int whsplitting;
     unsigned int safe_mode;
     double dt_frac; 
     unsigned int Nmaxshells;
-    unsigned int Nstepspershell;        
+    unsigned int n;                 ///
     unsigned int** map;  // from shell to global       
     unsigned int* inshell;  // from global to shell
     double** dcrit;       

@@ -28,4 +28,31 @@ void reb_integrator_eos_part1(struct reb_simulation* r);          ///< Internal 
 void reb_integrator_eos_part2(struct reb_simulation* r);          ///< Internal function used to call a specific integrator
 void reb_integrator_eos_synchronize(struct reb_simulation* r);    ///< Internal function used to call a specific integrator
 void reb_integrator_eos_reset(struct reb_simulation* r);          ///< Internal function used to call a specific integrator
+
+const double reb_eos_lf4_a;
+
+const double reb_eos_lf6_a[5];
+
+const double reb_eos_lf8_a[9];
+
+const double reb_eos_lf4_2_a;
+
+const double reb_eos_lf8_6_4_a[4];
+const double reb_eos_lf8_6_4_b[4];
+
+const double reb_eos_pmlf6_a[2];
+const double reb_eos_pmlf6_b[2];
+const double reb_eos_pmlf6_c[2];
+const double reb_eos_pmlf6_z[6];
+const double reb_eos_pmlf6_y[6];
+const double reb_eos_pmlf6_v[6];
+
+const double reb_eos_pmlf4_y[3];
+const double reb_eos_pmlf4_z[3];
+
+const double reb_eos_plf7_6_4_a[2];
+const double reb_eos_plf7_6_4_b[2];
+const double reb_eos_plf7_6_4_z[6];
+const double reb_eos_plf7_6_4_y[6];
+
 #endif
