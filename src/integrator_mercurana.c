@@ -227,9 +227,9 @@ static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, 
     const int testparticle_type   = r->testparticle_type;
     const double G = r->G;
     unsigned int* map = rim->map[shell];
-    const double* dcrit_i = NULL;
-    const double* dcrit_c = NULL;
-    const double* dcrit_o = NULL;
+    const double* dcrit_i = NULL; // critical radius of inner shell
+    const double* dcrit_c = NULL; // critical radius of current shell
+    const double* dcrit_o = NULL; // critical radius of outer shell
     if (shell<rim->Nmaxshells-1){
         dcrit_i = r->ri_mercurana.dcrit[shell+1];
     }
