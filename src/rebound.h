@@ -507,6 +507,7 @@ struct reb_simulation_integrator_mercurana {
 
     unsigned int order;
     unsigned int ordersubsteps;
+    unsigned int whsplitting;
     unsigned int safe_mode;
     double dt_frac; 
     unsigned int Nmaxshells;

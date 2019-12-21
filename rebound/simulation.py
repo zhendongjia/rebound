@@ -1967,6 +1967,7 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("recalculate_dcrit_this_timestep", c_uint),
                 ("order", c_uint),
                 ("ordersubsteps", c_uint),
+                ("whsplitting", c_uint),
                 ("safe_mode", c_uint),
                 ("dt_frac", c_double),
                 ("Nmaxshells", c_uint),

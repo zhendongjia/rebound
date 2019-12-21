@@ -138,7 +138,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     const int N_active = rim->shellN_active[shell];
     unsigned int* map = rim->map[shell];
 
-    if (shell==0){ // for WH splitting
+    if (shell==0 && rim->whsplitting){ // for WH splitting
         for (int i=0; i<N; i++){
             int mi = map[i]; 
             rim->inshell[mi] = 0;
@@ -268,7 +268,7 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
             const double dy = particles[mi].y - particles[mj].y;
             const double dz = particles[mi].z - particles[mj].z;
             const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-            if (shell==0 && (i==0 || j==0)){
+            if (rim->whsplitting && shell==0 && (i==0 || j==0)){
                 // Planet star interactions are not in shell 0, but at least in shell 1
                 continue;
             }
@@ -276,11 +276,10 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
             double Lsum = 0.;
             double dc_o = 0;
            if (dcrit_o){
-                if (shell==1 && (i==0 || j==0)){
-                   // Do not subtract anything. Is part of planet/star interactions
-                }else{
-                   dc_o = dcrit_o[mi]+dcrit_o[mj];
-                   Lsum -= _L(r,dr,dc_i,dc_o);
+                if ((!rim->whsplitting) || shell!=1 || (i!=0 && j!=0)){
+                    // Do not subtract anything for planet/star interactions in shell 1
+                    dc_o = dcrit_o[mi]+dcrit_o[mj];
+                    Lsum -= _L(r,dr,dc_i,dc_o);
                 }
            }
            double dc_ii = 0;
@@ -665,6 +664,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     
     r->ri_mercurana.order = 2;
     r->ri_mercurana.ordersubsteps = 2;
+    r->ri_mercurana.whsplitting = 1;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.dt_frac = 0.1;
     r->ri_mercurana.Nmaxshells = 10;

@@ -591,6 +591,7 @@ void reb_init_simulation(struct reb_simulation* r){
     // ********** MERCURANA
     r->ri_mercurana.order = 2;
     r->ri_mercurana.ordersubsteps = 2;
+    r->ri_mercurana.whsplitting = 1;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.dt_frac = 0.1;
     r->ri_mercurana.Nmaxshells = 10;
