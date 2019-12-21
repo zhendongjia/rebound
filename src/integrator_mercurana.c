@@ -255,76 +255,88 @@ void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double 
     double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.dLdr;
     // Normal force calculation 
     for (int i=0; i<N; i++){
-        if (reb_sigint) return;
         int mi = map[i];
         particles[mi].ax = 0; 
         particles[mi].ay = 0; 
         particles[mi].az = 0; 
+    }
+    int starti = 0;
+    if (rim->whsplitting && shell==0){
+        // Planet star interactions are not in shell 0, but at least in shell 1
+        starti = 1;
+    }
+
+    for (int i=starti; i<N_active; i++){
         if (reb_sigint) return;
-        for (int j=0; j<N_active; j++){
+        int mi = map[i];
+        for (int j=i+1; j<N_active; j++){
             int mj = map[j];
-            if (mi==mj) continue;
             const double dx = particles[mi].x - particles[mj].x;
             const double dy = particles[mi].y - particles[mj].y;
             const double dz = particles[mi].z - particles[mj].z;
             const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-            if (rim->whsplitting && shell==0 && (i==0 || j==0)){
-                // Planet star interactions are not in shell 0, but at least in shell 1
-                continue;
-            }
             const double dc_i = dcrit_i[mi]+dcrit_i[mj];
             double Lsum = 0.;
             double dc_o = 0;
-           if (dcrit_o){
-                if ((!rim->whsplitting) || shell!=1 || (i!=0 && j!=0)){
-                    // Do not subtract anything for planet/star interactions in shell 1
-                    dc_o = dcrit_o[mi]+dcrit_o[mj];
-                    Lsum -= _L(r,dr,dc_i,dc_o);
-                }
-           }
-           double dc_ii = 0;
-           if (dcrit_ii){
-               dc_ii = dcrit_ii[mi]+dcrit_ii[mj];
-               Lsum += _L(r,dr,dc_ii,dc_i);
-           }else{
-               Lsum += 1; // Innermost
-           }
+            if (dcrit_o && ((!rim->whsplitting) || shell!=1 || i!=0) ){
+                // Do not subtract anything for planet/star interactions in shell 1
+                dc_o = dcrit_o[mi]+dcrit_o[mj];
+                Lsum -= _L(r,dr,dc_i,dc_o);
+            }
+            double dc_ii = 0;
+            if (dcrit_ii){
+                dc_ii = dcrit_ii[mi]+dcrit_ii[mj];
+                Lsum += _L(r,dr,dc_ii,dc_i);
+            }else{
+                Lsum += 1; // Innermost
+            }
 
-            const double prefact = -G*particles[mj].m*Lsum/(dr*dr*dr);
-            particles[mi].ax    += prefact*dx;
-            particles[mi].ay    += prefact*dy;
-            particles[mi].az    += prefact*dz;
+            const double prefact = G*Lsum/(dr*dr*dr);
+            const double prefactj = -prefact*particles[mj].m;
+            const double prefacti = prefact*particles[mi].m;
+            particles[mi].ax    += prefactj*dx;
+            particles[mi].ay    += prefactj*dy;
+            particles[mi].az    += prefactj*dz;
+            particles[mj].ax    += prefacti*dx;
+            particles[mj].ay    += prefacti*dy;
+            particles[mj].az    += prefacti*dz;
         }
     }
-    if (testparticle_type){
-        for (int i=0; i<N_active; i++){
-            if (reb_sigint) return;
-            int mi = map[i];
-            for (int j=N_active; j<N; j++){
-                int mj = map[j];
-                const double dx = particles[mi].x - particles[mj].x;
-                const double dy = particles[mi].y - particles[mj].y;
-                const double dz = particles[mi].z - particles[mj].z;
-                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                const double dc_i = dcrit_i[mi]+dcrit_i[mj];
-                double Lsum = 0.;
-                double dc_o = 0;
-                if (dcrit_o){
-                    dc_o = dcrit_o[mi]+dcrit_o[mj];
-                    Lsum -= _L(r,dr,dc_i,dc_o);
-                }
-                double dc_ii = 0;
-                if (dcrit_ii){
-                    dc_ii = dcrit_ii[mi]+dcrit_ii[mj];
-                    Lsum += _L(r,dr,dc_ii,dc_i);
-                }else{
-                    Lsum += 1; // Innermost
-                }
+    for (int i=N_active; i<N; i++){
+        if (reb_sigint) return;
+        int mi = map[i];
+        for (int j=starti; j<N_active; j++){
+            int mj = map[j];
+            const double dx = particles[mi].x - particles[mj].x;
+            const double dy = particles[mi].y - particles[mj].y;
+            const double dz = particles[mi].z - particles[mj].z;
+            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+            const double dc_i = dcrit_i[mi]+dcrit_i[mj];
+            double Lsum = 0.;
+            double dc_o = 0;
+            if (dcrit_o && ((!rim->whsplitting) || shell!=1 || j!=0) ){
+                // Do not subtract anything for planet/star interactions in shell 1
+                dc_o = dcrit_o[mi]+dcrit_o[mj];
+                Lsum -= _L(r,dr,dc_i,dc_o);
+            }
+            double dc_ii = 0;
+            if (dcrit_ii){
+                dc_ii = dcrit_ii[mi]+dcrit_ii[mj];
+                Lsum += _L(r,dr,dc_ii,dc_i);
+            }else{
+                Lsum += 1; // Innermost
+            }
 
-                const double prefact = -G*particles[mj].m*Lsum/(dr*dr*dr);
-                particles[mi].ax    += prefact*dx;
-                particles[mi].ay    += prefact*dy;
-                particles[mi].az    += prefact*dz;
+            const double prefact = G*Lsum/(dr*dr*dr);
+            const double prefactj = -prefact*particles[mj].m;
+            particles[mi].ax    += prefactj*dx;
+            particles[mi].ay    += prefactj*dy;
+            particles[mi].az    += prefactj*dz;
+            if (testparticle_type){
+                const double prefacti = prefact*particles[mi].m;
+                particles[mj].ax    += prefacti*dx;
+                particles[mj].ay    += prefacti*dy;
+                particles[mj].az    += prefacti*dz;
             }
         }
     }
