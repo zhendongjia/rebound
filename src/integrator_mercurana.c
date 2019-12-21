@@ -125,7 +125,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     const int N_active = rim->shellN_active[shell];
     unsigned int* map = rim->map[shell];
 
-    if (shell==0 && rim->whsplitting){ // for WH splitting
+    if (rim->Nmaxshells>1 && shell==0 && rim->whsplitting){ // for WH splitting
         for (int i=0; i<N; i++){
             int mi = map[i]; 
             rim->inshell[mi] = 0;
@@ -630,8 +630,11 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     if (r->var_config_N){
         reb_warning(r,"Mercurana does not work with variational equations.");
     }
-    
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    if (rim->Nmaxshells<=0){
+        reb_warning(r,"Nmaxshells needs to be larger than 0.");
+    }
+    
     const int N = r->N;
     
     if (rim->allocatedN<N){
