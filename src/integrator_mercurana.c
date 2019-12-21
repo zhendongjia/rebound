@@ -90,7 +90,7 @@ static double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation
     }
 }
 
-void reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_particle p2, double dt, double* rmin2_ab, double* rmin2_abc){ 
+static double reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_particle p2, double dt){ 
     double dts = copysign(1.,dt); 
     dt = fabs(dt);
     const double dx1 = p1.x - p2.x; // distance at beginning
@@ -110,12 +110,11 @@ void reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_particle p2,
     const double dz3 = dz1+t_closest*dvz1;
     const double r3 = (dx3*dx3 + dy3*dy3 + dz3*dz3);
 
-    *rmin2_ab = MIN(r1,r2);
+    double rmin2 = MIN(r1,r2);
     if (t_closest/dt>=0. && t_closest/dt<=1.){
-        *rmin2_abc = MIN(*rmin2_ab, r3);
-    }else{
-        *rmin2_abc = *rmin2_ab;
+        rmin2 = MIN(rmin2, r3);
     }
+    return rmin2;
 }
 
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt, int shell){
@@ -158,10 +157,9 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         for (int j=0; j<N; j++){
             int mj = map[j]; 
             if (i==j) continue;
-            double rmin2_ab, rmin2_abc;
-            reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
+            double rmin2 = reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt);
             double dcritsum = dcrit[mi]+dcrit[mj];
-            if (rmin2_abc< dcritsum*dcritsum){ 
+            if (rmin2< dcritsum*dcritsum){ 
                 // j particle will be added later (active particles need to be in array first)
                 rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
@@ -176,10 +174,9 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         int mi = map[i]; 
         for (int j=0; j<N_active; j++){
             int mj = map[j]; 
-            double rmin2_ab, rmin2_abc;
-            reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt,&rmin2_ab,&rmin2_abc);
+            double rmin2 = reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt);
             double dcritsum = dcrit[mi]+dcrit[mj];
-            if (rmin2_abc< dcritsum*dcritsum){ 
+            if (rmin2< dcritsum*dcritsum){ 
                 rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
