@@ -222,234 +222,19 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
 static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int shell){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     const int N = rim->shellN[shell];
-    const int N_active = rim->shellN_active[shell];
     struct reb_particle* const particles = r->particles;
-    const int testparticle_type   = r->testparticle_type;
-    const double G = r->G;
     unsigned int* map = rim->map[shell];
-    const double* dcrit_i = NULL; // critical radius of inner shell
-    const double* dcrit_c = NULL; // critical radius of current shell
-    const double* dcrit_o = NULL; // critical radius of outer shell
-    if (shell<rim->Nmaxshells-1){
-        dcrit_i = r->ri_mercurana.dcrit[shell+1];
+    r->gravity = REB_GRAVITY_MERCURANA; // needed here again for SimulationArchive
+    rim->current_shell = shell;
+    reb_update_acceleration(r);
+    if (v!=0.){
+        reb_calculate_and_apply_jerk(r,v);
     }
-    dcrit_c = r->ri_mercurana.dcrit[shell];
-    if (shell>0){
-        dcrit_o = r->ri_mercurana.dcrit[shell-1];
-    }
-
-    double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
-    double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.dLdr;
-    // Normal force calculation 
-    for (int i=0; i<N; i++){
-        int mi = map[i];
-        particles[mi].ax = 0; 
-        particles[mi].ay = 0; 
-        particles[mi].az = 0; 
-    }
-    int starti = 0;
-    if (rim->whsplitting && shell==0){
-        // Planet star interactions are not in shell 0, but at least in shell 1
-        starti = 1;
-    }
-
-    for (int i=starti; i<N_active; i++){
-        if (reb_sigint) return;
+    for (int i=0;i<N;i++){ // Apply acceleration. Jerk already applied.
         const int mi = map[i];
-        for (int j=i+1; j<N_active; j++){
-            const int mj = map[j];
-            const double dx = particles[mi].x - particles[mj].x;
-            const double dy = particles[mi].y - particles[mj].y;
-            const double dz = particles[mi].z - particles[mj].z;
-            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-            const double dc_c = dcrit_c[mi]+dcrit_c[mj];
-            double Lsum = 0.;
-            double dc_o = 0;
-            if (dcrit_o && ((!rim->whsplitting) || shell!=1 || i!=0) ){
-                // Do not subtract anything for planet/star interactions in shell 1
-                dc_o = dcrit_o[mi]+dcrit_o[mj];
-                Lsum -= _L(r,dr,dc_c,dc_o);
-            }
-            double dc_i = 0;
-            if (dcrit_i){
-                dc_i = dcrit_i[mi]+dcrit_i[mj];
-                Lsum += _L(r,dr,dc_i,dc_c);
-            }else{
-                Lsum += 1; // Innermost
-            }
-
-            const double prefact = G*Lsum/(dr*dr*dr);
-            const double prefactj = -prefact*particles[mj].m;
-            const double prefacti = prefact*particles[mi].m;
-            particles[mi].ax    += prefactj*dx;
-            particles[mi].ay    += prefactj*dy;
-            particles[mi].az    += prefactj*dz;
-            particles[mj].ax    += prefacti*dx;
-            particles[mj].ay    += prefacti*dy;
-            particles[mj].az    += prefacti*dz;
-        }
-    }
-    for (int i=N_active; i<N; i++){
-        if (reb_sigint) return;
-        const int mi = map[i];
-        for (int j=starti; j<N_active; j++){
-            const int mj = map[j];
-            const double dx = particles[mi].x - particles[mj].x;
-            const double dy = particles[mi].y - particles[mj].y;
-            const double dz = particles[mi].z - particles[mj].z;
-            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-            const double dc_c = dcrit_c[mi]+dcrit_c[mj];
-            double Lsum = 0.;
-            double dc_o = 0;
-            if (dcrit_o && ((!rim->whsplitting) || shell!=1 || j!=0) ){
-                // Do not subtract anything for planet/star interactions in shell 1
-                dc_o = dcrit_o[mi]+dcrit_o[mj];
-                Lsum -= _L(r,dr,dc_c,dc_o);
-            }
-            double dc_i = 0;
-            if (dcrit_i){
-                dc_i = dcrit_i[mi]+dcrit_i[mj];
-                Lsum += _L(r,dr,dc_i,dc_c);
-            }else{
-                Lsum += 1; // Innermost
-            }
-
-            const double prefact = G*Lsum/(dr*dr*dr);
-            const double prefactj = -prefact*particles[mj].m;
-            particles[mi].ax    += prefactj*dx;
-            particles[mi].ay    += prefactj*dy;
-            particles[mi].az    += prefactj*dz;
-            if (testparticle_type){
-                const double prefacti = prefact*particles[mi].m;
-                particles[mj].ax    += prefacti*dx;
-                particles[mj].ay    += prefacti*dy;
-                particles[mj].az    += prefacti*dz;
-            }
-        }
-    }
-    // Jerk calculation
-    if (v!=0.){ // is jerk even used?
-        struct reb_particle* jerk = rim->jerk; // temorary storage for jerk  
-        for (int j=0; j<N; j++){
-            jerk[j].ax = 0; 
-            jerk[j].ay = 0; 
-            jerk[j].az = 0; 
-        }
-        for (int i=starti; i<N_active; i++){
-            const int mi = map[i];
-            if (reb_sigint) return;
-            for (int j=i+1; j<N_active; j++){
-                const int mj = map[j];
-                const double dx = particles[mj].x - particles[mi].x; 
-                const double dy = particles[mj].y - particles[mi].y; 
-                const double dz = particles[mj].z - particles[mi].z; 
-                
-                const double dax = particles[mj].ax - particles[mi].ax; 
-                const double day = particles[mj].ay - particles[mi].ay; 
-                const double daz = particles[mj].az - particles[mi].az; 
-
-                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                const double dc_c = dcrit_c[mi]+dcrit_c[mj];
-                double Lsum = 0.;
-                double dLdrsum = 0.;
-                if (dcrit_o && ((!rim->whsplitting) || shell!=1 || i!=0) ){
-                    double dc_o = dcrit_o[mi]+dcrit_o[mj];
-                    Lsum    -=    _L(r,dr,dc_c,dc_o);
-                    dLdrsum -= _dLdr(r,dr,dc_c,dc_o);
-                }
-                if (dcrit_i){
-                    double dc_i = dcrit_i[mi]+dcrit_i[mj];
-                    Lsum    +=    _L(r,dr,dc_i,dc_c);
-                    dLdrsum += _dLdr(r,dr,dc_i,dc_c);
-                }else{
-                    Lsum += 1; // Innermost
-                }
-                const double alphasum = dax*dx+day*dy+daz*dz;
-                const double prefact2 = 2.*G /(dr*dr*dr);
-                const double prefact2i = Lsum*prefact2*particles[mi].m;
-                const double prefact2j = Lsum*prefact2*particles[mj].m;
-                jerk[j].ax    -= dax*prefact2i;
-                jerk[j].ay    -= day*prefact2i;
-                jerk[j].az    -= daz*prefact2i;
-                jerk[i].ax    += dax*prefact2j;
-                jerk[i].ay    += day*prefact2j;
-                jerk[i].az    += daz*prefact2j;
-                const double prefact1 = alphasum*prefact2/dr *(3.*Lsum/dr-dLdrsum);
-                const double prefact1i = prefact1*particles[mi].m;
-                const double prefact1j = prefact1*particles[mj].m;
-                jerk[j].ax    += dx*prefact1i;
-                jerk[j].ay    += dy*prefact1i;
-                jerk[j].az    += dz*prefact1i;
-                jerk[i].ax    -= dx*prefact1j;
-                jerk[i].ay    -= dy*prefact1j;
-                jerk[i].az    -= dz*prefact1j;
-            }
-        }
-        for (int i=N_active; i<N; i++){
-            if (reb_sigint) return;
-            const int mi = map[i];
-            for (int j=starti; j<N_active; j++){
-                const int mj = map[j];
-                const double dx = particles[mj].x - particles[mi].x; 
-                const double dy = particles[mj].y - particles[mi].y; 
-                const double dz = particles[mj].z - particles[mi].z; 
-                
-                const double dax = particles[mj].ax - particles[mi].ax; 
-                const double day = particles[mj].ay - particles[mi].ay; 
-                const double daz = particles[mj].az - particles[mi].az; 
-
-                const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                const double dc_c = dcrit_c[mi]+dcrit_c[mj];
-                double Lsum = 0.;
-                double dLdrsum = 0.;
-                if (dcrit_o && ((!rim->whsplitting) || shell!=1 || j!=0) ){
-                    double dc_o = dcrit_o[mi]+dcrit_o[mj];
-                    Lsum    -=    _L(r,dr,dc_c,dc_o);
-                    dLdrsum -= _dLdr(r,dr,dc_c,dc_o);
-                }
-                if (dcrit_i){
-                    double dc_i = dcrit_i[mi]+dcrit_i[mj];
-                    Lsum    +=    _L(r,dr,dc_i,dc_c);
-                    dLdrsum += _dLdr(r,dr,dc_i,dc_c);
-                }else{
-                    Lsum += 1; // Innermost
-                }
-                const double alphasum = dax*dx+day*dy+daz*dz;
-                const double prefact2 = 2.*G /(dr*dr*dr);
-                const double prefact2j = Lsum*prefact2*particles[mj].m;
-                const double prefact1 = alphasum*prefact2/dr*(3.*Lsum/dr-dLdrsum);
-                const double prefact1j = prefact1*particles[mj].m;
-                jerk[i].ax    += dax*prefact2j;
-                jerk[i].ay    += day*prefact2j;
-                jerk[i].az    += daz*prefact2j;
-                jerk[i].ax    -= dx*prefact1j;
-                jerk[i].ay    -= dy*prefact1j;
-                jerk[i].az    -= dz*prefact1j;
-                if (testparticle_type){
-                    const double prefact1i = prefact1*particles[mi].m;
-                    const double prefact2i = Lsum*prefact2*particles[mi].m;
-                    jerk[j].ax    += dx*prefact1i;
-                    jerk[j].ay    += dy*prefact1i;
-                    jerk[j].az    += dz*prefact1i;
-                    jerk[j].ax    -= dax*prefact2i;
-                    jerk[j].ay    -= day*prefact2i;
-                    jerk[j].az    -= daz*prefact2i;
-                }
-            }
-        }
-        for (int i=0;i<N;i++){
-            const int mi = map[i];
-            particles[mi].vx += y*particles[mi].ax + v*jerk[i].ax;
-            particles[mi].vy += y*particles[mi].ay + v*jerk[i].ay;
-            particles[mi].vz += y*particles[mi].az + v*jerk[i].az;
-        }
-    }else{ // No jerk used
-        for (int i=0;i<N;i++){
-            const int mi = map[i];
-            particles[mi].vx += y*particles[mi].ax;
-            particles[mi].vy += y*particles[mi].ay;
-            particles[mi].vz += y*particles[mi].az;
-        }
+        particles[mi].vx += y*particles[mi].ax;
+        particles[mi].vy += y*particles[mi].ay;
+        particles[mi].vz += y*particles[mi].az;
     }
 }
 
@@ -660,8 +445,6 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         }
         // inshell
         rim->inshell = realloc(rim->inshell, sizeof(unsigned int)*N);
-        // jerk
-        rim->jerk = realloc(rim->jerk, sizeof(struct reb_particle)*N);
         // shellN
         rim->shellN = realloc(rim->shellN, sizeof(unsigned int)*rim->Nmaxshells);
         // shellN_active
@@ -711,10 +494,10 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     }
     
     // Calculate gravity with special function
-    if (r->gravity != REB_GRAVITY_BASIC && r->gravity != REB_GRAVITY_NONE){
+    if (r->gravity != REB_GRAVITY_BASIC && r->gravity != REB_GRAVITY_MERCURANA){
         reb_warning(r,"Mercurana has it's own gravity routine. Gravity routine set by the user will be ignored.");
     }
-    r->gravity = REB_GRAVITY_NONE;
+    r->gravity = REB_GRAVITY_NONE; // Only temporary
     
     if (rim->L == NULL){
         // Setting default switching function
@@ -745,7 +528,6 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
 void reb_integrator_mercurana_synchronize(struct reb_simulation* r){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     if (rim->is_synchronized == 0){
-        r->gravity = REB_GRAVITY_NONE; // needed here again for SimulationArchive
         if (rim->L == NULL){
             // Setting default switching function
             rim->L = reb_integrator_mercurana_L_infinity;
@@ -767,7 +549,6 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
         free(r->ri_mercurana.inshell);
         free(r->ri_mercurana.shellN);
         free(r->ri_mercurana.shellN_active);
-        free(r->ri_mercurana.jerk);
     }
     r->ri_mercurana.allocatedN = 0;
     r->ri_mercurana.map = NULL;
@@ -775,7 +556,6 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.inshell = NULL;
     r->ri_mercurana.shellN = NULL;
     r->ri_mercurana.shellN_active = NULL;
-    r->ri_mercurana.jerk = NULL;
     
     r->ri_mercurana.phi0 = REB_EOS_LF;
     r->ri_mercurana.phi1 = REB_EOS_LF;

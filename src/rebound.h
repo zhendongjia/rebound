@@ -519,7 +519,7 @@ struct reb_simulation_integrator_mercurana {
     unsigned int* shellN;  
     unsigned int* shellN_active; 
     unsigned int Nmaxshellused;  
-    struct reb_particle* REBOUND_RESTRICT jerk;
+    unsigned int current_shell; // Used in gravity routine.
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
 };
 
@@ -1050,6 +1050,7 @@ struct reb_simulation {
         REB_GRAVITY_TREE = 3,       ///< Use the tree to calculate gravity, O(N log(N)), set opening_angle2 to adjust accuracy.
         REB_GRAVITY_MERCURIUS = 4,  ///< Special gravity routine only for MERCURIUS
         REB_GRAVITY_JACOBI = 5,     ///< Special gravity routine which includes the Jacobi terms for WH integrators 
+        REB_GRAVITY_MERCURANA = 6,  ///< Special gravity routine for MERCURANA shells 
         } gravity;
     /** @} */
 
