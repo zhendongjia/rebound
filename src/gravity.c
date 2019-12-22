@@ -629,7 +629,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                 particles[mi].az = 0; 
             }
             int starti = 0;
-            if (rim->whsplitting && shell==0){
+            if (rim->whsteps>0 && shell==0){
                 // Planet star interactions are not in shell 0, but at least in shell 1
                 starti = 1;
             }
@@ -646,7 +646,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                     double Lsum = 0.;
                     double dc_o = 0;
-                    if (dcrit_o && ((!rim->whsplitting) || shell!=1 || i!=0) ){
+                    if (dcrit_o && ((!(rim->whsteps>0)) || shell!=1 || i!=0) ){
                         // Do not subtract anything for planet/star interactions in shell 1
                         dc_o = dcrit_o[mi]+dcrit_o[mj];
                         Lsum -= _L(r,dr,dc_c,dc_o);
@@ -682,7 +682,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                     double Lsum = 0.;
                     double dc_o = 0;
-                    if (dcrit_o && ((!rim->whsplitting) || shell!=1 || j!=0) ){
+                    if (dcrit_o && ((!(rim->whsteps>0)) || shell!=1 || j!=0) ){
                         // Do not subtract anything for planet/star interactions in shell 1
                         dc_o = dcrit_o[mi]+dcrit_o[mj];
                         Lsum -= _L(r,dr,dc_c,dc_o);
@@ -1110,7 +1110,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                 }
                 
                 int starti = 0;
-                if (rim->whsplitting && shell==0){
+                if (rim->whsteps>0 && shell==0){
                     // Planet star interactions are not in shell 0, but at least in shell 1
                     starti = 1;
                 }
@@ -1135,7 +1135,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                         const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                         double Lsum = 0.;
                         double dLdrsum = 0.;
-                        if (dcrit_o && ((!rim->whsplitting) || shell!=1 || i!=0) ){
+                        if (dcrit_o && ((!(rim->whsteps>0)) || shell!=1 || i!=0) ){
                             double dc_o = dcrit_o[mi]+dcrit_o[mj];
                             Lsum    -=    _L(r,dr,dc_c,dc_o);
                             dLdrsum -= _dLdr(r,dr,dc_c,dc_o);
@@ -1185,7 +1185,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                         const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                         double Lsum = 0.;
                         double dLdrsum = 0.;
-                        if (dcrit_o && ((!rim->whsplitting) || shell!=1 || j!=0) ){
+                        if (dcrit_o && ((!(rim->whsteps>0)) || shell!=1 || j!=0) ){
                             double dc_o = dcrit_o[mi]+dcrit_o[mj];
                             Lsum    -=    _L(r,dr,dc_c,dc_o);
                             dLdrsum -= _dLdr(r,dr,dc_c,dc_o);

@@ -507,7 +507,7 @@ struct reb_simulation_integrator_mercurana {
 
     enum REB_EOS_TYPE phi0;         ///< Outer opperator splitting scheme
     enum REB_EOS_TYPE phi1;         ///< Inner opperator splitting scheme
-    unsigned int whsplitting;
+    unsigned int whsteps;
     unsigned int safe_mode;
     double dt_frac; 
     unsigned int Nmaxshells;

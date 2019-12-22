@@ -125,7 +125,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     const int N_active = rim->shellN_active[shell];
     unsigned int* map = rim->map[shell];
 
-    if (rim->Nmaxshells>1 && shell==0 && rim->whsplitting){ // for WH splitting
+    if (rim->Nmaxshells>1 && shell==0 && rim->whsteps>0){ // for WH splitting
         for (int i=0; i<N; i++){
             int mi = map[i]; 
             rim->inshell[mi] = 0;
@@ -209,9 +209,13 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
         if (rim->shellN[shell+1]>0){ // are there particles in it?
             rim->Nmaxshellused = MAX(rim->Nmaxshellused, shell+2);
             // advance all sub-shell particles
-            double as = a/rim->n;
+            unsigned int n = rim->n;
+            if (rim->whsteps>0 && shell==0){
+                n = rim->whsteps; // use different number of substeps for first shell if WHsplitting is used
+            }
+            const double as = a/n;
             reb_integrator_mercurana_preprocessor(r, as, shell+1, rim->phi1);
-            for (int i=0;i<rim->n;i++){
+            for (int i=0;i<n;i++){
                 reb_integrator_mercurana_step(r, as, shell+1, rim->phi1);
             }
             reb_integrator_mercurana_postprocessor(r, as, shell+1, rim->phi1);
@@ -443,6 +447,10 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         for (int i=0;i<rim->Nmaxshells;i++){
             rim->map[i] = malloc(sizeof(unsigned int)*N);
         }
+        for (int i=0;i<N;i++){
+            // Set map to identity for outer-most shell
+            rim->map[0][i] = i;
+        }
         // inshell
         rim->inshell = realloc(rim->inshell, sizeof(unsigned int)*N);
         // shellN
@@ -470,20 +478,17 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
                 double dcrit = sqrt3(T*T*r->G*r->particles[i].m);
                 rim->dcrit[s][i] = dcrit;
             }
-            double longest_drift_step_in_shell = 0.5;                        // 2nd + 4th order
-            // TODO: think about readding the following.
-            //if ((s==0 && rim->order==6) || (s>0 && rim->phi1==6)){  // 6th order
-            //    longest_drift_step_in_shell = a_6[1];
-            //}
+            double longest_drift_step_in_shell = 0.5; 
+            // TODO: change longest drift for other integrators 
             dt_shell *= longest_drift_step_in_shell;
-            dt_shell /= rim->n;
+            unsigned int n = rim->n;
+            if (rim->whsteps>0 && s==0){
+                n = rim->whsteps; // use different number of substeps for first shell if WHsplitting is used
+            }
+            dt_shell /= n;
             // Initialize shell numbers to zero (not needed, but helps debugging)
             rim->shellN[s] = 0;
             rim->shellN_active[s] = 0;
-        }
-        for (int i=0;i<N;i++){
-            // Set map to identity for outer-most shell
-            rim->map[0][i] = i;
         }
 
     }
@@ -560,7 +565,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.phi0 = REB_EOS_LF;
     r->ri_mercurana.phi1 = REB_EOS_LF;
     r->ri_mercurana.n = 10;
-    r->ri_mercurana.whsplitting = 1;
+    r->ri_mercurana.whsteps = 0;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.dt_frac = 0.1;
     r->ri_mercurana.Nmaxshells = 10;
