@@ -220,6 +220,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
             // Need to redo predict step as particles changed.
             reb_mercurana_encounter_predict(r, dt, shell);
         }
+        rim->collisions_N = 0;
     }
 }
 
