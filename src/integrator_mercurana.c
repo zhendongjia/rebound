@@ -226,12 +226,23 @@ static void reb_integrator_mercurana_postprocessor(struct reb_simulation* const 
 static void reb_integrator_mercurana_step(struct reb_simulation* const r, double dt, int shell, enum REB_EOS_TYPE type);
     
 static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
-    //printf("drift s=%d\n",shell);
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     struct reb_particle* restrict const particles = r->particles;
     reb_mercurana_encounter_predict(r, a, shell);
     unsigned int* map = rim->map[shell];
     unsigned int N = rim->shellN[shell];
+    if (shell==1 && rim->whsteps>0){
+        // Note: loop over *all* particles
+        for (int i=0;i<r->N;i++){  
+            // do not advance particles in subshells
+            if(rim->inshell[i]){  
+                particles[i].x += a*particles[i].vx;
+                particles[i].y += a*particles[i].vy;
+                particles[i].z += a*particles[i].vz;
+            }
+        }
+    }
+    // Note: no drift happens for shell==0 && whsteps>0
     if (shell>1 || rim->whsteps==0){
         for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
             int mi = map[i]; 
@@ -240,18 +251,6 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
                 particles[mi].x += a*particles[mi].vx;
                 particles[mi].y += a*particles[mi].vy;
                 particles[mi].z += a*particles[mi].vz;
-            }
-        }
-    }
-    if (shell==1 && rim->whsteps>0){
-        // Advance all particles, except those in sub-shells
-        // Note: loop over *all* particles
-        for (int i=0;i<r->N;i++){  
-            // do not advance particles in subshells
-            if(rim->inshell[i]){  
-                particles[i].x += a*particles[i].vx;
-                particles[i].y += a*particles[i].vy;
-                particles[i].z += a*particles[i].vz;
             }
         }
     }
@@ -277,20 +276,29 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
 
 static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int shell){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-    const int N = rim->shellN[shell];
     struct reb_particle* const particles = r->particles;
-    unsigned int* map = rim->map[shell];
     r->gravity = REB_GRAVITY_MERCURANA; // needed here again for SimulationArchive
     rim->current_shell = shell;
     reb_update_acceleration(r);
     if (v!=0.){
         reb_calculate_and_apply_jerk(r,v);
     }
-    for (int i=0;i<N;i++){ // Apply acceleration. Jerk already applied.
-        const int mi = map[i];
-        particles[mi].vx += y*particles[mi].ax;
-        particles[mi].vy += y*particles[mi].ay;
-        particles[mi].vz += y*particles[mi].az;
+    if (rim->whsteps>0 && shell==1){
+        // loop over *all* particles
+        for (int i=0;i<r->N;i++){ // Apply acceleration. Jerk already applied.
+            particles[i].vx += y*particles[i].ax;
+            particles[i].vy += y*particles[i].ay;
+            particles[i].vz += y*particles[i].az;
+        }
+    }else{
+        const int N = rim->shellN[shell];
+        unsigned int* map = rim->map[shell];
+        for (int i=0;i<N;i++){ // Apply acceleration. Jerk already applied.
+            const int mi = map[i];
+            particles[mi].vx += y*particles[mi].ax;
+            particles[mi].vy += y*particles[mi].ay;
+            particles[mi].vz += y*particles[mi].az;
+        }
     }
 }
 

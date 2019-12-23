@@ -628,8 +628,9 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     particles[i].ay = 0; 
                     particles[i].az = 0; 
                 }
+                printf("      grav s=%d ax=%f\n",shell,particles[0].ax);
                 for (int i=0; i<1; i++){ // to be generalized later
-                    for (int j=i+1; j<N_active; j++){
+                    for (int j=i+1; j<_N_active; j++){
                         const double dx = particles[i].x - particles[j].x;
                         const double dy = particles[i].y - particles[j].y;
                         const double dz = particles[i].z - particles[j].z;
@@ -654,7 +655,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                         particles[j].az    += prefacti*dz;
                     }
                 }
-                for (int i=N_active; i<N; i++){
+                for (int i=_N_active; i<N; i++){
                     for (int j=0; j<1; j++){ // to be generalized later
                         const double dx = particles[i].x - particles[j].x;
                         const double dy = particles[i].y - particles[j].y;
@@ -694,15 +695,12 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             // Note: wh calculation above uses the global N and N_active
             const int N = rim->shellN[shell];
             const int N_active = rim->shellN_active[shell];
-            int starti = 0;
-            if (rim->whsteps>0 && shell<=1){
-                // Planet star interactions are not in shell 0
-                // and reated separately in shell 1
-                starti = 1;
-            }
-            for (int i=starti; i<N_active; i++){
+            for (int i=0; i<N_active; i++){
                 if (reb_sigint) return;
+                // Planet star interactions are not in shell 0
+                // and treated separately in shell 1
                 const int mi = map[i];
+                if (rim->whsteps>0 && shell<=1 && mi<1) continue; // to be generalized later
                 for (int j=i+1; j<N_active; j++){
                     const int mj = map[j];
                     const double dx = particles[mi].x - particles[mj].x;
@@ -736,8 +734,9 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             for (int i=N_active; i<N; i++){
                 if (reb_sigint) return;
                 const int mi = map[i];
-                for (int j=starti; j<N_active; j++){
+                for (int j=0; j<N_active; j++){
                     const int mj = map[j];
+                    if (rim->whsteps>0 && shell<=1 && mj<1) continue; // to be generalized later
                     const double dx = particles[mi].x - particles[mj].x;
                     const double dy = particles[mi].y - particles[mj].y;
                     const double dz = particles[mi].z - particles[mj].z;
