@@ -607,18 +607,22 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             const int testparticle_type   = r->testparticle_type;
             const double G = r->G;
             unsigned int* map = rim->map[shell];
+            const double* dcrit_i = NULL; // critical radius of inner shell
+            const double* dcrit_c = NULL; // critical radius of current shell
+            const double* dcrit_o = NULL; // critical radius of outer shell
+            if (shell<rim->Nmaxshells-1){
+                dcrit_i = r->ri_mercurana.dcrit[shell+1];
+            }
+            dcrit_c = r->ri_mercurana.dcrit[shell];
+            if (shell>0){
+                dcrit_o = r->ri_mercurana.dcrit[shell-1];
+            }
 
             double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
             // Normal force calculation 
             if (rim->whsteps>0 && shell==1){
                 // Calculate planet star interactions here, is O(N)
                 // Note: this part uses the global N and N_active!
-                const double* dcrit_i = NULL; // critical radius of inner shell
-                const double* dcrit_c = NULL; // critical radius of current shell
-                if (shell<rim->Nmaxshells-1){
-                    dcrit_i = r->ri_mercurana.dcrit[2];
-                }
-                dcrit_c = r->ri_mercurana.dcrit[1];
                 for (int i=0; i<N; i++){
                     particles[i].ax = 0; 
                     particles[i].ay = 0; 
@@ -690,16 +694,6 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             // Note: wh calculation above uses the global N and N_active
             const int N = rim->shellN[shell];
             const int N_active = rim->shellN_active[shell];
-            const double* dcrit_i = NULL; // critical radius of inner shell
-            const double* dcrit_c = NULL; // critical radius of current shell
-            const double* dcrit_o = NULL; // critical radius of outer shell
-            if (shell<rim->Nmaxshells-1){
-                dcrit_i = r->ri_mercurana.dcrit[shell+1];
-            }
-            dcrit_c = r->ri_mercurana.dcrit[shell];
-            if (shell>0){
-                dcrit_o = r->ri_mercurana.dcrit[shell-1];
-            }
             int starti = 0;
             if (rim->whsteps>0 && shell<=1){
                 // Planet star interactions are not in shell 0
