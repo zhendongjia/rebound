@@ -69,7 +69,10 @@ void reb_collision_search(struct reb_simulation* const r){
 		case REB_COLLISION_NONE:
 		break;
 		case REB_COLLISION_DIRECT:
-		{
+        if (r->integrator==REB_INTEGRATOR_MERCURANA){
+            // Mercurana does its own collision search during the predict step.
+            collisions_N = r->ri_mercurana.collisions_N;
+        }else{
 			// Loop over ghost boxes, but only the inner most ring.
 			int nghostxcol = (r->nghostx>1?1:r->nghostx);
 			int nghostycol = (r->nghosty>1?1:r->nghosty);

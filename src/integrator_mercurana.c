@@ -116,6 +116,25 @@ static double reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_par
     }
     return rmin2;
 }
+static void reb_mercurana_record_collision(struct reb_simulation* const r, unsigned int i, unsigned int j){
+    struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
+    if (r->collisions_allocatedN<=rim->collisions_N){
+        // Allocate memory if there is no space in array.
+        r->collisions_allocatedN = r->collisions_allocatedN ? r->collisions_allocatedN * 2 : 32;
+        r->collisions = realloc(r->collisions,sizeof(struct reb_collision)*r->collisions_allocatedN);
+    }
+    r->collisions[rim->collisions_N].p1 = i;
+    r->collisions[rim->collisions_N].p2 = j;
+    struct reb_ghostbox gb = {0};
+    gb.shiftx = r->particles[i].x;
+    gb.shifty = r->particles[i].y;
+    gb.shiftz = r->particles[i].z;
+    gb.shiftvx = r->particles[i].vx;
+    gb.shiftvy = r->particles[i].vy;
+    gb.shiftvz = r->particles[i].vz;
+    r->collisions[rim->collisions_N].gb = gb;
+    rim->collisions_N++;
+}
 
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt, int shell){
     struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
@@ -146,6 +165,8 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         return;
     }
 	
+    rim->collisions_N = 0;
+
     // Check if particles are in sub-shell
     rim->shellN[shell+1] = 0;
     rim->shellN_active[shell+1] = 0;
@@ -158,6 +179,10 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
             int mj = map[j]; 
             if (i==j) continue;
             double rmin2 = reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt);
+            double rsum = r->particles[mi].r+r->particles[mj].r;
+            if (rmin2< rsum*rsum && r->collision==REB_COLLISION_DIRECT){
+                reb_mercurana_record_collision(r,mi,mj);
+            }
             double dcritsum = dcrit[mi]+dcrit[mj];
             if (rmin2< dcritsum*dcritsum){ 
                 // j particle will be added later (active particles need to be in array first)
@@ -175,6 +200,10 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
         for (int j=0; j<N_active; j++){
             int mj = map[j]; 
             double rmin2 = reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt);
+            double rsum = r->particles[mi].r+r->particles[mj].r;
+            if (rmin2< rsum*rsum && r->collision==REB_COLLISION_DIRECT){
+                reb_mercurana_record_collision(r,mi,mj);
+            }
             double dcritsum = dcrit[mi]+dcrit[mj];
             if (rmin2< dcritsum*dcritsum){ 
                 rim->inshell[mi] = 0;
@@ -182,6 +211,14 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                 rim->shellN[shell+1]++;
                 break; // only add particle i once
             }
+        }
+    }
+    if (rim->collisions_N){
+        unsigned int N_before = r->N;
+        reb_collision_search(r); // will resolve collisions
+        if (N_before!=r->N){
+            // Need to redo predict step as particles changed.
+            reb_mercurana_encounter_predict(r, dt, shell);
         }
     }
 }
@@ -574,6 +611,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.is_synchronized = 1;
     r->ri_mercurana.L = NULL;
     r->ri_mercurana.dLdr = NULL;
+    r->ri_mercurana.collisions_N = 0;
     
 }
 

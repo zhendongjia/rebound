@@ -521,6 +521,7 @@ struct reb_simulation_integrator_mercurana {
     unsigned int Nmaxshellused;  
     unsigned int current_shell; // Used in gravity routine.
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
+    unsigned int collisions_N;   ///< Flag to determine if current particle structure is synchronized
 };
 
 
