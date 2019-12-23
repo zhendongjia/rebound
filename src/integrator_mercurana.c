@@ -144,17 +144,6 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     const int N_active = rim->shellN_active[shell];
     unsigned int* map = rim->map[shell];
 
-    if (rim->Nmaxshells>1 && shell==0 && rim->whsteps>0){ // for WH splitting
-        for (int i=0; i<N; i++){
-            int mi = map[i]; 
-            rim->inshell[mi] = 0;
-            rim->map[shell+1][i] = mi;
-        }
-        rim->shellN[shell+1] = N;
-        rim->shellN_active[shell+1] = N_active;
-        return;
-    }
-
     // Put all particles in current shell by default
     for (int i=0; i<N; i++){
         int mi = map[i]; 
@@ -237,14 +226,17 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
     unsigned int N = rim->shellN[shell];
     for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
         int mi = map[i]; 
-        if(rim->inshell[mi]){  // only advance in-shell particles
+        // only advance in-shell particles, do not advance particles if whsteps are used
+        if(rim->inshell[mi] && (shell!=0 || rim->whsteps==0)){  
             particles[mi].x += a*particles[mi].vx;
             particles[mi].y += a*particles[mi].vy;
             particles[mi].z += a*particles[mi].vz;
         }
     }
     if (shell+1<rim->Nmaxshells){ // does sub-shell exist?
-        if (rim->shellN[shell+1]>0){ // are there particles in it?
+        // Are there particles in it?
+        // Is it a whstep?
+        if (rim->shellN[shell+1]>0 || (shell==0 && rim->whsteps>0)){
             rim->Nmaxshellused = MAX(rim->Nmaxshellused, shell+2);
             // advance all sub-shell particles
             unsigned int n = rim->n;
@@ -460,6 +452,9 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     if (rim->Nmaxshells<=0){
         reb_warning(r,"Nmaxshells needs to be larger than 0.");
+    }
+    if (rim->Nmaxshells<=1 && rim->whsteps>0){
+        reb_warning(r,"Nmaxshells needs to be larger than 1 if whsteps are used.");
     }
     
     const int N = r->N;
