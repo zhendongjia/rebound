@@ -145,9 +145,17 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     unsigned int* map = rim->map[shell];
 
     // Put all particles in current shell by default
-    for (int i=0; i<N; i++){
-        int mi = map[i]; 
-        rim->inshell[mi] = 1;
+    if (rim->whsteps>0 && shell==1){
+        for (int i=0; i<r->N; i++){ 
+            // Set inshell to 1 for *all* particles
+            // Needed to ensure all particles drift in shell 1 or deeper
+            rim->inshell[i] = 1;
+        }
+    }else{
+        for (int i=0; i<N; i++){
+            int mi = map[i]; 
+            rim->inshell[mi] = 1;
+        }
     }
     
     if (shell+1>=rim->Nmaxshells){ // does sub-shell exist?
@@ -224,13 +232,27 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
     reb_mercurana_encounter_predict(r, a, shell);
     unsigned int* map = rim->map[shell];
     unsigned int N = rim->shellN[shell];
-    for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
-        int mi = map[i]; 
-        // only advance in-shell particles, do not advance particles if whsteps are used
-        if(rim->inshell[mi] && (shell!=0 || rim->whsteps==0)){  
-            particles[mi].x += a*particles[mi].vx;
-            particles[mi].y += a*particles[mi].vy;
-            particles[mi].z += a*particles[mi].vz;
+    if (shell>1 || rim->whsteps==0){
+        for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
+            int mi = map[i]; 
+            // only advance in-shell particles
+            if(rim->inshell[mi]){  
+                particles[mi].x += a*particles[mi].vx;
+                particles[mi].y += a*particles[mi].vy;
+                particles[mi].z += a*particles[mi].vz;
+            }
+        }
+    }
+    if (shell==1 && rim->whsteps>0){
+        // Advance all particles, except those in sub-shells
+        // Note: loop over *all* particles
+        for (int i=0;i<r->N;i++){  
+            // do not advance particles in subshells
+            if(rim->inshell[i]){  
+                particles[i].x += a*particles[i].vx;
+                particles[i].y += a*particles[i].vy;
+                particles[i].z += a*particles[i].vz;
+            }
         }
     }
     if (shell+1<rim->Nmaxshells){ // does sub-shell exist?

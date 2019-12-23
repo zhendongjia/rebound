@@ -603,12 +603,93 @@ void reb_calculate_acceleration(struct reb_simulation* r){
         {
             struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
             const unsigned int shell = rim->current_shell;
-            const int N = rim->shellN[shell];
-            const int N_active = rim->shellN_active[shell];
             struct reb_particle* const particles = r->particles;
             const int testparticle_type   = r->testparticle_type;
             const double G = r->G;
             unsigned int* map = rim->map[shell];
+
+            double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
+            // Normal force calculation 
+            if (rim->whsteps>0 && shell==1){
+                // Calculate planet star interactions here, is O(N)
+                // Note: this part uses the global N and N_active!
+                const double* dcrit_i = NULL; // critical radius of inner shell
+                const double* dcrit_c = NULL; // critical radius of current shell
+                if (shell<rim->Nmaxshells-1){
+                    dcrit_i = r->ri_mercurana.dcrit[2];
+                }
+                dcrit_c = r->ri_mercurana.dcrit[1];
+                for (int i=0; i<N; i++){
+                    particles[i].ax = 0; 
+                    particles[i].ay = 0; 
+                    particles[i].az = 0; 
+                }
+                for (int i=0; i<1; i++){ // to be generalized later
+                    for (int j=i+1; j<N_active; j++){
+                        const double dx = particles[i].x - particles[j].x;
+                        const double dy = particles[i].y - particles[j].y;
+                        const double dz = particles[i].z - particles[j].z;
+                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                        const double dc_c = dcrit_c[i]+dcrit_c[j];
+                        double Lsum = 0.;
+                        if (dcrit_i){
+                            double dc_i = dcrit_i[i]+dcrit_i[j];
+                            Lsum += _L(r,dr,dc_i,dc_c);
+                        }else{
+                            Lsum += 1; // Innermost
+                        }
+
+                        const double prefact = G*Lsum/(dr*dr*dr);
+                        const double prefactj = -prefact*particles[j].m;
+                        const double prefacti = prefact*particles[i].m;
+                        particles[i].ax    += prefactj*dx;
+                        particles[i].ay    += prefactj*dy;
+                        particles[i].az    += prefactj*dz;
+                        particles[j].ax    += prefacti*dx;
+                        particles[j].ay    += prefacti*dy;
+                        particles[j].az    += prefacti*dz;
+                    }
+                }
+                for (int i=N_active; i<N; i++){
+                    for (int j=0; j<1; j++){ // to be generalized later
+                        const double dx = particles[i].x - particles[j].x;
+                        const double dy = particles[i].y - particles[j].y;
+                        const double dz = particles[i].z - particles[j].z;
+                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                        const double dc_c = dcrit_c[i]+dcrit_c[j];
+                        double Lsum = 0.;
+                        if (dcrit_i){
+                            double dc_i = dcrit_i[i]+dcrit_i[j];
+                            Lsum += _L(r,dr,dc_i,dc_c);
+                        }else{
+                            Lsum += 1; // Innermost
+                        }
+
+                        const double prefact = G*Lsum/(dr*dr*dr);
+                        const double prefactj = -prefact*particles[j].m;
+                        particles[i].ax    += prefactj*dx;
+                        particles[i].ay    += prefactj*dy;
+                        particles[i].az    += prefactj*dz;
+                        if (testparticle_type){
+                            const double prefacti = prefact*particles[i].m;
+                            particles[j].ax    += prefacti*dx;
+                            particles[j].ay    += prefacti*dy;
+                            particles[j].az    += prefacti*dz;
+                        }
+                    }
+                }
+            }else{
+                const int N = rim->shellN[shell];
+                for (int i=0; i<N; i++){
+                    int mi = map[i];
+                    particles[mi].ax = 0; 
+                    particles[mi].ay = 0; 
+                    particles[mi].az = 0; 
+                }
+            }
+            // Note: wh calculation above uses the global N and N_active
+            const int N = rim->shellN[shell];
+            const int N_active = rim->shellN_active[shell];
             const double* dcrit_i = NULL; // critical radius of inner shell
             const double* dcrit_c = NULL; // critical radius of current shell
             const double* dcrit_o = NULL; // critical radius of outer shell
@@ -619,21 +700,12 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             if (shell>0){
                 dcrit_o = r->ri_mercurana.dcrit[shell-1];
             }
-
-            double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
-            // Normal force calculation 
-            for (int i=0; i<N; i++){
-                int mi = map[i];
-                particles[mi].ax = 0; 
-                particles[mi].ay = 0; 
-                particles[mi].az = 0; 
-            }
             int starti = 0;
-            if (rim->whsteps>0 && shell==0){
-                // Planet star interactions are not in shell 0, but at least in shell 1
+            if (rim->whsteps>0 && shell<=1){
+                // Planet star interactions are not in shell 0
+                // and reated separately in shell 1
                 starti = 1;
             }
-
             for (int i=starti; i<N_active; i++){
                 if (reb_sigint) return;
                 const int mi = map[i];
@@ -645,15 +717,12 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     const double dr = sqrt(dx*dx + dy*dy + dz*dz);
                     const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                     double Lsum = 0.;
-                    double dc_o = 0;
-                    if (dcrit_o && ((!(rim->whsteps>0)) || shell!=1 || i!=0) ){
-                        // Do not subtract anything for planet/star interactions in shell 1
-                        dc_o = dcrit_o[mi]+dcrit_o[mj];
+                    if (dcrit_o){
+                        double dc_o = dcrit_o[mi]+dcrit_o[mj];
                         Lsum -= _L(r,dr,dc_c,dc_o);
                     }
-                    double dc_i = 0;
                     if (dcrit_i){
-                        dc_i = dcrit_i[mi]+dcrit_i[mj];
+                        double dc_i = dcrit_i[mi]+dcrit_i[mj];
                         Lsum += _L(r,dr,dc_i,dc_c);
                     }else{
                         Lsum += 1; // Innermost
@@ -681,15 +750,12 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     const double dr = sqrt(dx*dx + dy*dy + dz*dz);
                     const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                     double Lsum = 0.;
-                    double dc_o = 0;
-                    if (dcrit_o && ((!(rim->whsteps>0)) || shell!=1 || j!=0) ){
-                        // Do not subtract anything for planet/star interactions in shell 1
-                        dc_o = dcrit_o[mi]+dcrit_o[mj];
+                    if (dcrit_o){
+                        double dc_o = dcrit_o[mi]+dcrit_o[mj];
                         Lsum -= _L(r,dr,dc_c,dc_o);
                     }
-                    double dc_i = 0;
                     if (dcrit_i){
-                        dc_i = dcrit_i[mi]+dcrit_i[mj];
+                        double dc_i = dcrit_i[mi]+dcrit_i[mj];
                         Lsum += _L(r,dr,dc_i,dc_c);
                     }else{
                         Lsum += 1; // Innermost
