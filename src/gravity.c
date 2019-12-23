@@ -628,7 +628,6 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     particles[i].ay = 0; 
                     particles[i].az = 0; 
                 }
-                printf("      grav s=%d ax=%f\n",shell,particles[0].ax);
                 for (int i=0; i<1; i++){ // to be generalized later
                     for (int j=i+1; j<_N_active; j++){
                         const double dx = particles[i].x - particles[j].x;
@@ -1151,8 +1150,6 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
             {
                 struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
                 const unsigned int shell = rim->current_shell;
-                const int N = rim->shellN[shell];
-                const int N_active = rim->shellN_active[shell];
                 struct reb_particle* const particles = r->particles;
                 const int testparticle_type   = r->testparticle_type;
                 const double G = r->G;
@@ -1168,17 +1165,109 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                     dcrit_o = r->ri_mercurana.dcrit[shell-1];
                 }
                 
-                int starti = 0;
-                if (rim->whsteps>0 && shell==0){
-                    // Planet star interactions are not in shell 0, but at least in shell 1
-                    starti = 1;
-                }
-
                 double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
                 double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.dLdr;
                 
-                for (int i=starti; i<N_active; i++){
+                if (rim->whsteps>0 && shell==1){
+                    // Calculate planet star interactions here, is O(N)
+                    // Note: this part uses the global N and N_active!
+                    const int N = r->N;
+                    const int N_active = r->N_active;
+                    const int _N_active = ((N_active==-1)?N:N_active);
+                    for (int i=0; i<1; i++){ // to be generalized later
+                        for (int j=i+1; j<_N_active; j++){
+                            const double dx = particles[j].x - particles[i].x; 
+                            const double dy = particles[j].y - particles[i].y; 
+                            const double dz = particles[j].z - particles[i].z; 
+                            
+                            const double dax = particles[j].ax - particles[i].ax; 
+                            const double day = particles[j].ay - particles[i].ay; 
+                            const double daz = particles[j].az - particles[i].az; 
+
+                            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                            const double dc_c = dcrit_c[i]+dcrit_c[j];
+                            double Lsum = 0.;
+                            double dLdrsum = 0.;
+                            if (dcrit_i){
+                                double dc_i = dcrit_i[i]+dcrit_i[j];
+                                Lsum    +=    _L(r,dr,dc_i,dc_c);
+                                dLdrsum += _dLdr(r,dr,dc_i,dc_c);
+                            }else{
+                                Lsum += 1; // Innermost
+                            }
+                            const double alphasum = dax*dx+day*dy+daz*dz;
+                            const double prefact2 = 2.*v*G /(dr*dr*dr);
+                            const double prefact2i = Lsum*prefact2*particles[i].m;
+                            const double prefact2j = Lsum*prefact2*particles[j].m;
+                            particles[j].vx    -= dax*prefact2i;
+                            particles[j].vy    -= day*prefact2i;
+                            particles[j].vz    -= daz*prefact2i;
+                            particles[i].vx    += dax*prefact2j;
+                            particles[i].vy    += day*prefact2j;
+                            particles[i].vz    += daz*prefact2j;
+                            const double prefact1 = alphasum*prefact2/dr *(3.*Lsum/dr-dLdrsum);
+                            const double prefact1i = prefact1*particles[i].m;
+                            const double prefact1j = prefact1*particles[j].m;
+                            particles[j].vx    += dx*prefact1i;
+                            particles[j].vy    += dy*prefact1i;
+                            particles[j].vz    += dz*prefact1i;
+                            particles[i].vx    -= dx*prefact1j;
+                            particles[i].vy    -= dy*prefact1j;
+                            particles[i].vz    -= dz*prefact1j;
+                        }
+                    }
+                    for (int i=_N_active; i<N; i++){
+                        if (reb_sigint) return;
+                        for (int j=0; j<1; j++){ // to be generlized later
+                            const double dx = particles[j].x - particles[i].x; 
+                            const double dy = particles[j].y - particles[i].y; 
+                            const double dz = particles[j].z - particles[i].z; 
+                            
+                            const double dax = particles[j].ax - particles[i].ax; 
+                            const double day = particles[j].ay - particles[i].ay; 
+                            const double daz = particles[j].az - particles[i].az; 
+
+                            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                            const double dc_c = dcrit_c[i]+dcrit_c[j];
+                            double Lsum = 0.;
+                            double dLdrsum = 0.;
+                            if (dcrit_i){
+                                double dc_i = dcrit_i[i]+dcrit_i[j];
+                                Lsum    +=    _L(r,dr,dc_i,dc_c);
+                                dLdrsum += _dLdr(r,dr,dc_i,dc_c);
+                            }else{
+                                Lsum += 1; // Innermost
+                            }
+                            const double alphasum = dax*dx+day*dy+daz*dz;
+                            const double prefact2 = 2.*v*G /(dr*dr*dr);
+                            const double prefact2j = Lsum*prefact2*particles[j].m;
+                            const double prefact1 = alphasum*prefact2/dr*(3.*Lsum/dr-dLdrsum);
+                            const double prefact1j = prefact1*particles[j].m;
+                            particles[i].vx    += dax*prefact2j;
+                            particles[i].vy    += day*prefact2j;
+                            particles[i].vz    += daz*prefact2j;
+                            particles[i].vx    -= dx*prefact1j;
+                            particles[i].vy    -= dy*prefact1j;
+                            particles[i].vz    -= dz*prefact1j;
+                            if (testparticle_type){
+                                const double prefact1i = prefact1*particles[i].m;
+                                const double prefact2i = Lsum*prefact2*particles[i].m;
+                                particles[j].vx    += dx*prefact1i;
+                                particles[j].vy    += dy*prefact1i;
+                                particles[j].vz    += dz*prefact1i;
+                                particles[j].vx    -= dax*prefact2i;
+                                particles[j].vy    -= day*prefact2i;
+                                particles[j].vz    -= daz*prefact2i;
+                            }
+                        }
+                    }
+                }
+                // Non WH jerk
+                const int N = rim->shellN[shell];
+                const int N_active = rim->shellN_active[shell];
+                for (int i=0; i<N_active; i++){
                     const int mi = map[i];
+                    if (rim->whsteps>0 && shell<=1 && mi<1) continue; // to be generalized later
                     if (reb_sigint) return;
                     for (int j=i+1; j<N_active; j++){
                         const int mj = map[j];
@@ -1230,8 +1319,9 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                 for (int i=N_active; i<N; i++){
                     if (reb_sigint) return;
                     const int mi = map[i];
-                    for (int j=starti; j<N_active; j++){
+                    for (int j=0; j<N_active; j++){
                         const int mj = map[j];
+                        if (rim->whsteps>0 && shell<=1 && mj<1) continue; // to be generalized later
                         const double dx = particles[mj].x - particles[mi].x; 
                         const double dy = particles[mj].y - particles[mi].y; 
                         const double dz = particles[mj].z - particles[mi].z; 
