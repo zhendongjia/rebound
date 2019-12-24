@@ -628,7 +628,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     particles[i].ay = 0; 
                     particles[i].az = 0; 
                 }
-                for (int i=0; i<1; i++){ // to be generalized later
+                for (int i=0; i<rim->N_dominant; i++){
                     for (int j=i+1; j<_N_active; j++){
                         const double dx = particles[i].x - particles[j].x;
                         const double dy = particles[i].y - particles[j].y;
@@ -655,7 +655,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     }
                 }
                 for (int i=_N_active; i<N; i++){
-                    for (int j=0; j<1; j++){ // to be generalized later
+                    for (int j=0; j<rim->N_dominant; j++){
                         const double dx = particles[i].x - particles[j].x;
                         const double dy = particles[i].y - particles[j].y;
                         const double dz = particles[i].z - particles[j].z;
@@ -699,7 +699,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                 // Planet star interactions are not in shell 0
                 // and treated separately in shell 1
                 const int mi = map[i];
-                if (rim->whsteps>0 && shell<=1 && mi<1) continue; // to be generalized later
+                if (rim->whsteps>0 && shell<=1 && mi<rim->N_dominant) continue;
                 for (int j=i+1; j<N_active; j++){
                     const int mj = map[j];
                     const double dx = particles[mi].x - particles[mj].x;
@@ -735,7 +735,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                 const int mi = map[i];
                 for (int j=0; j<N_active; j++){
                     const int mj = map[j];
-                    if (rim->whsteps>0 && shell<=1 && mj<1) continue; // to be generalized later
+                    if (rim->whsteps>0 && shell<=1 && mj<rim->N_dominant) continue; 
                     const double dx = particles[mi].x - particles[mj].x;
                     const double dy = particles[mi].y - particles[mj].y;
                     const double dz = particles[mi].z - particles[mj].z;
@@ -1174,7 +1174,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                     const int N = r->N;
                     const int N_active = r->N_active;
                     const int _N_active = ((N_active==-1)?N:N_active);
-                    for (int i=0; i<1; i++){ // to be generalized later
+                    for (int i=0; i<rim->N_dominant; i++){
                         for (int j=i+1; j<_N_active; j++){
                             const double dx = particles[j].x - particles[i].x; 
                             const double dy = particles[j].y - particles[i].y; 
@@ -1218,7 +1218,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                     }
                     for (int i=_N_active; i<N; i++){
                         if (reb_sigint) return;
-                        for (int j=0; j<1; j++){ // to be generlized later
+                        for (int j=0; j<rim->N_dominant; j++){
                             const double dx = particles[j].x - particles[i].x; 
                             const double dy = particles[j].y - particles[i].y; 
                             const double dz = particles[j].z - particles[i].z; 
@@ -1267,7 +1267,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                 const int N_active = rim->shellN_active[shell];
                 for (int i=0; i<N_active; i++){
                     const int mi = map[i];
-                    if (rim->whsteps>0 && shell<=1 && mi<1) continue; // to be generalized later
+                    if (rim->whsteps>0 && shell<=1 && mi<rim->N_dominant) continue;
                     if (reb_sigint) return;
                     for (int j=i+1; j<N_active; j++){
                         const int mj = map[j];
@@ -1283,7 +1283,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                         const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                         double Lsum = 0.;
                         double dLdrsum = 0.;
-                        if (dcrit_o && ((!(rim->whsteps>0)) || shell!=1 || i!=0) ){
+                        if (dcrit_o){
                             double dc_o = dcrit_o[mi]+dcrit_o[mj];
                             Lsum    -=    _L(r,dr,dc_c,dc_o);
                             dLdrsum -= _dLdr(r,dr,dc_c,dc_o);
@@ -1321,7 +1321,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                     const int mi = map[i];
                     for (int j=0; j<N_active; j++){
                         const int mj = map[j];
-                        if (rim->whsteps>0 && shell<=1 && mj<1) continue; // to be generalized later
+                        if (rim->whsteps>0 && shell<=1 && mj<rim->N_dominant) continue;
                         const double dx = particles[mj].x - particles[mi].x; 
                         const double dy = particles[mj].y - particles[mi].y; 
                         const double dz = particles[mj].z - particles[mi].z; 
@@ -1334,7 +1334,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                         const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                         double Lsum = 0.;
                         double dLdrsum = 0.;
-                        if (dcrit_o && ((!(rim->whsteps>0)) || shell!=1 || j!=0) ){
+                        if (dcrit_o){
                             double dc_o = dcrit_o[mi]+dcrit_o[mj];
                             Lsum    -=    _L(r,dr,dc_c,dc_o);
                             dLdrsum -= _dLdr(r,dr,dc_c,dc_o);

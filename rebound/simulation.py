@@ -2021,6 +2021,8 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("Nmaxshellused", c_uint),
                 ("_current_shell", c_uint),
                 ("_is_synchronized", c_uint),
+                ("_collisions_N", c_uint),
+                ("N_dominant", c_uint),
                 ]
 
 class reb_simulation_integrator_mercurius(Structure):
