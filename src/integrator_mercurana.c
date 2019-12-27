@@ -541,8 +541,41 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
                 double dcrit = sqrt3(T*T*r->G*r->particles[i].m);
                 rim->dcrit[s][i] = dcrit;
             }
+            // Definition: ??
+            // - n=0 is not allowed
+            // - n=1 means the D in a DKD scheme is calculated using one sub-step with DKD (0.5*dt)
+            // - n=2 means the D in a DKD scheme is calculated using two DKD sub steps (0.25*dt each)
+            // - n=0 is not allowed
+            // - n=1 means the D in a DKDKD scheme is calculates using one sub-step of DKDKD (0.33*dt)
+            // - n=2 means the D in a DKDKD scheme is calculated using two DKDKD sub-step (0.1666*dt each)
             double longest_drift_step_in_shell = 0.5; 
-            // TODO: change longest drift for other integrators 
+            enum REB_EOS_TYPE type = s==0?rim->phi0:rim->phi1;
+            switch(type){
+                case REB_EOS_LF:
+                case REB_EOS_PMLF4:
+                    longest_drift_step_in_shell = 0.5; 
+                    break;
+                case REB_EOS_LF4:
+                    longest_drift_step_in_shell = reb_eos_lf4_a;
+                    break;
+                case REB_EOS_LF6:
+                    longest_drift_step_in_shell = reb_eos_lf6_a[0]+reb_eos_lf6_a[1];
+                    break; 
+                case REB_EOS_LF8: 
+                    longest_drift_step_in_shell = reb_eos_lf8_a[0]+reb_eos_lf8_a[1];
+                    break;
+                case REB_EOS_LF4_2: 
+                    longest_drift_step_in_shell = 1.-2.*reb_eos_lf4_2_a;
+                    break;
+                case REB_EOS_LF8_6_4:
+                    longest_drift_step_in_shell = reb_eos_lf8_6_4_a[2];   
+                case REB_EOS_PMLF6:
+                    longest_drift_step_in_shell = reb_eos_pmlf6_a[1]; 
+                    break;
+                case REB_EOS_PLF7_6_4:
+                    longest_drift_step_in_shell = reb_eos_plf7_6_4_a[0];   
+                    break;
+            }
             dt_shell *= longest_drift_step_in_shell;
             unsigned int n = rim->n;
             if (rim->whsteps>0 && s==0){
