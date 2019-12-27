@@ -475,54 +475,27 @@ struct reb_simulation_integrator_eos {
  * @brief This structure contains variables and pointer used by the MERCURANA integrator.
  */
 struct reb_simulation_integrator_mercurana {
-   /**
-    * @brief This is a function pointer to the force switching function used.
-    * @details If NULL (the default), the MERCURY switching function will be used.
-    * The argument d is the distance between two particles.
-    * The argument dcrit is the maximum of the critical distances of the two particles.
-    * The return value is a scalar between 0 and 1. If it always returns 1, then the
-    * integrator becomes the standard Wisdom-Holman integrator.
-    */
-    double (*L) (const struct reb_simulation* const r, double d, double dcrit, double fracin);  
-    double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin);  
-
-    /** 
-     * @brief Setting this flag to one will recalculate the critical switchover 
-     * distances dcrit at the the beginning of the next timestep. 
-     * @details After one timestep, the flag gets set back to 0. 
-     * If you want to recalculate dcrit at every every timestep, you 
-     * also need to set this flag to 1 before every timestep.
-     * Default is 0.
-     */ 
-    unsigned int recalculate_dcrit_this_timestep;
-
-    /**
-     * @brief If this flag is set (the default), the integrator will 
-     * recalculate heliocentric coordinates and synchronize after
-     * every timestep, to avoid problems with outputs or particle modifications
-     * between timesteps. 
-     * @details Setting it to 0 will result in a speedup, but care
-     * must be taken to synchronize and recalculate coordinates when needed.
-     */
-
     enum REB_EOS_TYPE phi0;         ///< Outer opperator splitting scheme
     enum REB_EOS_TYPE phi1;         ///< Inner opperator splitting scheme
-    unsigned int whsteps;
-    unsigned int safe_mode;
-    double dt_frac; 
-    unsigned int Nmaxshells;
-    unsigned int n;                 ///
-    unsigned int** map;  // from shell to global       
-    unsigned int* inshell;  // from global to shell
-    double** dcrit;       
-    unsigned int allocatedN; 
-    unsigned int* shellN;  
-    unsigned int* shellN_active; 
-    unsigned int Nmaxshellused;  
-    unsigned int current_shell; // Used in gravity routine.
+    unsigned int Nmaxshells;        ///< Maximum number of shells
+    unsigned int n;                 ///< Number of steps per shell (except first shell if whsteps>0)
+    unsigned int whsteps;           ///< Number of WHsteps in shell 1 (default 0)
+    unsigned int N_dominant;        ///< Number of dominant bodies for WHsteps (default: 1)
+    double dt_frac;                 ///< Fraction of the dynamical time not to be exceeded in one step. Used to calculate dcrit.
+    double** dcrit;                 ///< Critical radii for each particle and each shell
+    unsigned int recalculate_dcrit_this_timestep;  ///< Relaculate critical radii in next timestep
+    unsigned int safe_mode;         ///< If set to 1 (default) pre/post processors are applied at each step
+    unsigned int Nmaxshellused;     ///< Used for debugging only 
+    unsigned int** map;             ///< Internal variable to map from from shell to global particle index 
+    unsigned int* inshell;          ///< from global to shell
+    unsigned int allocatedN;        ///< Allocated memory for various internal variables. 
+    unsigned int* shellN;           ///< Number of particles in each shell.
+    unsigned int* shellN_active;    ///< Number of active particles in each shell. 
+    unsigned int current_shell;     ///< Internal variable used in gravity routine only.
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
-    unsigned int collisions_N; 
-    unsigned int N_dominant;
+    unsigned int collisions_N;      ///< Internal variable to communicate to collision routine.
+    double (*L) (const struct reb_simulation* const r, double d, double dcrit, double fracin); ///< Switching function 
+    double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin); ///< Derivative of switching function 
 };
 
 

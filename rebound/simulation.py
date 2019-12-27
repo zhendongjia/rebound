@@ -2002,27 +2002,27 @@ class reb_simulation_integrator_mercurana(Structure):
             else:
                 raise ValueError("Warning. EOS type %s not found."%value)
     _fields_ = [
-                ("L", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
-                ("dLdr", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
-                ("recalculate_dcrit_this_timestep", c_uint),
                 ("_phi0", c_uint),
                 ("_phi1", c_uint),
-                ("whsteps", c_uint),
-                ("safe_mode", c_uint),
-                ("dt_frac", c_double),
                 ("Nmaxshells", c_uint),
                 ("n", c_uint),
+                ("whsteps", c_uint),
+                ("N_dominant", c_uint),
+                ("dt_frac", c_double),
+                ("_dcrit", POINTER(POINTER(c_double))),
+                ("recalculate_dcrit_this_timestep", c_uint),
+                ("safe_mode", c_uint),
+                ("Nmaxshellused", c_uint),
                 ("_map", POINTER(c_uint)),
                 ("_inshell", POINTER(c_uint)),
-                ("_dcrit", POINTER(POINTER(c_double))),
                 ("_allocatedN", c_uint),
                 ("_shellN", POINTER(c_uint)),
                 ("_shellN_active", POINTER(c_uint)),
-                ("Nmaxshellused", c_uint),
                 ("_current_shell", c_uint),
                 ("_is_synchronized", c_uint),
                 ("_collisions_N", c_uint),
-                ("N_dominant", c_uint),
+                ("L", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
+                ("dLdr", CFUNCTYPE(c_double, POINTER(Simulation), c_double, c_double)),
                 ]
 
 class reb_simulation_integrator_mercurius(Structure):

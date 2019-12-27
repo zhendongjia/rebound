@@ -638,7 +638,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.L = NULL;
     r->ri_mercurana.dLdr = NULL;
     r->ri_mercurana.collisions_N = 0;
-    r->ri_mercurana.N_dominant = 0;
+    r->ri_mercurana.N_dominant = 1;
     
 }
 
