@@ -30,6 +30,8 @@ void reb_integrator_eos_synchronize(struct reb_simulation* r);    ///< Internal 
 void reb_integrator_eos_reset(struct reb_simulation* r);          ///< Internal function used to call a specific integrator
 
 void reb_integrator_eos_step(struct reb_simulation* const r, double dt, double dtfacfirst, double dtfaclast, int shell, enum REB_EOS_TYPE type, void (*drift_step)(struct reb_simulation* const r, double a, unsigned int shell), void (*interaction_step)(struct reb_simulation* const r, double y, double v, unsigned int shell));
+void reb_integrator_eos_preprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type, void (*drift_step)(struct reb_simulation* const r, double a, unsigned int shell), void (*interaction_step)(struct reb_simulation* const r, double y, double v, unsigned int shell));
+void reb_integrator_eos_postprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type, void (*drift_step)(struct reb_simulation* const r, double a, unsigned int shell), void (*interaction_step)(struct reb_simulation* const r, double y, double v, unsigned int shell));
 
 extern const double reb_eos_lf4_a;
 extern const double reb_eos_lf6_a[5];

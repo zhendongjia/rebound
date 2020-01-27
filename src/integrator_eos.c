@@ -307,7 +307,7 @@ static inline void reb_integrator_eos_interaction_shell1(struct reb_simulation* 
     }
 
 }
-static inline void reb_integrator_eos_preprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type, void (*drift_step)(struct reb_simulation* const r, double a, unsigned int shell), void (*interaction_step)(struct reb_simulation* const r, double y, double v, unsigned int shell)){
+void reb_integrator_eos_preprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type, void (*drift_step)(struct reb_simulation* const r, double a, unsigned int shell), void (*interaction_step)(struct reb_simulation* const r, double y, double v, unsigned int shell)){
     switch(type){
         case REB_EOS_PMLF6:
             for (int i=0;i<6;i++){
@@ -331,7 +331,7 @@ static inline void reb_integrator_eos_preprocessor(struct reb_simulation* const 
             break;
     }
 }
-static inline void reb_integrator_eos_postprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type, void (*drift_step)(struct reb_simulation* const r, double a, unsigned int shell), void (*interaction_step)(struct reb_simulation* const r, double y, double v, unsigned int shell)){
+void reb_integrator_eos_postprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type, void (*drift_step)(struct reb_simulation* const r, double a, unsigned int shell), void (*interaction_step)(struct reb_simulation* const r, double y, double v, unsigned int shell)){
     switch(type){
         case REB_EOS_PMLF6:
             for (int i=5;i>=0;i--){
