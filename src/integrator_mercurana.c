@@ -221,9 +221,9 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     }
 }
 
-static void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, double dt, int shell, enum REB_EOS_TYPE type);
-static void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, double dt, int shell, enum REB_EOS_TYPE type);
-static void reb_integrator_mercurana_step(struct reb_simulation* const r, double dt, int shell, enum REB_EOS_TYPE type);
+static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, unsigned int shell);
+static void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type);
+static void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type);
     
 static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
@@ -267,14 +267,14 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
             const double as = a/n;
             reb_integrator_mercurana_preprocessor(r, as, shell+1, rim->phi1);
             for (int i=0;i<n;i++){
-                reb_integrator_mercurana_step(r, as, shell+1, rim->phi1);
+                reb_integrator_eos_step(r, as, 1., 1., shell+1, rim->phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
             }
             reb_integrator_mercurana_postprocessor(r, as, shell+1, rim->phi1);
         }
     }
 }
 
-static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, int shell){
+static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, unsigned int shell){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     struct reb_particle* const particles = r->particles;
     r->gravity = REB_GRAVITY_MERCURANA; // needed here again for SimulationArchive
@@ -302,7 +302,7 @@ static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, 
     }
 }
 
-static void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, double dt, int shell, enum REB_EOS_TYPE type){
+static void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type){
     switch(type){
         case REB_EOS_PMLF6:
             for (int i=0;i<6;i++){
@@ -326,7 +326,7 @@ static void reb_integrator_mercurana_preprocessor(struct reb_simulation* const r
             break;
     }
 }
-static void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, double dt, int shell, enum REB_EOS_TYPE type){
+static void reb_integrator_mercurana_postprocessor(struct reb_simulation* const r, double dt, unsigned int shell, enum REB_EOS_TYPE type){
     switch(type){
         case REB_EOS_PMLF6:
             for (int i=5;i>=0;i--){
@@ -347,130 +347,6 @@ static void reb_integrator_mercurana_postprocessor(struct reb_simulation* const 
             }
             break;
         default:
-            break;
-    }
-}
-
-static void reb_integrator_mercurana_step(struct reb_simulation* const r, double dt, int shell, enum REB_EOS_TYPE type){
-    switch(type){
-        case REB_EOS_LF:
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt, 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell);
-            break;
-        case REB_EOS_LF4:
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf4_a, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*2.*reb_eos_lf4_a, 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(0.5-reb_eos_lf4_a), shell);
-            reb_integrator_mercurana_interaction_step(r, dt*(1.-4.*reb_eos_lf4_a), 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(0.5-reb_eos_lf4_a), shell);
-            reb_integrator_mercurana_interaction_step(r, dt*2.*reb_eos_lf4_a, 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf4_a, shell);
-            break;
-        case REB_EOS_LF6:
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf6_a[0]*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[0], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf6_a[0]+reb_eos_lf6_a[1])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[1], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf6_a[1]+reb_eos_lf6_a[2])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[2], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf6_a[2]+reb_eos_lf6_a[3])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[3], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf6_a[3]+reb_eos_lf6_a[4])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[4], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf6_a[3]+reb_eos_lf6_a[4])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[3], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf6_a[2]+reb_eos_lf6_a[3])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[2], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf6_a[1]+reb_eos_lf6_a[2])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[1], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf6_a[0]+reb_eos_lf6_a[1])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf6_a[0], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf6_a[0]*0.5, shell);
-            break; 
-        case REB_EOS_LF8: 
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf8_a[0]*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[0], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[0]+reb_eos_lf8_a[1])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[1], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[1]+reb_eos_lf8_a[2])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[2], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[2]+reb_eos_lf8_a[3])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[3], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[3]+reb_eos_lf8_a[4])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[4], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[4]+reb_eos_lf8_a[5])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[5], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[5]+reb_eos_lf8_a[6])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[6], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[6]+reb_eos_lf8_a[7])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[7], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[7]+reb_eos_lf8_a[8])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[8], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[7]+reb_eos_lf8_a[8])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[7], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[6]+reb_eos_lf8_a[7])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[6], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[5]+reb_eos_lf8_a[6])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[5], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[4]+reb_eos_lf8_a[5])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[4], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[3]+reb_eos_lf8_a[4])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[3], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[2]+reb_eos_lf8_a[3])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[2], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[1]+reb_eos_lf8_a[2])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[1], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*(reb_eos_lf8_a[0]+reb_eos_lf8_a[1])*0.5, shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_lf8_a[0], 0., shell);
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf8_a[0]*0.5, shell);
-            break;
-        case REB_EOS_LF4_2: 
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf4_2_a, shell); 
-            reb_integrator_mercurana_interaction_step(r, dt*0.5, 0., shell); 
-            reb_integrator_mercurana_drift_step(r, dt*(1.-2.*reb_eos_lf4_2_a), shell);
-            reb_integrator_mercurana_interaction_step(r, dt*0.5, 0., shell); 
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf4_2_a, shell); 
-            break;
-        case REB_EOS_LF8_6_4:
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf8_6_4_a[0], shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_lf8_6_4_b[0]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, reb_eos_lf8_6_4_a[1]*dt, shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_lf8_6_4_b[1]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, reb_eos_lf8_6_4_a[2]*dt, shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_lf8_6_4_b[2]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, reb_eos_lf8_6_4_a[3]*dt, shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_lf8_6_4_b[3]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, reb_eos_lf8_6_4_a[3]*dt, shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_lf8_6_4_b[2]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, reb_eos_lf8_6_4_a[2]*dt, shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_lf8_6_4_b[1]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, reb_eos_lf8_6_4_a[1]*dt, shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_lf8_6_4_b[0]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_lf8_6_4_a[0], shell);   
-            break;
-        case REB_EOS_PMLF4:
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell); 
-            reb_integrator_mercurana_interaction_step(r, dt, dt*dt*dt/24., shell); 
-            reb_integrator_mercurana_drift_step(r, dt*0.5, shell); 
-            break;
-        case REB_EOS_PMLF6:
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_pmlf6_a[0], shell); 
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_pmlf6_b[0], dt*dt*dt*reb_eos_pmlf6_c[0], shell); 
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_pmlf6_a[1], shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_pmlf6_b[1], dt*dt*dt*reb_eos_pmlf6_c[1], shell); 
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_pmlf6_a[1], shell);
-            reb_integrator_mercurana_interaction_step(r, dt*reb_eos_pmlf6_b[0], dt*dt*dt*reb_eos_pmlf6_c[0], shell);
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_pmlf6_a[0], shell); 
-            break;
-        case REB_EOS_PLF7_6_4:
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_plf7_6_4_a[0], shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_plf7_6_4_b[0]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, reb_eos_plf7_6_4_a[1]*dt, shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_plf7_6_4_b[1]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, reb_eos_plf7_6_4_a[1]*dt, shell);   
-            reb_integrator_mercurana_interaction_step(r, reb_eos_plf7_6_4_b[0]*dt,0, shell);
-            reb_integrator_mercurana_drift_step(r, dt*reb_eos_plf7_6_4_a[0], shell);   
             break;
     }
 }
@@ -615,7 +491,7 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
     if (rim->is_synchronized){
         reb_integrator_mercurana_preprocessor(r, r->dt, 0, rim->phi0);
     }
-    reb_integrator_mercurana_step(r, r->dt, 0, rim->phi0);
+    reb_integrator_eos_step(r, r->dt, 1., 1., 0, rim->phi0, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
 
     rim->is_synchronized = 0;
     if (rim->safe_mode){
