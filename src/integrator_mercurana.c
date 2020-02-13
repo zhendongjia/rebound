@@ -145,7 +145,7 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     unsigned int* map = rim->map[shell];
 
     // Put all particles in current shell by default
-    if (rim->whsteps>0 && shell==1){
+    if (rim->n0>0 && shell==1){
         for (int i=0; i<r->N; i++){ 
             // Set inshell to 1 for *all* particles
             // Needed to ensure all particles drift in shell 1 or deeper
@@ -229,7 +229,7 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
     reb_mercurana_encounter_predict(r, a, shell);
     unsigned int* map = rim->map[shell];
     unsigned int N = rim->shellN[shell];
-    if (shell==1 && rim->whsteps>0){
+    if (shell==1 && rim->n0>0){
         // Note: loop over *all* particles
         for (int i=0;i<r->N;i++){  
             // do not advance particles in subshells
@@ -240,8 +240,8 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
             }
         }
     }
-    // Note: no drift happens for shell==0 && whsteps>0
-    if (shell>1 || rim->whsteps==0){
+    // Note: no drift happens for shell==0 && n0>0
+    if (shell>1 || rim->n0==0){
         for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
             int mi = map[i]; 
             // only advance in-shell particles
@@ -255,12 +255,12 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
     if (shell+1<rim->Nmaxshells){ // does sub-shell exist?
         // Are there particles in it?
         // Is it a whstep?
-        if (rim->shellN[shell+1]>0 || (shell==0 && rim->whsteps>0)){
+        if (rim->shellN[shell+1]>0 || (shell==0 && rim->n0>0)){
             rim->Nmaxshellused = MAX(rim->Nmaxshellused, shell+2);
             // advance all sub-shell particles
-            unsigned int n = rim->n;
-            if (rim->whsteps>0 && shell==0){
-                n = rim->whsteps; // use different number of substeps for first shell if WHsplitting is used
+            unsigned int n = rim->n1;
+            if (rim->n0>0 && shell==0){
+                n = rim->n0; // use different number of substeps for first shell if WHsplitting is used
             }
             const double as = a/n;
             reb_integrator_eos_preprocessor(r, as, shell+1, rim->phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
@@ -281,7 +281,7 @@ static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, 
     if (v!=0.){
         reb_calculate_and_apply_jerk(r,v);
     }
-    if (rim->whsteps>0 && shell==1){
+    if (rim->n0>0 && shell==1){
         // loop over *all* particles
         for (int i=0;i<r->N;i++){ // Apply acceleration. Jerk already applied.
             particles[i].vx += y*particles[i].ax;
@@ -306,10 +306,11 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     }
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     if (rim->Nmaxshells<=0){
-        reb_warning(r,"Nmaxshells needs to be larger than 0.");
+        reb_error(r,"Nmaxshells needs to be larger than 0.");
+        return;
     }
-    if (rim->Nmaxshells<=1 && rim->whsteps>0){
-        reb_warning(r,"Nmaxshells needs to be larger than 1 if whsteps are used.");
+    if (rim->Nmaxshells<=1 && rim->n0>0){
+        reb_warning(r,"Nmaxshells needs to be larger than 1 if n0 are used.");
     }
     
     const int N = r->N;
@@ -402,9 +403,9 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
                     break;
             }
             dt_shell *= longest_drift_step_in_shell;
-            unsigned int n = rim->n;
-            if (rim->whsteps>0 && s==0){
-                n = rim->whsteps; // use different number of substeps for first shell if WHsplitting is used
+            unsigned int n = rim->n1;
+            if (rim->n0>0 && s==0){
+                n = rim->n0; // use different number of substeps for first shell if WHsplitting is used
             }
             dt_shell /= n;
             // Initialize shell numbers to zero (not needed, but helps debugging)
@@ -485,8 +486,8 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     
     r->ri_mercurana.phi0 = REB_EOS_LF;
     r->ri_mercurana.phi1 = REB_EOS_LF;
-    r->ri_mercurana.n = 10;
-    r->ri_mercurana.whsteps = 0;
+    r->ri_mercurana.n0 = 0;
+    r->ri_mercurana.n1 = 10;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.dt_frac = 0.1;
     r->ri_mercurana.Nmaxshells = 10;

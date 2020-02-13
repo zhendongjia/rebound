@@ -1961,6 +1961,10 @@ class reb_simulation_integrator_mercurana(Structure):
     >>> sim.ri_mercurana.hillfac = 3.
 
     """
+    def __setattr__(self, key, value):
+        if not hasattr(self, key):
+            raise AttributeError( "%r is not a known attribute." % key)
+        object.__setattr__(self, key, value)
     @property
     def phi0(self):
         """
@@ -2004,9 +2008,9 @@ class reb_simulation_integrator_mercurana(Structure):
     _fields_ = [
                 ("_phi0", c_uint),
                 ("_phi1", c_uint),
+                ("n0", c_uint),
+                ("n1", c_uint),
                 ("Nmaxshells", c_uint),
-                ("n", c_uint),
-                ("whsteps", c_uint),
                 ("N_dominant", c_uint),
                 ("dt_frac", c_double),
                 ("_dcrit", POINTER(POINTER(c_double))),

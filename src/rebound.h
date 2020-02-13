@@ -477,9 +477,9 @@ struct reb_simulation_integrator_eos {
 struct reb_simulation_integrator_mercurana {
     enum REB_EOS_TYPE phi0;         ///< Outer opperator splitting scheme
     enum REB_EOS_TYPE phi1;         ///< Inner opperator splitting scheme
+    unsigned int n0;                ///< Number of WHsteps in shell 1 (default 0)
+    unsigned int n1;                ///< Number of steps per shell (except first shell if n0>0)
     unsigned int Nmaxshells;        ///< Maximum number of shells
-    unsigned int n;                 ///< Number of steps per shell (except first shell if whsteps>0)
-    unsigned int whsteps;           ///< Number of WHsteps in shell 1 (default 0)
     unsigned int N_dominant;        ///< Number of dominant bodies for WHsteps (default: 1)
     double dt_frac;                 ///< Fraction of the dynamical time not to be exceeded in one step. Used to calculate dcrit.
     double** dcrit;                 ///< Critical radii for each particle and each shell

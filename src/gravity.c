@@ -626,7 +626,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
 
             double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
             // Normal force calculation 
-            if (rim->whsteps>0 && shell==1){
+            if (rim->n0>0 && shell==1){
                 // Calculate planet star interactions here, is O(N*N_dominant)
                 // Note: this part uses the global N and N_active!
                 for (int i=0; i<N; i++){
@@ -705,7 +705,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                 // Planet star interactions are not in shell 0
                 // and treated separately in shell 1
                 const int mi = map[i];
-                if (rim->whsteps>0 && shell<=1 && mi<N_dominant) continue;
+                if (rim->n0>0 && shell<=1 && mi<N_dominant) continue;
                 for (int j=i+1; j<N_active_shell; j++){
                     const int mj = map[j];
                     const double dx = particles[mi].x - particles[mj].x;
@@ -741,7 +741,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                 const int mi = map[i];
                 for (int j=0; j<N_active_shell; j++){
                     const int mj = map[j];
-                    if (rim->whsteps>0 && shell<=1 && mj<N_dominant) continue; 
+                    if (rim->n0>0 && shell<=1 && mj<N_dominant) continue; 
                     const double dx = particles[mi].x - particles[mj].x;
                     const double dy = particles[mi].y - particles[mj].y;
                     const double dz = particles[mi].z - particles[mj].z;
@@ -1175,7 +1175,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                 double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
                 double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.dLdr;
                 
-                if (rim->whsteps>0 && shell==1){
+                if (rim->n0>0 && shell==1){
                     // Calculate planet star interactions here, is O(N)
                     // Note: this part uses the global N and N_active!
                     const int N = r->N;
@@ -1274,7 +1274,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                 const int N_active_shell = rim->shellN_active[shell];
                 for (int i=0; i<N_active_shell; i++){
                     const int mi = map[i];
-                    if (rim->whsteps>0 && shell<=1 && mi<N_dominant) continue;
+                    if (rim->n0>0 && shell<=1 && mi<N_dominant) continue;
                     if (reb_sigint) return;
                     for (int j=i+1; j<N_active_shell; j++){
                         const int mj = map[j];
@@ -1328,7 +1328,7 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
                     const int mi = map[i];
                     for (int j=0; j<N_active_shell; j++){
                         const int mj = map[j];
-                        if (rim->whsteps>0 && shell<=1 && mj<N_dominant) continue;
+                        if (rim->n0>0 && shell<=1 && mj<N_dominant) continue;
                         const double dx = particles[mj].x - particles[mi].x; 
                         const double dy = particles[mj].y - particles[mi].y; 
                         const double dz = particles[mj].z - particles[mi].z; 
