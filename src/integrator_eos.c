@@ -501,6 +501,9 @@ void reb_integrator_eos_step(struct reb_simulation* const r, double dt, double d
             interaction_step(r, reb_eos_plf7_6_4_b[0]*dt,0, shell);
             if (dtfaclast) drift_step(r, dt*reb_eos_plf7_6_4_a[0]*dtfaclast, shell);   
             break;
+        case REB_EOS_NONE:
+            reb_error(r,"REB_EOS_NONE type encountered.");
+            break;
     }
 }
 
@@ -573,6 +576,9 @@ void reb_integrator_eos_synchronize(struct reb_simulation* r){
                 break;
             case REB_EOS_LF8: 
                 reb_integrator_eos_drift_shell0(r, dt*reb_eos_lf8_a[0]*0.5, 0);
+                break;
+            case REB_EOS_NONE:
+                reb_error(r,"REB_EOS_NONE type encountered.");
                 break;
         }
         reb_integrator_eos_postprocessor(r, r->dt, 0, reos->phi0, reb_integrator_eos_drift_shell0, reb_integrator_eos_interaction_shell0);
