@@ -371,9 +371,9 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         double dt_shell = r->dt;
         for (int s=0;s<rim->Nmaxshells;s++){ // innermost shell has no dcrit
             for (int i=0;i<N;i++){
-                // distance where dt/dt_frac is equal to dynamical timescale
+                // distance where dt/kappa is equal to dynamical timescale
                 // Note: particle radius not needed here.
-                double T = dt_shell/(rim->dt_frac*2.*M_PI);
+                double T = dt_shell/(rim->kappa*2.*M_PI);
                 double dcrit = sqrt3(T*T*r->G*r->particles[i].m);
                 rim->dcrit[s][i] = dcrit;
             }
@@ -505,7 +505,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.n0 = 2;
     r->ri_mercurana.n1 = 0;
     r->ri_mercurana.safe_mode = 1;
-    r->ri_mercurana.dt_frac = 0.1;
+    r->ri_mercurana.kappa = 0.1;
     r->ri_mercurana.Nmaxshells = 10;
     r->ri_mercurana.Nmaxshellused = 1;
     r->ri_mercurana.recalculate_dcrit_this_timestep = 0;

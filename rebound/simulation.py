@@ -2012,7 +2012,7 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("n1", c_uint),
                 ("Nmaxshells", c_uint),
                 ("N_dominant", c_uint),
-                ("dt_frac", c_double),
+                ("kappa", c_double),
                 ("_dcrit", POINTER(POINTER(c_double))),
                 ("recalculate_dcrit_this_timestep", c_uint),
                 ("safe_mode", c_uint),

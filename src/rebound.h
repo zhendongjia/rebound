@@ -482,7 +482,7 @@ struct reb_simulation_integrator_mercurana {
     unsigned int n1;                ///< Number of steps per shell (except first shell if n0>0)
     unsigned int Nmaxshells;        ///< Maximum number of shells
     unsigned int N_dominant;        ///< Number of dominant bodies for WHsteps (default: 1)
-    double dt_frac;                 ///< Fraction of the dynamical time not to be exceeded in one step. Used to calculate dcrit.
+    double kappa;                   ///< Fraction of the dynamical time not to be exceeded in one step. Used to calculate dcrit.
     double** dcrit;                 ///< Critical radii for each particle and each shell
     unsigned int recalculate_dcrit_this_timestep;  ///< Relaculate critical radii in next timestep
     unsigned int safe_mode;         ///< If set to 1 (default) pre/post processors are applied at each step
