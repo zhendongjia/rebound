@@ -224,6 +224,9 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
 static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, unsigned int shell);
     
 static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
+#ifndef OPENMP
+    if (reb_sigint) return;
+#endif
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     struct reb_particle* restrict const particles = r->particles;
     reb_mercurana_encounter_predict(r, a, shell);
