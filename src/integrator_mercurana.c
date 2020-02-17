@@ -451,6 +451,9 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
 
 void reb_integrator_mercurana_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    if (rim->allocatedN<r->N){ // Error occured earlier.
+        return;
+    }
     rim->shellN[0] = r->N;
     rim->shellN_active[0] = r->N_active==-1?r->N:r->N_active;
 

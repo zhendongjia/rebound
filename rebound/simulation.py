@@ -44,6 +44,7 @@ EOS_TYPES = {
         "plf7_6_4": 0x06,
         "pmlf4": 0x07,
         "pmlf6": 0x08,
+        "none": 0xff,
         }
 
 # Format: Majorerror, id, message

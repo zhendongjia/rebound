@@ -639,7 +639,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                         const double dx = particles[i].x - particles[j].x;
                         const double dy = particles[i].y - particles[j].y;
                         const double dz = particles[i].z - particles[j].z;
-                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                        const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);
                         const double dc_c = dcrit_c[i]+dcrit_c[j];
                         double Lsum = 0.;
                         if (dcrit_i){
@@ -665,7 +665,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                         const double dx = particles[i].x - particles[j].x;
                         const double dy = particles[i].y - particles[j].y;
                         const double dz = particles[i].z - particles[j].z;
-                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                        const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);
                         const double dc_c = dcrit_c[i]+dcrit_c[j];
                         double Lsum = 0.;
                         if (dcrit_i){
@@ -711,7 +711,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     const double dx = particles[mi].x - particles[mj].x;
                     const double dy = particles[mi].y - particles[mj].y;
                     const double dz = particles[mi].z - particles[mj].z;
-                    const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                    const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);
                     const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                     double Lsum = 0.;
                     if (dcrit_o){
@@ -745,7 +745,7 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     const double dx = particles[mi].x - particles[mj].x;
                     const double dy = particles[mi].y - particles[mj].y;
                     const double dz = particles[mi].z - particles[mj].z;
-                    const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+                    const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);
                     const double dc_c = dcrit_c[mi]+dcrit_c[mj];
                     double Lsum = 0.;
                     if (dcrit_o){
