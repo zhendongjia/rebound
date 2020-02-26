@@ -590,10 +590,11 @@ void reb_init_simulation(struct reb_simulation* r){
     // ********** MERCURANA
     r->ri_mercurana.phi0 = REB_EOS_LF;
     r->ri_mercurana.phi1 = REB_EOS_NONE;
-    r->ri_mercurana.n1 = 2;
-    r->ri_mercurana.n0 = 0;
+    r->ri_mercurana.n0 = 2;
+    r->ri_mercurana.n1 = 0;
+    r->ri_mercurana.kappa0 = 0.1;
+    r->ri_mercurana.kappa1 = 0;
     r->ri_mercurana.safe_mode = 1;
-    r->ri_mercurana.kappa = 0.1;
     r->ri_mercurana.Nmaxshells = 10;
     r->ri_mercurana.Nmaxshellused = 1;
     r->ri_mercurana.recalculate_dcrit_this_timestep = 0;

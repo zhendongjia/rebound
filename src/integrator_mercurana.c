@@ -313,8 +313,12 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         reb_error(r,"Nmaxshells needs to be larger than 0.");
         return;
     }
-    if (rim->Nmaxshells==1 && rim->n0 && rim->n1){
-        reb_error(r,"Nmaxshells>=2 is required if both n0 and n1 are greater than 0.");
+    if (rim->Nmaxshells==1 && rim->n0 ){
+        reb_error(r,"Nmaxshells>=2 is required if n0 is greater than 0.");
+        return;
+    }
+    if (rim->Nmaxshells==2 && rim->n1){
+        reb_error(r,"Nmaxshells>=3 is required if n1 is greater than 0.");
         return;
     }
     if (rim->Nmaxshells==1 && rim->phi1!=REB_EOS_NONE){
@@ -323,6 +327,10 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     
     if (rim->Nmaxshells==1 && rim->N_dominant){
         reb_error(r,"Nmaxshells>=2 is required if N_dominant is used.");
+        return;
+    }
+    if (rim->Nmaxshells>1 && rim->kappa0==0.){
+        reb_error(r,"kappa0>0 is required if Nmaxshells>1.");
         return;
     }
     
@@ -376,7 +384,11 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
             for (int i=0;i<N;i++){
                 // distance where dt/kappa is equal to dynamical timescale
                 // Note: particle radius not needed here.
-                double T = dt_shell/(rim->kappa*2.*M_PI);
+                double kappa = rim->kappa0;
+                if (s>0 && rim->kappa1>0.){
+                    kappa = rim->kappa1;
+                }
+                double T = dt_shell/(kappa*2.*M_PI);
                 double dcrit = sqrt3(T*T*r->G*r->particles[i].m);
                 rim->dcrit[s][i] = dcrit;
             }
@@ -510,8 +522,9 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.phi1 = REB_EOS_NONE;
     r->ri_mercurana.n0 = 2;
     r->ri_mercurana.n1 = 0;
+    r->ri_mercurana.kappa0 = 0.1;
+    r->ri_mercurana.kappa1 = 0.;
     r->ri_mercurana.safe_mode = 1;
-    r->ri_mercurana.kappa = 0.1;
     r->ri_mercurana.Nmaxshells = 10;
     r->ri_mercurana.Nmaxshellused = 1;
     r->ri_mercurana.recalculate_dcrit_this_timestep = 0;

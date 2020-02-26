@@ -492,6 +492,11 @@ class Simulation(Structure):
     def __init__(self,filename=None,snapshot=None):
         self.save_messages = 1 # Warnings will be checked within python
     
+    def __setattr__(self, key, value):
+        if not hasattr(self, key):
+            raise AttributeError( "%r is not a known attribute of the Simulation object." % key)
+        object.__setattr__(self, key, value)
+    
     @classmethod
     def from_archive(cls, filename,snapshot=-1):
         """ rebound.Simulation.from_archive(filename,snapshot) is deprecated and will be removed in the futute. Use rebound.Simulation(filename,snapshot) instead """
@@ -2011,9 +2016,10 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("_phi1", c_uint),
                 ("n0", c_uint),
                 ("n1", c_uint),
+                ("kappa0", c_double),
+                ("kappa1", c_double),
                 ("Nmaxshells", c_uint),
                 ("N_dominant", c_uint),
-                ("kappa", c_double),
                 ("_dcrit", POINTER(POINTER(c_double))),
                 ("recalculate_dcrit_this_timestep", c_uint),
                 ("safe_mode", c_uint),
