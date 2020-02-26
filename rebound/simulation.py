@@ -1954,17 +1954,44 @@ class reb_simulation_integrator_eos(Structure):
 class reb_simulation_integrator_mercurana(Structure):
     """
     This class is an abstraction of the C-struct reb_simulation_integrator_mercurana.
-    It controls the behaviour of the MERCURANA integrator.  See Rein et al. (2019) 
+    It controls the behaviour of the MERCURANA integrator.  See Rein and Tamayo (2020) 
     for more details.
     
-    :ivar float hillfac:      
-        Switching radius in units of the hill radius.
+    :ivar str phi0:      
+        Opperator splitting scheme used in outermost shell.
+        For a list of available schemes run:
+
+        >>> from rebound.simulation import EOS_TYPES
+        >>> print(EOS_TYPES)
+
+    :ivar str phi1:      
+        Opperator splitting scheme for shells s>=1
+    :ivar int n0:      
+        Number of sub-steps to approximate drift step in shell 0
+    :ivar int n1:      
+        Number of sub-steps to approximate drift step in shells s>=1
+    :ivar float kappa0:      
+        Accuracy control (fraction of dynamical timescale not to be exceeded in timestep)
+    :ivar float kappa1:      
+        Accuracy control in shells s>=1 
+    :ivar int Nmaxshells:      
+        Maximum number of shells (default: 10)
+    :ivar int N_dominant:      
+        Number of dominant bodies (default: 0)
+    :ivar int safe_mode:      
+        If set to 1 (default) pre/post processors are applied before/after every step
+    :ivar int recalculate_dcrit_this_timeste:      
+        Relaculate critical radii at the beginning of the next timestep
 
     Example usage:
     
     >>> sim = rebound.Simulation()
     >>> sim.integrator = "mercurana"
-    >>> sim.ri_mercurana.hillfac = 3.
+    >>> sim.ri_mercurana.phi0 = "lf"
+    >>> sim.ri_mercurana.n0 = 10
+    >>> sim.ri_mercurana.phi1 = "lf"
+    >>> sim.ri_mercurana.n1 = 2
+    >>> sim.ri_mercurana.N_dominant = 1
 
     """
     def __setattr__(self, key, value):
@@ -2020,9 +2047,9 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("kappa1", c_double),
                 ("Nmaxshells", c_uint),
                 ("N_dominant", c_uint),
-                ("_dcrit", POINTER(POINTER(c_double))),
-                ("recalculate_dcrit_this_timestep", c_uint),
                 ("safe_mode", c_uint),
+                ("recalculate_dcrit_this_timestep", c_uint),
+                ("_dcrit", POINTER(POINTER(c_double))),
                 ("Nmaxshellused", c_uint),
                 ("_map", POINTER(c_uint)),
                 ("_inshell", POINTER(c_uint)),

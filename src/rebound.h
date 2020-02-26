@@ -476,17 +476,19 @@ struct reb_simulation_integrator_eos {
  * @brief This structure contains variables and pointer used by the MERCURANA integrator.
  */
 struct reb_simulation_integrator_mercurana {
-    enum REB_EOS_TYPE phi0;         ///< Outer opperator splitting scheme
-    enum REB_EOS_TYPE phi1;         ///< Inner opperator splitting scheme
-    unsigned int n0;                ///< Number of WHsteps in shell 1 (default 0)
-    unsigned int n1;                ///< Number of steps per shell (except first shell if n0>0)
-    double kappa0;                  ///< Fraction of the dynamical time not to be exceeded. Used to calculate dcrit of shell 0.
-    double kappa1;                  ///< Fraction of the dynamical time not to be exceeded. Used to calculate dcrit of inner shells.
-    unsigned int Nmaxshells;        ///< Maximum number of shells
-    unsigned int N_dominant;        ///< Number of dominant bodies for WHsteps (default: 1)
-    double** dcrit;                 ///< Critical radii for each particle and each shell
-    unsigned int recalculate_dcrit_this_timestep;  ///< Relaculate critical radii in next timestep
-    unsigned int safe_mode;         ///< If set to 1 (default) pre/post processors are applied at each step
+    enum REB_EOS_TYPE phi0;         ///< Opperator splitting scheme
+    enum REB_EOS_TYPE phi1;         ///< Opperator splitting scheme for shells s>=1
+    unsigned int n0;                ///< Number of sub-steps to approximate drift step in shell 0
+    unsigned int n1;                ///< Number of sub-steps to approximate drift step in shells s>=1
+    double kappa0;                  ///< Accuracy control (fraction of dynamical timescale not to be exceeded in timestep)
+    double kappa1;                  ///< Accuracy control in shells s>=1 
+    unsigned int Nmaxshells;        ///< Maximum number of shells (default: 10)
+    unsigned int N_dominant;        ///< Number of dominant bodies (default: 0)
+    unsigned int safe_mode;         ///< If set to 1 (default) pre/post processors are applied before/after every step
+    unsigned int recalculate_dcrit_this_timestep;  ///< Relaculate critical radii at the beginning of the next timestep
+
+    // The user does not need to change the following variables 
+    double** dcrit;                 ///< Critical radii for each particle and each shell (automatically calculated)
     unsigned int Nmaxshellused;     ///< Used for debugging only 
     unsigned int** map;             ///< Internal variable to map from from shell to global particle index 
     unsigned int* inshell;          ///< from global to shell
@@ -499,8 +501,6 @@ struct reb_simulation_integrator_mercurana {
     double (*L) (const struct reb_simulation* const r, double d, double dcrit, double fracin); ///< Switching function 
     double (*dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin); ///< Derivative of switching function 
 };
-
-
 
 
 /**
