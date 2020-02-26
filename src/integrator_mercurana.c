@@ -1,12 +1,12 @@
 /**
  * @file    integrator_mercurana.c
- * @brief   MERCURANA, a modified version of John Chambers' MERCURY algorithm
- *          using the IAS15 integrator and WHFast. It works with planet-planry
- *          collisions, test particles, and additional forces.
- * @author  Hanno Rein, Dan Tamayo
+ * @brief   MERCURANA is a symplectic multi-step method.
+ *          It is adaptive, can handle close encounters and works in complex
+ *          hierarchies.  
+ * @author  Hanno Rein, Daniel Tamayo
  * 
  * @section LICENSE
- * Copyright (c) 2019 Hanno Rein, Dan Tamayo
+ * Copyright (c) 2020 Hanno Rein, Daniel Tamayo
  *
  * This file is part of rebound.
  *
@@ -62,7 +62,7 @@ static double dfdy(double x){
     return exp(-1./x)/(x*x);
 }
 
-// Infinitely differentiable function.
+// Infinitely differentiable switching function.
 static double reb_integrator_mercurana_L_infinity(const struct reb_simulation* const r, double d, double ri, double ro){
     double y = (d-ri)/(ro-ri);
     if (y<0.){
@@ -74,7 +74,7 @@ static double reb_integrator_mercurana_L_infinity(const struct reb_simulation* c
     }
 }
 
-// Infinitely differentiable function.
+// First derivative of the infinitely differentiable switching function.
 static double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation* const r, double d, double ri, double ro){
     double y = (d-ri)/(ro-ri);
     double dydr = 1./(ro-ri);
@@ -90,6 +90,7 @@ static double reb_integrator_mercurana_dLdr_infinity(const struct reb_simulation
     }
 }
 
+// This function returns the closest approach between particles p1 and p2 during a drift step with length dt
 static double reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_particle p2, double dt){ 
     double dts = copysign(1.,dt); 
     dt = fabs(dt);
@@ -116,6 +117,8 @@ static double reb_mercurana_predict_rmin2(struct reb_particle p1, struct reb_par
     }
     return rmin2;
 }
+
+// This functions records a physical collision between particles i and j, to be resolved later.
 static void reb_mercurana_record_collision(struct reb_simulation* const r, unsigned int i, unsigned int j){
     struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
     if (r->collisions_allocatedN<=rim->collisions_N){
@@ -136,6 +139,7 @@ static void reb_mercurana_record_collision(struct reb_simulation* const r, unsig
     rim->collisions_N++;
 }
 
+// This function checks if there are any close encounters or physical collisions between particles in a given shell during a drift step of length dt. If a close encounter occures, particles are placed in deeper shells.
 static void reb_mercurana_encounter_predict(struct reb_simulation* const r, double dt, int shell){
     struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
     struct reb_particle* const particles = r->particles;
@@ -221,8 +225,38 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     }
 }
 
-static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, unsigned int shell);
-    
+// Main Kernel Operator: Interaction step. 
+// y = timestep for acceleration
+// v = timestep for jerk (0 if not used)
+static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, unsigned int shell){
+    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+    struct reb_particle* const particles = r->particles;
+    r->gravity = REB_GRAVITY_MERCURANA; // needed here again for SimulationArchive
+    rim->current_shell = shell;
+    reb_update_acceleration(r);
+    if (v!=0.){
+        reb_calculate_and_apply_jerk(r,v);
+    }
+    if (rim->N_dominant>0 && shell==1){
+        // loop over *all* particles
+        for (int i=0;i<r->N;i++){ // Apply acceleration. Jerk already applied.
+            particles[i].vx += y*particles[i].ax;
+            particles[i].vy += y*particles[i].ay;
+            particles[i].vz += y*particles[i].az;
+        }
+    }else{
+        const int N = rim->shellN[shell];
+        unsigned int* map = rim->map[shell];
+        for (int i=0;i<N;i++){ // Apply acceleration. Jerk already applied.
+            const int mi = map[i];
+            particles[mi].vx += y*particles[mi].ax;
+            particles[mi].vy += y*particles[mi].ay;
+            particles[mi].vz += y*particles[mi].az;
+        }
+    }
+}
+
+// Main Kernel Operator: Drift step. 
 static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, double a, unsigned int shell){
 #ifndef OPENMP
     if (reb_sigint) return;
@@ -276,34 +310,8 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
     }
 }
 
-static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, double y, double v, unsigned int shell){
-    struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-    struct reb_particle* const particles = r->particles;
-    r->gravity = REB_GRAVITY_MERCURANA; // needed here again for SimulationArchive
-    rim->current_shell = shell;
-    reb_update_acceleration(r);
-    if (v!=0.){
-        reb_calculate_and_apply_jerk(r,v);
-    }
-    if (rim->N_dominant>0 && shell==1){
-        // loop over *all* particles
-        for (int i=0;i<r->N;i++){ // Apply acceleration. Jerk already applied.
-            particles[i].vx += y*particles[i].ax;
-            particles[i].vy += y*particles[i].ay;
-            particles[i].vz += y*particles[i].az;
-        }
-    }else{
-        const int N = rim->shellN[shell];
-        unsigned int* map = rim->map[shell];
-        for (int i=0;i<N;i++){ // Apply acceleration. Jerk already applied.
-            const int mi = map[i];
-            particles[mi].vx += y*particles[mi].ax;
-            particles[mi].vy += y*particles[mi].ay;
-            particles[mi].vz += y*particles[mi].az;
-        }
-    }
-}
-
+// Part 1 only contains logic for setting up all the data structures. 
+// The actual integration is done in part 2.
 void reb_integrator_mercurana_part1(struct reb_simulation* r){
     if (r->var_config_N){
         reb_warning(r,"Mercurana does not work with variational equations.");
@@ -464,6 +472,7 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     }
 }
 
+// This routine performs one global timestep
 void reb_integrator_mercurana_part2(struct reb_simulation* const r){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     if (rim->allocatedN<r->N){ // Error occured earlier.
@@ -486,6 +495,7 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
     r->dt_last_done = r->dt;
 }
 
+// Apply post-processor to outermost splitting
 void reb_integrator_mercurana_synchronize(struct reb_simulation* r){
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     if (rim->is_synchronized == 0){
@@ -533,6 +543,5 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.dLdr = NULL;
     r->ri_mercurana.collisions_N = 0;
     r->ri_mercurana.N_dominant = 0;
-    
 }
 

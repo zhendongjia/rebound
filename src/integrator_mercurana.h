@@ -1,10 +1,10 @@
 /**
  * @file 	integrator_mercurana.h
  * @brief 	Interface for numerical particle integrator
- * @author 	Hanno Rein 
+ * @author 	Hanno Rein, Daniel Tamayo 
  * 
  * @section 	LICENSE
- * Copyright (c) 2017 Hanno Rein
+ * Copyright (c) 2020 Hanno Rein, Daniel Tamayo
  *
  * This file is part of rebound.
  *
