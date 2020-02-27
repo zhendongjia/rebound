@@ -491,10 +491,22 @@ class Simulation(Structure):
 
     def __init__(self,filename=None,snapshot=None):
         self.save_messages = 1 # Warnings will be checked within python
+        # The following need to be defined for attribute check
+        self.__dict__["_afp"] = None 
+        self.__dict__["_pretmp"] = None 
+        self.__dict__["_posttmp"] = None 
+        self.__dict__["_hb"] = None 
+        self.__dict__["_corfp"] = None 
+        self.__dict__["_colrfp"] = None 
+        self.__dict__["_fpa"] = None 
     
     def __setattr__(self, key, value):
-        if not hasattr(self, key):
-            raise AttributeError( "%r is not a known attribute of the Simulation object." % key)
+        attr = getattr(self.__class__, key, None)
+        _hasattr = hasattr(self, key)
+        # This double check if needed to catch both 
+        # instance variables and properties.
+        if attr is None and _hasattr == False:
+            raise AttributeError( "%r is not a known attribute/property of the Simulation object." % key)
         object.__setattr__(self, key, value)
     
     @classmethod
@@ -849,6 +861,7 @@ class Simulation(Structure):
         python function.
         """
         raise AttributeError("You can only set C function pointers from python.")
+    
     @post_timestep_modifications.setter
     def post_timestep_modifications(self, func):
         self._posttmp = AFF(func)
