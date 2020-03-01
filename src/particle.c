@@ -212,6 +212,9 @@ void reb_remove_all(struct reb_simulation* const r){
 }
 
 int reb_remove(struct reb_simulation* const r, int index, int keepSorted){
+    if(keepSorted==0 && index<r->N_active && r->N_active!=-1 && r->N_active!=r->N){
+		reb_warning(r, "Removing active particle. You might want to keep particles sorted. Check collision_resolve_keep_sorted.");
+    }
     if (r->integrator == REB_INTEGRATOR_MERCURANA){
         struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
         // First update map itself
@@ -255,6 +258,12 @@ int reb_remove(struct reb_simulation* const r, int index, int keepSorted){
             }else{
                 rim->dcrit[s][index] = rim->dcrit[s][r->N-1];
             }
+        }
+        if(keepSorted==0 && index<rim->N_dominant && rim->N_dominant!=0){
+            reb_warning(r, "Removing dominant particle. You might want to keep particles sorted. Check collision_resolve_keep_sorted.");
+        }
+        if(keepSorted==1 && index<rim->N_dominant && rim->N_dominant!=0){
+            rim->N_dominant--;
         }
     }    
     if (r->integrator == REB_INTEGRATOR_MERCURIUS){
