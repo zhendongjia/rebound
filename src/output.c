@@ -360,6 +360,16 @@ void reb_output_binary_to_stream(struct reb_simulation* r, char** bufp, size_t* 
     WRITE_FIELD(EOS_N,              &r->ri_eos.n,                       sizeof(unsigned int));
     WRITE_FIELD(EOS_SAFEMODE,       &r->ri_eos.safe_mode,               sizeof(unsigned int));
     WRITE_FIELD(EOS_ISSYNCHRON,     &r->ri_eos.is_synchronized,         sizeof(unsigned int));
+    WRITE_FIELD(MERCURANA_PHI0,     &r->ri_mercurana.phi0,              sizeof(unsigned int));
+    WRITE_FIELD(MERCURANA_PHI1,     &r->ri_mercurana.phi1,              sizeof(unsigned int));
+    WRITE_FIELD(MERCURANA_N0,       &r->ri_mercurana.n0,                sizeof(unsigned int));
+    WRITE_FIELD(MERCURANA_N1,       &r->ri_mercurana.n1,                sizeof(unsigned int));
+    WRITE_FIELD(MERCURANA_KAPPA0,   &r->ri_mercurana.kappa0,            sizeof(double));
+    WRITE_FIELD(MERCURANA_KAPPA1,   &r->ri_mercurana.kappa1,            sizeof(double));
+    WRITE_FIELD(MERCURANA_NMAXSHELLS, &r->ri_mercurana.Nmaxshells,      sizeof(unsigned int));
+    WRITE_FIELD(MERCURANA_SAFEMODE, &r->ri_mercurana.safe_mode,         sizeof(unsigned int));
+    WRITE_FIELD(MERCURANA_ISSYNCHRON, &r->ri_mercurana.is_synchronized, sizeof(unsigned int));
+    
     int functionpointersused = 0;
     if (r->coefficient_of_restitution ||
         r->collision_resolve ||
