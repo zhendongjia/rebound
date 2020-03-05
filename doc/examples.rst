@@ -48,6 +48,12 @@ If you are interested in simulating a planetary system in which there are many s
    ipython/EccentricComets
    ipython/PrimordialEarth
 
+The use of the adaptive/hybrid/symplectic MERCURANA integrator is shown in the following examples.
+
+.. toctree::
+   ipython/CloseEncounterWithMercurana
+   ipython/ComplexHierarchicalSystems
+
 Some more advanced topics are covered in the following examples.
 
 .. toctree::
