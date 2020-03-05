@@ -129,6 +129,32 @@ class TestMercurana(unittest.TestCase):
         self.assertEqual(sim.N_active,1)
         self.assertGreater(sim.ri_mercurana.Nmaxshellused,4)
         self.assertEqual(sim.particles[0].m,2)
+    
+    def test_restart(self):
+        sim = rebound.Simulation()
+        sim.add(m=1)
+        sim.add(m=1e-3,a=1)
+        sim.add(m=1e-3,a=1.14,f=-0.2)
+        sim.dt = 0.1
+        sim.move_to_com()
+        sim.integrator = "mercurana"
+        sim.ri_mercurana.Nmaxshells = 30
+        sim.ri_mercurana.N_dominant = 1
+        sim.ri_mercurana.n0=30
+        sim.ri_mercurana.kappa0 = 0.001
+        sim.integrate(50.)
+        sim.save("test.bin")
+        sim.integrate(100.)
+        sim2 = rebound.Simulation("test.bin")
+        sim2.integrate(100.)
+  
+
+        self.assertEqual(sim.ri_mercurana._dcrit[0][0],sim2.ri_mercurana._dcrit[0][0])
+        self.assertEqual(sim.ri_mercurana._dcrit[1][1],sim2.ri_mercurana._dcrit[1][1])
+        self.assertEqual(sim.t,sim2.t)
+        self.assertEqual(sim.particles[0].m,sim2.particles[0].m)
+        self.assertEqual(sim.particles[1].vx,sim2.particles[1].vx)
+        self.assertEqual(sim.particles[2].x,sim2.particles[2].x)
 
 if __name__ == "__main__":
     unittest.main()

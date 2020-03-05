@@ -369,6 +369,7 @@ void reb_output_binary_to_stream(struct reb_simulation* r, char** bufp, size_t* 
     WRITE_FIELD(MERCURANA_NMAXSHELLS, &r->ri_mercurana.Nmaxshells,      sizeof(unsigned int));
     WRITE_FIELD(MERCURANA_SAFEMODE, &r->ri_mercurana.safe_mode,         sizeof(unsigned int));
     WRITE_FIELD(MERCURANA_ISSYNCHRON, &r->ri_mercurana.is_synchronized, sizeof(unsigned int));
+    WRITE_FIELD(MERCURANA_NDOMINANT, &r->ri_mercurana.N_dominant,       sizeof(unsigned int));
     
     int functionpointersused = 0;
     if (r->coefficient_of_restitution ||

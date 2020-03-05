@@ -274,6 +274,7 @@ int reb_input_field(struct reb_simulation* r, FILE* inf, enum reb_input_binary_m
         CASE(MERCURANA_NMAXSHELLS, &r->ri_mercurana.Nmaxshells);
         CASE(MERCURANA_SAFEMODE, &r->ri_mercurana.safe_mode);
         CASE(MERCURANA_ISSYNCHRON, &r->ri_mercurana.is_synchronized);
+        CASE(MERCURANA_NDOMINANT, &r->ri_mercurana.N_dominant);
     
         // temporary solution for depreciated SABA k and corrector variables.
         // can be removed in future versions
