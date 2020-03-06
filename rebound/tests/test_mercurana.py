@@ -24,7 +24,7 @@ class TestMercurana(unittest.TestCase):
         sim2.ri_mercurana.kappa0 = 0.001
         sim2.integrate(50.)
         E1 = sim2.calculate_energy()
-        self.assertGreater(sim2.ri_mercurana.Nmaxshellused,10)
+        self.assertGreater(sim2.ri_mercurana.Nmaxshellsused,10)
         self.assertLess((abs((E1-E0)/E0)),1e-5)
    
         sim3.integrator = "mercurana"
@@ -34,7 +34,7 @@ class TestMercurana(unittest.TestCase):
         sim3.ri_mercurana.kappa0 = 0.001
         sim3.integrate(50.)
         E1 = sim3.calculate_energy()
-        self.assertGreater(sim3.ri_mercurana.Nmaxshellused,4)
+        self.assertGreater(sim3.ri_mercurana.Nmaxshellsused,4)
         self.assertLess((abs((E1-E0)/E0)),2e-8)
    
     def test_merge(self):
@@ -50,7 +50,7 @@ class TestMercurana(unittest.TestCase):
         sim.ri_mercurana.kappa0 = 0.001
         sim.integrate(10.)
         self.assertEqual(sim.N,1)
-        self.assertEqual(sim.ri_mercurana.Nmaxshellused,5)
+        self.assertEqual(sim.ri_mercurana.Nmaxshellsused,5)
         self.assertEqual(sim.particles[0].x,0)
         self.assertEqual(sim.particles[0].y,0)
         self.assertEqual(sim.particles[0].vx,0)
@@ -77,7 +77,7 @@ class TestMercurana(unittest.TestCase):
         E1 = sim.calculate_energy()
         self.assertLess(abs((E1-E0)/E0),1e-5)
         self.assertEqual(sim.N,2)
-        self.assertGreater(sim.ri_mercurana.Nmaxshellused,4)
+        self.assertGreater(sim.ri_mercurana.Nmaxshellsused,4)
         self.assertEqual(sim.particles[0].m,2)
     
     def test_merge_N_dominant(self):
@@ -102,7 +102,7 @@ class TestMercurana(unittest.TestCase):
         self.assertLess(abs((E1-E0)/E0),1e-5)
         self.assertEqual(sim.N,2)
         self.assertEqual(sim.ri_mercurana.N_dominant,1)
-        self.assertGreater(sim.ri_mercurana.Nmaxshellused,4)
+        self.assertGreater(sim.ri_mercurana.Nmaxshellsused,4)
         self.assertEqual(sim.particles[0].m,2)
     
     def test_merge_N_active(self):
@@ -127,7 +127,7 @@ class TestMercurana(unittest.TestCase):
         self.assertLess(abs((E1-E0)/E0),1e-5)
         self.assertEqual(sim.N,2)
         self.assertEqual(sim.N_active,1)
-        self.assertGreater(sim.ri_mercurana.Nmaxshellused,4)
+        self.assertGreater(sim.ri_mercurana.Nmaxshellsused,4)
         self.assertEqual(sim.particles[0].m,2)
     
     def test_restart(self):
