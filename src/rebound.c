@@ -596,7 +596,7 @@ void reb_init_simulation(struct reb_simulation* r){
     r->ri_mercurana.kappa1 = 0;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.Nmaxshells = 10;
-    r->ri_mercurana.Nmaxshellused = 1;
+    r->ri_mercurana.Nmaxshellsused = 1;
     r->ri_mercurana.recalculate_dcrit_this_timestep = 0;
     r->ri_mercurana.is_synchronized = 1;
     r->ri_mercurana.L = NULL;

@@ -293,7 +293,7 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
         // Are there particles in it?
         // Is it a whstep?
         if (rim->shellN[shell+1]>0 || (shell==0 && rim->N_dominant>0)){
-            rim->Nmaxshellused = MAX(rim->Nmaxshellused, shell+2);
+            rim->Nmaxshellsused = MAX(rim->Nmaxshellsused, shell+2);
             // advance all sub-shell particles
             unsigned int n = rim->n1?rim->n1:rim->n0;
             if (rim->n0>0 && shell==0){
@@ -536,7 +536,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.kappa1 = 0.;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.Nmaxshells = 10;
-    r->ri_mercurana.Nmaxshellused = 1;
+    r->ri_mercurana.Nmaxshellsused = 1;
     r->ri_mercurana.recalculate_dcrit_this_timestep = 0;
     r->ri_mercurana.is_synchronized = 1;
     r->ri_mercurana.L = NULL;

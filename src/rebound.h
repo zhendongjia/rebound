@@ -489,7 +489,7 @@ struct reb_simulation_integrator_mercurana {
 
     // The user does not need to change the following variables 
     double** dcrit;                 ///< Critical radii for each particle and each shell (automatically calculated)
-    unsigned int Nmaxshellused;     ///< Used for debugging only 
+    unsigned int Nmaxshellsused;     ///< Used for debugging only 
     unsigned int** map;             ///< Internal variable to map from from shell to global particle index 
     unsigned int* inshell;          ///< from global to shell
     unsigned int allocatedN;        ///< Allocated memory for various internal variables. 
