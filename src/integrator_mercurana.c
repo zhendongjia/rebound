@@ -300,12 +300,11 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
                 n = rim->n0; // use different number of substeps for first shell if WHsplitting is used
             }
             const double as = a/n;
-            enum REB_EOS_TYPE phi1 = rim->phi1==REB_EOS_NONE?rim->phi0:rim->phi1;
-            reb_integrator_eos_preprocessor(r, as, shell+1, phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
+            reb_integrator_eos_preprocessor(r, as, shell+1, rim->phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
             for (int i=0;i<n;i++){
-                reb_integrator_eos_step(r, as, 1., 1., shell+1, phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
+                reb_integrator_eos_step(r, as, 1., 1., shell+1, rim->phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
             }
-            reb_integrator_eos_postprocessor(r, as, shell+1, phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
+            reb_integrator_eos_postprocessor(r, as, shell+1, rim->phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
         }
     }
 }
@@ -329,10 +328,6 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         reb_error(r,"Nmaxshells>=3 is required if n1 is greater than 0.");
         return;
     }
-    if (rim->Nmaxshells==1 && rim->phi1!=REB_EOS_NONE){
-        reb_warning(r,"phi1 has been set but will never be called because Nmaxshells=1.");
-    }
-    
     if (rim->Nmaxshells==1 && rim->N_dominant){
         reb_error(r,"Nmaxshells>=2 is required if N_dominant is used.");
         return;
@@ -408,8 +403,7 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
             // - n=1 means the D in a DKDKD scheme is calculates using one sub-step of DKDKD (0.33*dt)
             // - n=2 means the D in a DKDKD scheme is calculated using two DKDKD sub-step (0.1666*dt each)
             double longest_drift_step_in_shell = 0.5; 
-            enum REB_EOS_TYPE phi1 = rim->phi1==REB_EOS_NONE?rim->phi0:rim->phi1;
-            enum REB_EOS_TYPE phi  = s==0?rim->phi0:phi1;
+            enum REB_EOS_TYPE phi  = s==0?rim->phi0:rim->phi1;
             switch(phi){
                 case REB_EOS_LF:
                 case REB_EOS_PMLF4:
@@ -434,10 +428,6 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
                     break;
                 case REB_EOS_PLF7_6_4:
                     longest_drift_step_in_shell = reb_eos_plf7_6_4_a[0];   
-                    break;
-                case REB_EOS_NONE:
-                    // Should not occur
-                    reb_error(r,"REB_EOS_NONE type encountered");
                     break;
             }
             dt_shell *= longest_drift_step_in_shell;
@@ -529,7 +519,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.shellN_active = NULL;
     
     r->ri_mercurana.phi0 = REB_EOS_LF;
-    r->ri_mercurana.phi1 = REB_EOS_NONE;
+    r->ri_mercurana.phi1 = REB_EOS_LF;
     r->ri_mercurana.n0 = 2;
     r->ri_mercurana.n1 = 0;
     r->ri_mercurana.kappa0 = 0.1;

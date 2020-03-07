@@ -589,7 +589,7 @@ void reb_init_simulation(struct reb_simulation* r){
     
     // ********** MERCURANA
     r->ri_mercurana.phi0 = REB_EOS_LF;
-    r->ri_mercurana.phi1 = REB_EOS_NONE;
+    r->ri_mercurana.phi1 = REB_EOS_LF;
     r->ri_mercurana.n0 = 2;
     r->ri_mercurana.n1 = 0;
     r->ri_mercurana.kappa0 = 0.1;

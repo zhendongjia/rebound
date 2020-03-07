@@ -457,7 +457,6 @@ enum REB_EOS_TYPE {
     REB_EOS_PLF7_6_4= 0x06, // generalized order (7,6,4), three force evaluations, pre- and post-processors
     REB_EOS_PMLF4 = 0x07,   // 4th order, one modified force evaluation, pre- and post-processors, Blanes et al. (1999)
     REB_EOS_PMLF6 = 0x08,   // 6th order, three modified force evaluations, pre- and post-processors, Blanes et al. (1999)
-    REB_EOS_NONE = 0xff,    // Dummy (if phi1 is set to REB_EOS_NONE, then phi1=phi0)
 };
 
 /**
