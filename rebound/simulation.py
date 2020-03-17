@@ -493,7 +493,7 @@ class Simulation(Structure):
     
     def __setattr__(self, key, value):
         functionpointers = ["_afp", "_pretmp", "_posttmp", "_hb", "_corfp", "_colrfp", "_fpa"]
-        functionpointers += ["_widgets", "visualization", "_dhbf", "_display_heartbeat"]
+        functionpointers += ["_widgets", "visualization", "_dhbf", "_display_heartbeat", "_extras_ref"]
         attr = getattr(self.__class__, key, None)
         # This double check if needed to catch both 
         # instance variables and properties.
