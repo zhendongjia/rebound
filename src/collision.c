@@ -681,7 +681,7 @@ int reb_collision_resolve_halt(struct reb_simulation* const r, struct reb_collis
 }
 
 int reb_collision_resolve_merge(struct reb_simulation* const r, struct reb_collision c){
-	if (r->particles[c.p1].lastcollision==r->t || r->particles[c.p2].lastcollision==r->t) return 0;
+	//if (r->particles[c.p1].lastcollision==r->t || r->particles[c.p2].lastcollision==r->t) return 0;
 
     // Every collision will cause two callbacks (with p1/p2 interchanged).
     // Always remove particle with larger index and merge into lower index particle.
@@ -749,7 +749,7 @@ int reb_collision_resolve_merge(struct reb_simulation* const r, struct reb_colli
     pi->z  = (pi->z*pi->m + pj->z*pj->m)*invmass;
     pi->m  = pi->m + pj->m;
     pi->r  = pow(pow(pi->r,3.)+pow(pj->r,3.),1./3.);
-    pi->lastcollision = r->t;
+    /////pi->lastcollision = r->t;
     
 
     // Keeping track of energy offst

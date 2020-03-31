@@ -190,6 +190,8 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                 rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
+                r->particles[mi].lastcollision = MIN(rmin2, r->particles[mi].lastcollision);
+                r->particles[mj].lastcollision = MIN(rmin2, r->particles[mj].lastcollision);
                 break; // only add particle i once
             }
 
@@ -210,6 +212,8 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                 rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
+                r->particles[mi].lastcollision = MIN(rmin2, r->particles[mi].lastcollision);
+                r->particles[mj].lastcollision = MIN(rmin2, r->particles[mj].lastcollision);
                 break; // only add particle i once
             }
         }
@@ -261,6 +265,13 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
 #ifndef OPENMP
     if (reb_sigint) return;
 #endif
+    {
+                //FILE* fp = fopen("/Users/rein/git/rebound/out.txt","a+");
+                //fprintf(fp,"%.60f %.60f ", r->particles[1].x, r->particles[1].y);
+                //fprintf(fp,"%.60f %.60f ", r->particles[1].vx, r->particles[1].vy);
+                //fprintf(fp,"%.60f %.60f %d \n", r->t, a, shell);
+                //fclose(fp);
+    }
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     struct reb_particle* restrict const particles = r->particles;
     reb_mercurana_encounter_predict(r, a, shell);
@@ -305,8 +316,17 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
                 reb_integrator_eos_step(r, as, 1., 1., shell+1, rim->phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
             }
             reb_integrator_eos_postprocessor(r, as, shell+1, rim->phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
+        }else{
+            r->t += a;
         }
+    }else{
+        r->t += a;
     }
+                //FILE* fp = fopen("/Users/rein/git/rebound/out.txt","a+");
+                //fprintf(fp,"%.60f %.60f ", r->particles[1].x, r->particles[1].y);
+                //fprintf(fp,"%.60f %.60f ", r->particles[1].vx, r->particles[1].vy);
+                //fprintf(fp,"%.60f %.60f %d \n", r->t, a, shell);
+                //fclose(fp);
 }
 
 // Part 1 only contains logic for setting up all the data structures. 
@@ -391,9 +411,15 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
                 if (s>0 && rim->kappa1>0.){
                     kappa = rim->kappa1;
                 }
-                double T = dt_shell/(kappa*2.*M_PI);
-                double dcrit = sqrt3(T*T*r->G*r->particles[i].m);
-                rim->dcrit[s][i] = dcrit;
+                double mu = r->G*r->particles[i].m;
+                //double d0 = sqrt3(r->dt*r->dt/rim->kappa0*mu);
+                //double dcrit = sqrt(sqrt(dt_shell*dt_shell*mu*d0/kappa));
+                //double dcrit = powf(dt_shell*dt_shell/rim->kappa0*mu,1./3.);
+                
+               // Idea: start from the inside! 
+                double dt0 = r->dt;//*powf(1./4., rim->Nmaxshells-1);
+                double d0 = sqrt3(dt0*dt0/rim->kappa0*mu/(4.*M_PI*M_PI));
+                rim->dcrit[s][i] = d0*powf(2.,-s);
             }
             // Definition: ??
             // - n=0 is not allowed
@@ -481,7 +507,7 @@ void reb_integrator_mercurana_part2(struct reb_simulation* const r){
         reb_integrator_mercurana_synchronize(r);
     }
 
-    r->t+=r->dt;
+    //r->t+=r->dt;
     r->dt_last_done = r->dt;
 }
 
