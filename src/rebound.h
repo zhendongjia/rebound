@@ -479,8 +479,7 @@ struct reb_simulation_integrator_mercurana {
     enum REB_EOS_TYPE phi1;         ///< Opperator splitting scheme for shells s>=1
     unsigned int n0;                ///< Number of sub-steps to approximate drift step in shell 0
     unsigned int n1;                ///< Number of sub-steps to approximate drift step in shells s>=1
-    double kappa0;                  ///< Accuracy control (fraction of dynamical timescale not to be exceeded in timestep)
-    double kappa1;                  ///< Accuracy control in shells s>=1 
+    double kappa;                  ///< Accuracy control (the smaller the better the accuracy)
     unsigned int Nmaxshells;        ///< Maximum number of shells (default: 10)
     unsigned int N_dominant;        ///< Number of dominant bodies (default: 0)
     unsigned int safe_mode;         ///< If set to 1 (default) pre/post processors are applied before/after every step
@@ -745,12 +744,11 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_MERCURANA_PHI1 = 154,
     REB_BINARY_FIELD_TYPE_MERCURANA_N0 = 155,
     REB_BINARY_FIELD_TYPE_MERCURANA_N1 = 156,
-    REB_BINARY_FIELD_TYPE_MERCURANA_KAPPA0 = 157,
-    REB_BINARY_FIELD_TYPE_MERCURANA_KAPPA1 = 158,
-    REB_BINARY_FIELD_TYPE_MERCURANA_NMAXSHELLS = 159,
-    REB_BINARY_FIELD_TYPE_MERCURANA_SAFEMODE = 160,
-    REB_BINARY_FIELD_TYPE_MERCURANA_ISSYNCHRON = 161,
-    REB_BINARY_FIELD_TYPE_MERCURANA_NDOMINANT = 162,
+    REB_BINARY_FIELD_TYPE_MERCURANA_KAPPA = 157,
+    REB_BINARY_FIELD_TYPE_MERCURANA_NMAXSHELLS = 158,
+    REB_BINARY_FIELD_TYPE_MERCURANA_SAFEMODE = 159,
+    REB_BINARY_FIELD_TYPE_MERCURANA_ISSYNCHRON = 160,
+    REB_BINARY_FIELD_TYPE_MERCURANA_NDOMINANT = 161,
 
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob

@@ -190,8 +190,8 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                 rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
-                r->particles[mi].lastcollision = MIN(rmin2, r->particles[mi].lastcollision);
-                r->particles[mj].lastcollision = MIN(rmin2, r->particles[mj].lastcollision);
+                r->particles[mi].lastcollision = MAX(shell+1, r->particles[mi].lastcollision);
+                r->particles[mj].lastcollision = MAX(shell+1, r->particles[mj].lastcollision);
                 break; // only add particle i once
             }
 
@@ -212,8 +212,8 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                 rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
-                r->particles[mi].lastcollision = MIN(rmin2, r->particles[mi].lastcollision);
-                r->particles[mj].lastcollision = MIN(rmin2, r->particles[mj].lastcollision);
+                r->particles[mi].lastcollision = MAX(shell+1, r->particles[mi].lastcollision);
+                r->particles[mj].lastcollision = MAX(shell+1, r->particles[mj].lastcollision);
                 break; // only add particle i once
             }
         }
@@ -352,8 +352,8 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         reb_error(r,"Nmaxshells>=2 is required if N_dominant is used.");
         return;
     }
-    if (rim->Nmaxshells>1 && rim->kappa0==0.){
-        reb_error(r,"kappa0>0 is required if Nmaxshells>1.");
+    if (rim->Nmaxshells>1 && rim->kappa<=0.){
+        reb_error(r,"kappa>0 is required if Nmaxshells>1.");
         return;
     }
     
@@ -407,18 +407,14 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
             for (int i=0;i<N;i++){
                 // distance where dt/kappa is equal to dynamical timescale
                 // Note: particle radius not needed here.
-                double kappa = rim->kappa0;
-                if (s>0 && rim->kappa1>0.){
-                    kappa = rim->kappa1;
-                }
                 double mu = r->G*r->particles[i].m;
-                //double d0 = sqrt3(r->dt*r->dt/rim->kappa0*mu);
+                //double d0 = sqrt3(r->dt*r->dt/rim->kappa*mu);
                 //double dcrit = sqrt(sqrt(dt_shell*dt_shell*mu*d0/kappa));
-                //double dcrit = powf(dt_shell*dt_shell/rim->kappa0*mu,1./3.);
+                //double dcrit = powf(dt_shell*dt_shell/rim->kappa*mu,1./3.);
                 
                // Idea: start from the inside! 
                 double dt0 = r->dt;//*powf(1./4., rim->Nmaxshells-1);
-                double d0 = sqrt3(dt0*dt0/rim->kappa0*mu/(4.*M_PI*M_PI));
+                double d0 = sqrt3(dt0*dt0/rim->kappa*mu/(4.*M_PI*M_PI));
                 rim->dcrit[s][i] = d0*powf(2.,-s);
             }
             // Definition: ??
@@ -548,8 +544,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.phi1 = REB_EOS_LF;
     r->ri_mercurana.n0 = 2;
     r->ri_mercurana.n1 = 0;
-    r->ri_mercurana.kappa0 = 0.1;
-    r->ri_mercurana.kappa1 = 0.;
+    r->ri_mercurana.kappa = 1e-3;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.Nmaxshells = 10;
     r->ri_mercurana.Nmaxshellsused = 1;
