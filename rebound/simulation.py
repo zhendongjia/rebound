@@ -1975,10 +1975,10 @@ class reb_simulation_integrator_mercurana(Structure):
         Number of sub-steps to approximate drift step in shell 0
     :ivar int n1:      
         Number of sub-steps to approximate drift step in shells s>=1
-    :ivar float kappa0:      
-        Accuracy control (fraction of dynamical timescale not to be exceeded in timestep)
-    :ivar float kappa1:      
-        Accuracy control in shells s>=1 
+    :ivar float kappa:      
+        Accuracy control (smaller is more accurate)
+    :ivar float alpha:      
+        Slope of critical radii as a function of the timestep (default 0.5)
     :ivar int Nmaxshells:      
         Maximum number of shells (default: 10)
     :ivar int N_dominant:      
@@ -2048,8 +2048,8 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("_phi1", c_uint),
                 ("n0", c_uint),
                 ("n1", c_uint),
-                ("kappa0", c_double),
-                ("kappa1", c_double),
+                ("kappa", c_double),
+                ("alpha", c_double),
                 ("Nmaxshells", c_uint),
                 ("N_dominant", c_uint),
                 ("safe_mode", c_uint),

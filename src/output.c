@@ -365,6 +365,7 @@ void reb_output_binary_to_stream(struct reb_simulation* r, char** bufp, size_t* 
     WRITE_FIELD(MERCURANA_N0,       &r->ri_mercurana.n0,                sizeof(unsigned int));
     WRITE_FIELD(MERCURANA_N1,       &r->ri_mercurana.n1,                sizeof(unsigned int));
     WRITE_FIELD(MERCURANA_KAPPA,    &r->ri_mercurana.kappa,             sizeof(double));
+    WRITE_FIELD(MERCURANA_ALPHA,    &r->ri_mercurana.alpha,             sizeof(double));
     WRITE_FIELD(MERCURANA_NMAXSHELLS, &r->ri_mercurana.Nmaxshells,      sizeof(unsigned int));
     WRITE_FIELD(MERCURANA_SAFEMODE, &r->ri_mercurana.safe_mode,         sizeof(unsigned int));
     WRITE_FIELD(MERCURANA_ISSYNCHRON, &r->ri_mercurana.is_synchronized, sizeof(unsigned int));
