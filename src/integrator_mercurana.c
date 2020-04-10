@@ -185,13 +185,15 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                 reb_mercurana_record_collision(r,mi,mj);
             }
             double dcritsum = dcrit[mi]+dcrit[mj];
+            r->particles[mi].lastcollision = MIN(sqrt(rmin2), r->particles[mi].lastcollision);
+            r->particles[mj].lastcollision = MIN(sqrt(rmin2), r->particles[mj].lastcollision);
             if (rmin2< dcritsum*dcritsum){ 
                 // j particle will be added later (active particles need to be in array first)
                 rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
-                r->particles[mi].lastcollision = MAX(shell+1, r->particles[mi].lastcollision);
-                r->particles[mj].lastcollision = MAX(shell+1, r->particles[mj].lastcollision);
+                //r->particles[mi].lastcollision = MAX(shell+1, r->particles[mi].lastcollision);
+                //r->particles[mj].lastcollision = MAX(shell+1, r->particles[mj].lastcollision);
                 break; // only add particle i once
             }
 
@@ -208,12 +210,14 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                 reb_mercurana_record_collision(r,mi,mj);
             }
             double dcritsum = dcrit[mi]+dcrit[mj];
+            r->particles[mi].lastcollision = MIN(sqrt(rmin2), r->particles[mi].lastcollision);
+            r->particles[mj].lastcollision = MIN(sqrt(rmin2), r->particles[mj].lastcollision);
             if (rmin2< dcritsum*dcritsum){ 
                 rim->inshell[mi] = 0;
                 rim->map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
-                r->particles[mi].lastcollision = MAX(shell+1, r->particles[mi].lastcollision);
-                r->particles[mj].lastcollision = MAX(shell+1, r->particles[mj].lastcollision);
+                //r->particles[mi].lastcollision = MAX(shell+1, r->particles[mi].lastcollision);
+                //r->particles[mj].lastcollision = MAX(shell+1, r->particles[mj].lastcollision);
                 break; // only add particle i once
             }
         }
