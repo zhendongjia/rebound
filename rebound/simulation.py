@@ -2049,6 +2049,7 @@ class reb_simulation_integrator_mercurana(Structure):
                 ("n0", c_uint),
                 ("n1", c_uint),
                 ("kappa", c_double),
+                ("Gm0r0", c_double),
                 ("alpha", c_double),
                 ("Nmaxshells", c_uint),
                 ("N_dominant", c_uint),

@@ -410,15 +410,17 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         double dt_shell = r->dt;
         for (int s=0;s<rim->Nmaxshells;s++){ // innermost shell has no dcrit
             for (int i=0;i<N;i++){
-                double mu = r->G*r->particles[i].m;
-                double r0 = 1.;
-                double m0 = 1.;
-                double d0 = pow(dt0*dt0*mu*mu*r0/m0/rim->kappa,1./4.);
+                double mi = r->particles[i].m;
+                double dgrav = sqrt3(r->G*dt0*dt0*mi/rim->kappa);
+                if (rim->Gm0r0){
+                    double dgravrel = sqrt(sqrt(r->G*r->G*dt0*dt0*mi*mi/rim->Gm0r0/rim->kappa));
+                    dgrav = MAX(dgrav,dgravrel);
+                }
                 if (rim->alpha!=0.5){
                     // might not machine independent!
-                    rim->dcrit[s][i] = pow(dt_shell/dt0,rim->alpha) * d0;
+                    rim->dcrit[s][i] = pow(dt_shell/dt0,rim->alpha) * dgrav;
                 }else{
-                    rim->dcrit[s][i] = sqrt(dt_shell/dt0) * d0;
+                    rim->dcrit[s][i] = sqrt(dt_shell/dt0) * dgrav;
                 }
             }
             // Definition: ??
@@ -549,6 +551,7 @@ void reb_integrator_mercurana_reset(struct reb_simulation* r){
     r->ri_mercurana.n0 = 2;
     r->ri_mercurana.n1 = 0;
     r->ri_mercurana.kappa = 1e-3;
+    r->ri_mercurana.Gm0r0 = 0.;
     r->ri_mercurana.alpha = 0.5;
     r->ri_mercurana.safe_mode = 1;
     r->ri_mercurana.Nmaxshells = 10;

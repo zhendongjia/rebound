@@ -480,6 +480,7 @@ struct reb_simulation_integrator_mercurana {
     unsigned int n0;                ///< Number of sub-steps to approximate drift step in shell 0
     unsigned int n1;                ///< Number of sub-steps to approximate drift step in shells s>=1
     double kappa;                   ///< Accuracy control (the smaller the better the accuracy)
+    double Gm0r0;                   ///< Specific energy scale used for Accuracy control (default: 0)
     double alpha;                   ///< Slope of the critical radii with timestep (default: 1/2)
     unsigned int Nmaxshells;        ///< Maximum number of shells (default: 10)
     unsigned int N_dominant;        ///< Number of dominant bodies (default: 0)
@@ -751,6 +752,7 @@ enum REB_BINARY_FIELD_TYPE {
     REB_BINARY_FIELD_TYPE_MERCURANA_SAFEMODE = 160,
     REB_BINARY_FIELD_TYPE_MERCURANA_ISSYNCHRON = 161,
     REB_BINARY_FIELD_TYPE_MERCURANA_NDOMINANT = 162,
+    REB_BINARY_FIELD_TYPE_MERCURANA_GM0R0 = 163,
 
     REB_BINARY_FIELD_TYPE_HEADER = 1329743186,  // Corresponds to REBO (first characters of header text)
     REB_BINARY_FIELD_TYPE_SABLOB = 9998,        // SA Blob
