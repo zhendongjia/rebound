@@ -411,7 +411,9 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
         for (int s=0;s<rim->Nmaxshells;s++){ // innermost shell has no dcrit
             for (int i=0;i<N;i++){
                 double mu = r->G*r->particles[i].m;
-                double d0 = sqrt3(dt0*dt0/rim->kappa*mu);
+                double r0 = 1.;
+                double m0 = 1.;
+                double d0 = pow(dt0*dt0*mu*mu*r0/m0/rim->kappa,1./4.);
                 if (rim->alpha!=0.5){
                     // might not machine independent!
                     rim->dcrit[s][i] = pow(dt_shell/dt0,rim->alpha) * d0;
