@@ -646,10 +646,10 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
             const unsigned int shell = rim->current_shell;
             struct reb_particle* const particles = r->particles;
-            const int testparticle_type   = r->testparticle_type;
+            //const int testparticle_type   = r->testparticle_type;
             const double G = r->G;
-            const unsigned int N_dominant = rim->N_dominant;
             unsigned int* map = rim->map[shell];
+            unsigned int* map_dominant = rim->map_dominant[shell];
             const double* dcrit_i = NULL; // critical radius of inner shell
             const double* dcrit_c = NULL; // critical radius of current shell
             const double* dcrit_o = NULL; // critical radius of outer shell
@@ -662,89 +662,19 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             }
 
             double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
-            // Normal force calculation 
-            if (N_dominant>0 && shell==1){
-                // Calculate planet star interactions here, is O(N*N_dominant)
-                // Note: this part uses the global N and N_active!
-                for (int i=0; i<N; i++){
-                    particles[i].ax = 0; 
-                    particles[i].ay = 0; 
-                    particles[i].az = 0; 
-                }
-                for (int i=0; i<N_dominant; i++){
-                    for (int j=i+1; j<_N_active; j++){
-                        const double dx = particles[i].x - particles[j].x;
-                        const double dy = particles[i].y - particles[j].y;
-                        const double dz = particles[i].z - particles[j].z;
-                        const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);
-                        const double dc_c = dcrit_c[i]+dcrit_c[j];
-                        double Lsum = 0.;
-                        if (dcrit_i){
-                            double dc_i = dcrit_i[i]+dcrit_i[j];
-                            Lsum += _L(r,dr,dc_i,dc_c);
-                        }else{
-                            Lsum += 1; // Innermost
-                        }
+            const unsigned int shellN = rim->shellN[shell];
+            const unsigned int shellN_dominant = rim->shellN_dominant[shell];
 
-                        const double prefact = G*Lsum/(dr*dr*dr);
-                        const double prefactj = -prefact*particles[j].m;
-                        const double prefacti = prefact*particles[i].m;
-                        particles[i].ax    += prefactj*dx;
-                        particles[i].ay    += prefactj*dy;
-                        particles[i].az    += prefactj*dz;
-                        particles[j].ax    += prefacti*dx;
-                        particles[j].ay    += prefacti*dy;
-                        particles[j].az    += prefacti*dz;
-                    }
-                }
-                for (int i=_N_active; i<N; i++){
-                    for (int j=0; j<N_dominant; j++){
-                        const double dx = particles[i].x - particles[j].x;
-                        const double dy = particles[i].y - particles[j].y;
-                        const double dz = particles[i].z - particles[j].z;
-                        const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);
-                        const double dc_c = dcrit_c[i]+dcrit_c[j];
-                        double Lsum = 0.;
-                        if (dcrit_i){
-                            double dc_i = dcrit_i[i]+dcrit_i[j];
-                            Lsum += _L(r,dr,dc_i,dc_c);
-                        }else{
-                            Lsum += 1; // Innermost
-                        }
-
-                        const double prefact = G*Lsum/(dr*dr*dr);
-                        const double prefactj = -prefact*particles[j].m;
-                        particles[i].ax    += prefactj*dx;
-                        particles[i].ay    += prefactj*dy;
-                        particles[i].az    += prefactj*dz;
-                        if (testparticle_type){
-                            const double prefacti = prefact*particles[i].m;
-                            particles[j].ax    += prefacti*dx;
-                            particles[j].ay    += prefacti*dy;
-                            particles[j].az    += prefacti*dz;
-                        }
-                    }
-                }
-            }else{
-                // Only need to set to 0 if particles are in shell
-                const int N = rim->shellN[shell];
-                for (int i=0; i<N; i++){
-                    int mi = map[i];
-                    particles[mi].ax = 0; 
-                    particles[mi].ay = 0; 
-                    particles[mi].az = 0; 
-                }
-            }
-            const int N_shell = rim->shellN[shell];
-            const int N_active_shell = rim->shellN_active[shell];
-            for (int i=0; i<N_active_shell; i++){
-                if (reb_sigint) return;
-                // Planet star interactions are not in shell 0
-                // and treated separately in shell 1
+            for (int i=0; i<shellN; i++){
                 const int mi = map[i];
-                if (N_dominant>0 && shell<=1 && mi<N_dominant) continue;
-                for (int j=i+1; j<N_active_shell; j++){
-                    const int mj = map[j];
+                particles[mi].ax = 0; 
+                particles[mi].ay = 0; 
+                particles[mi].az = 0; 
+            }
+            for (int i=0; i<shellN; i++){
+                const int mi = map[i];
+                for (int j=i+1; j<shellN_dominant; j++){
+                    const int mj = map_dominant[j];
                     const double dx = particles[mi].x - particles[mj].x;
                     const double dy = particles[mi].y - particles[mj].y;
                     const double dz = particles[mi].z - particles[mj].z;
@@ -771,42 +701,6 @@ void reb_calculate_acceleration(struct reb_simulation* r){
                     particles[mj].ax    += prefacti*dx;
                     particles[mj].ay    += prefacti*dy;
                     particles[mj].az    += prefacti*dz;
-                }
-            }
-            for (int i=N_active_shell; i<N_shell; i++){
-                if (reb_sigint) return;
-                const int mi = map[i];
-                for (int j=0; j<N_active_shell; j++){
-                    const int mj = map[j];
-                    if (N_dominant>0 && shell<=1 && mj<N_dominant) continue; 
-                    const double dx = particles[mi].x - particles[mj].x;
-                    const double dy = particles[mi].y - particles[mj].y;
-                    const double dz = particles[mi].z - particles[mj].z;
-                    const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);
-                    const double dc_c = dcrit_c[mi]+dcrit_c[mj];
-                    double Lsum = 0.;
-                    if (dcrit_o){
-                        double dc_o = dcrit_o[mi]+dcrit_o[mj];
-                        Lsum -= _L(r,dr,dc_c,dc_o);
-                    }
-                    if (dcrit_i){
-                        double dc_i = dcrit_i[mi]+dcrit_i[mj];
-                        Lsum += _L(r,dr,dc_i,dc_c);
-                    }else{
-                        Lsum += 1; // Innermost
-                    }
-
-                    const double prefact = G*Lsum/(dr*dr*dr);
-                    const double prefactj = -prefact*particles[mj].m;
-                    particles[mi].ax    += prefactj*dx;
-                    particles[mi].ay    += prefactj*dy;
-                    particles[mi].az    += prefactj*dz;
-                    if (testparticle_type){
-                        const double prefacti = prefact*particles[mi].m;
-                        particles[mj].ax    += prefacti*dx;
-                        particles[mj].ay    += prefacti*dy;
-                        particles[mj].az    += prefacti*dz;
-                    }
                 }
             }
         }

@@ -144,24 +144,12 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
     struct reb_simulation_integrator_mercurana* rim = &(r->ri_mercurana);
     struct reb_particle* const particles = r->particles;
     const double* const dcrit = rim->dcrit[shell];
-    const int N = rim->shellN[shell];
-    const int N_active = rim->shellN_active[shell];
+    const int shellN = rim->shellN[shell];
+    const int shellN_dominant = rim->shellN[shell];
     unsigned int* map = rim->map[shell];
+    unsigned int* inshell = rim->inshell;
+    unsigned int* map_dominant = rim->map_dominant[shell];
 
-    // Put all particles in current shell by default
-    if (rim->N_dominant>0 && shell==1){
-        for (int i=0; i<r->N; i++){ 
-            // Set inshell to 1 for *all* particles
-            // Needed to ensure all particles drift in shell 1 or deeper
-            rim->inshell[i] = 1;
-        }
-    }else{
-        for (int i=0; i<N; i++){
-            int mi = map[i]; 
-            rim->inshell[mi] = 1;
-        }
-    }
-    
     if (shell+1>=rim->Nmaxshells){ // does sub-shell exist?
         return;
     }
@@ -170,13 +158,13 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
 
     // Check if particles are in sub-shell
     rim->shellN[shell+1] = 0;
+    rim->shellN_dominant[shell+1] = 0;
     rim->shellN_active[shell+1] = 0;
 
-    // Note: Need to find the active particles first
-    // TODO make this O(N^2/2)
-    for (int i=0; i<N_active; i++){
-        int mi = map[i]; 
-        for (int j=0; j<N; j++){
+    // Check for interactions of all particles with dominant particles
+    for (int i=0; i<shellN_dominant; i++){
+        int mi = map_dominant[i]; 
+        for (int j=0; j<shellN; j++){
             int mj = map[j]; 
             if (i==j) continue;
             double rmin2 = reb_mercurana_predict_rmin2(particles[mi],particles[mj],dt);
@@ -185,15 +173,11 @@ static void reb_mercurana_encounter_predict(struct reb_simulation* const r, doub
                 reb_mercurana_record_collision(r,mi,mj);
             }
             double dcritsum = dcrit[mi]+dcrit[mj];
-            r->particles[mi].lastcollision = MIN(sqrt(rmin2), r->particles[mi].lastcollision);
-            r->particles[mj].lastcollision = MIN(sqrt(rmin2), r->particles[mj].lastcollision);
             if (rmin2< dcritsum*dcritsum){ 
                 // j particle will be added later (active particles need to be in array first)
-                rim->inshell[mi] = 0;
-                rim->map[shell+1][rim->shellN[shell+1]] = mi;
+                inshell[mi] = shell+1;
+                map[shell+1][rim->shellN[shell+1]] = mi;
                 rim->shellN[shell+1]++;
-                //r->particles[mi].lastcollision = MAX(shell+1, r->particles[mi].lastcollision);
-                //r->particles[mj].lastcollision = MAX(shell+1, r->particles[mj].lastcollision);
                 break; // only add particle i once
             }
 
@@ -245,22 +229,13 @@ static void reb_integrator_mercurana_interaction_step(struct reb_simulation* r, 
     if (v!=0.){
         reb_calculate_and_apply_jerk(r,v);
     }
-    if (rim->N_dominant>0 && shell==1){
-        // loop over *all* particles
-        for (int i=0;i<r->N;i++){ // Apply acceleration. Jerk already applied.
-            particles[i].vx += y*particles[i].ax;
-            particles[i].vy += y*particles[i].ay;
-            particles[i].vz += y*particles[i].az;
-        }
-    }else{
-        const int N = rim->shellN[shell];
-        unsigned int* map = rim->map[shell];
-        for (int i=0;i<N;i++){ // Apply acceleration. Jerk already applied.
-            const int mi = map[i];
-            particles[mi].vx += y*particles[mi].ax;
-            particles[mi].vy += y*particles[mi].ay;
-            particles[mi].vz += y*particles[mi].az;
-        }
+    const int N = rim->shellN[shell];
+    unsigned int* map = rim->map[shell];
+    for (int i=0;i<N;i++){ // Apply acceleration. Jerk already applied.
+        const int mi = map[i];
+        particles[mi].vx += y*particles[mi].ax;
+        particles[mi].vy += y*particles[mi].ay;
+        particles[mi].vz += y*particles[mi].az;
     }
 }
 
@@ -269,50 +244,29 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
 #ifndef OPENMP
     if (reb_sigint) return;
 #endif
-    {
-                //FILE* fp = fopen("/Users/rein/git/rebound/out.txt","a+");
-                //fprintf(fp,"%.60f %.60f ", r->particles[1].x, r->particles[1].y);
-                //fprintf(fp,"%.60f %.60f ", r->particles[1].vx, r->particles[1].vy);
-                //fprintf(fp,"%.60f %.60f %d \n", r->t, a, shell);
-                //fclose(fp);
-    }
     struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
     struct reb_particle* restrict const particles = r->particles;
     reb_mercurana_encounter_predict(r, a, shell);
     unsigned int* map = rim->map[shell];
     unsigned int N = rim->shellN[shell];
-    if (shell==1 && rim->N_dominant>0){
-        // Note: loop over *all* particles
-        for (int i=0;i<r->N;i++){  
-            // do not advance particles in subshells
-            if(rim->inshell[i]){  
-                particles[i].x += a*particles[i].vx;
-                particles[i].y += a*particles[i].vy;
-                particles[i].z += a*particles[i].vz;
-            }
-        }
-    }
-    // Note: no drift happens for shell==0 && N_dominant>0
-    if (shell>1 || rim->N_dominant==0){
-        for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
-            int mi = map[i]; 
-            // only advance in-shell particles
-            if(rim->inshell[mi]){  
-                particles[mi].x += a*particles[mi].vx;
-                particles[mi].y += a*particles[mi].vy;
-                particles[mi].z += a*particles[mi].vz;
-            }
+    for (int i=0;i<N;i++){  // loop over all particles in shell (includes subshells)
+        int mi = map[i]; 
+        // only advance in-shell particles
+        if(rim->inshell[mi]){  
+            particles[mi].x += a*particles[mi].vx;
+            particles[mi].y += a*particles[mi].vy;
+            particles[mi].z += a*particles[mi].vz;
         }
     }
     if (shell+1<rim->Nmaxshells){ // does sub-shell exist?
         // Are there particles in it?
         // Is it a whstep?
-        if (rim->shellN[shell+1]>0 || (shell==0 && rim->N_dominant>0)){
+        if (rim->shellN[shell+1]>0){
             rim->Nmaxshellsused = MAX(rim->Nmaxshellsused, shell+2);
             // advance all sub-shell particles
             unsigned int n = rim->n1?rim->n1:rim->n0;
             if (rim->n0>0 && shell==0){
-                n = rim->n0; // use different number of substeps for first shell if WHsplitting is used
+                n = rim->n0; // use different number of substeps for first shell
             }
             const double as = a/n;
             reb_integrator_eos_preprocessor(r, as, shell+1, rim->phi1, reb_integrator_mercurana_drift_step, reb_integrator_mercurana_interaction_step);
@@ -326,11 +280,6 @@ static void reb_integrator_mercurana_drift_step(struct reb_simulation* const r, 
     }else{
         r->t += a;
     }
-                //FILE* fp = fopen("/Users/rein/git/rebound/out.txt","a+");
-                //fprintf(fp,"%.60f %.60f ", r->particles[1].x, r->particles[1].y);
-                //fprintf(fp,"%.60f %.60f ", r->particles[1].vx, r->particles[1].vy);
-                //fprintf(fp,"%.60f %.60f %d \n", r->t, a, shell);
-                //fclose(fp);
 }
 
 // Part 1 only contains logic for setting up all the data structures. 
@@ -350,10 +299,6 @@ void reb_integrator_mercurana_part1(struct reb_simulation* r){
     }
     if (rim->Nmaxshells==2 && rim->n1){
         reb_error(r,"Nmaxshells>=3 is required if n1 is greater than 0.");
-        return;
-    }
-    if (rim->Nmaxshells==1 && rim->N_dominant){
-        reb_error(r,"Nmaxshells>=2 is required if N_dominant is used.");
         return;
     }
     if (rim->Nmaxshells>1 && rim->kappa<=0.){

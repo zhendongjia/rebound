@@ -728,15 +728,38 @@ int reb_collision_resolve_merge(struct reb_simulation* const r, struct reb_colli
 
             Ei += 0.5*pj->m*(vx*vx + vy*vy + vz*vz);
         }
-        const int N_active = ((r->N_active==-1)?r->N-r->N_var:r->N_active);
-        // No potential energy between test particles
+        const int N_active = ((r->N_active==-1)?r->N:r->N_active);
+        const int N_interact = (r->testparticle_type==0)?N_active:r->N;
+        const struct reb_particle* restrict const particles = r->particles;
+        if (i<N_active || r->testparticle_type==1){
+            const int N_interact_i = (i<N_active)?N_interact:N_active;
+            for (int k=0;k<N_interact_i;k++){
+                if (j!=k && i!=k){ // do not count interaction between i and j 
+                    struct reb_particle pk = particles[k];
+                    double dx = pi->x - pk.x;
+                    double dy = pi->y - pk.y;
+                    double dz = pi->z - pk.z;
+                    Ei -= r->G*pk.m*pi->m/sqrt(dx*dx + dy*dy + dz*dz);
+                }
+            }
+        }
+        if (j<N_active || r->testparticle_type==1){
+            const int N_interact_j = (j<N_active)?N_interact:N_active;
+            for (int k=0;k<N_interact_j;k++){
+                if (j!=k && i!=k){ // do not count interaction between i and j 
+                    struct reb_particle pk = particles[k];
+                    double dx = pj->x - pk.x;
+                    double dy = pj->y - pk.y;
+                    double dz = pj->z - pk.z;
+                    Ei -= r->G*pk.m*pj->m/sqrt(dx*dx + dy*dy + dz*dz);
+                }
+            }
+        }
         if (i<N_active || j<N_active){
-            double x = pi->x - pj->x;
-            double y = pi->y - pj->y;
-            double z = pi->z - pj->z;
-            double _r = sqrt(x*x + y*y + z*z);
-
-            Ei += - r->G*pi->m*pj->m/_r;
+            double dx = pi->x - pj->x;
+            double dy = pi->y - pj->y;
+            double dz = pi->z - pj->z;
+            Ei -= r->G*pj->m*pi->m/sqrt(dx*dx + dy*dy + dz*dz);
         }
     }
     
@@ -765,6 +788,22 @@ int reb_collision_resolve_merge(struct reb_simulation* const r, struct reb_colli
             }
 
             Ef += 0.5*pi->m*(vx*vx + vy*vy + vz*vz);
+        
+            const int N_active = ((r->N_active==-1)?r->N:r->N_active);
+            const int N_interact = (r->testparticle_type==0)?N_active:r->N;
+            const struct reb_particle* restrict const particles = r->particles;
+            if (j<N_active || i<N_active ||  r->testparticle_type==1){
+                const int N_interact_i = (i<N_active||j<N_active)?N_interact:N_active;
+                for (int k=0;k<N_interact_i;k++){
+                    if (j!=k && i!=k){ // do not count interaction between i and j 
+                        struct reb_particle pk = particles[k];
+                        double dx = pi->x - pk.x;
+                        double dy = pi->y - pk.y;
+                        double dz = pi->z - pk.z;
+                        Ef -= r->G*pk.m*pi->m/sqrt(dx*dx + dy*dy + dz*dz);
+                    }
+                }
+            }
         }
         r->energy_offset += Ei - Ef;
     }
