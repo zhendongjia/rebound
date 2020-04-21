@@ -6,7 +6,7 @@ SOURCES=rebound.c tree.c particle.c gravity.c integrator.c integrator_whfast.c i
 OBJECTS=$(SOURCES:.c=.o)
 HEADERS=$(SOURCES:.c=.h)
 
-all: $(SOURCES) librebound.so 
+all: $(SOURCES) librebound.so librebound.a
 
 %.o: %.c $(HEADERS)
 	@echo "Compiling source file $< ..."
@@ -18,9 +18,16 @@ librebound.so: $(OBJECTS)
 	$(CC) $(OPT) -shared $(OBJECTS) $(LIB) -o $@ 
 	
 	@echo ""        
-	@echo "The shared library $< has been created successfully."
+	@echo "The shared library $@ has been created successfully."
 	
 	
+librebound.a: $(OBJECTS)
+	@echo ""
+	@echo "Linking static library $@ ..."
+	ar rcs $@ $(OBJECTS)
+	@echo ""
+	@echo "The static library $@ has been created successfully."
+
 clean:
 	@echo "Removing object files *.o ..."
 	@-rm -f *.o

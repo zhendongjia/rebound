@@ -3,6 +3,7 @@
 librebound: 
 	$(MAKE) -C src 
 	@ln -f -s src/librebound.so .
+	@ln -f -s src/librebound.a .
 	@if [ "$(MAKELEVEL)" -eq "0" ]; then echo "To compile the example problems, go to a subdirectory of examples/ and execute make there."; fi
 	
 all: librebound
