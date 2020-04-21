@@ -53,7 +53,6 @@
   */
 static void reb_calculate_acceleration_for_particle(const struct reb_simulation* const r, const int pt, const struct reb_ghostbox gb);
 
-
 /**
  * Main Gravity Routine
  */
@@ -648,8 +647,13 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             struct reb_particle* const particles = r->particles;
             //const int testparticle_type   = r->testparticle_type;
             const double G = r->G;
-            unsigned int* map = rim->map[shell];
+            unsigned int* map_encounter = rim->map_encounter[shell];
             unsigned int* map_dominant = rim->map_dominant[shell];
+            unsigned int* map_subdominant = rim->map_subdominant[shell];
+            const unsigned int shellN_encounter = rim->shellN_encounter[shell];
+            const unsigned int shellN_dominant = rim->shellN_dominant[shell];
+            const unsigned int shellN_subdominant = rim->shellN_subdominant[shell];
+
             const double* dcrit_i = NULL; // critical radius of inner shell
             const double* dcrit_c = NULL; // critical radius of current shell
             const double* dcrit_o = NULL; // critical radius of outer shell
@@ -662,45 +666,81 @@ void reb_calculate_acceleration(struct reb_simulation* r){
             }
 
             double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
-            const unsigned int shellN = rim->shellN[shell];
-            const unsigned int shellN_dominant = rim->shellN_dominant[shell];
 
-            for (int i=0; i<shellN; i++){
-                const int mi = map[i];
-                particles[mi].ax = 0; 
-                particles[mi].ay = 0; 
-                particles[mi].az = 0; 
+#define SET_ZERO \
+    particles[mi].ax = 0; \
+    particles[mi].ay = 0; \
+    particles[mi].az = 0; 
+            for (int i=0; i<shellN_dominant; i++){
+                const int mi = map_dominant[i];
+                SET_ZERO
             }
-            for (int i=0; i<shellN; i++){
-                const int mi = map[i];
+            for (int i=0; i<shellN_subdominant; i++){
+                const int mi = map_subdominant[i];
+                SET_ZERO
+            }
+            for (int i=0; i<shellN_encounter; i++){
+                const int mi = map_encounter[i];
+                SET_ZERO
+            }
+
+#define CALC_GRAV  \
+    const double dx = particles[mi].x - particles[mj].x;\
+    const double dy = particles[mi].y - particles[mj].y;\
+    const double dz = particles[mi].z - particles[mj].z;\
+    const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);\
+    const double dc_c = dcrit_c[mi]+dcrit_c[mj];\
+    double Lsum = 0.;\
+    if (dcrit_o){\
+        double dc_o = dcrit_o[mi]+dcrit_o[mj];\
+        Lsum -= _L(r,dr,dc_c,dc_o);\
+    }\
+    if (dcrit_i){\
+        double dc_i = dcrit_i[mi]+dcrit_i[mj];\
+        Lsum += _L(r,dr,dc_i,dc_c);\
+    }else{\
+        Lsum += 1; \
+    }\
+    const double prefact = G*Lsum/(dr*dr*dr);\
+    const double prefactj = -prefact*particles[mj].m;\
+    const double prefacti = prefact*particles[mi].m;\
+    particles[mi].ax    += prefactj*dx;\
+    particles[mi].ay    += prefactj*dy;\
+    particles[mi].az    += prefactj*dz;\
+    particles[mj].ax    += prefacti*dx;\
+    particles[mj].ay    += prefacti*dy;\
+    particles[mj].az    += prefacti*dz;
+
+            // Dominant particles with dominant particles
+            for (int i=0; i<shellN_dominant; i++){
+                const int mi = map_dominant[i];
                 for (int j=i+1; j<shellN_dominant; j++){
                     const int mj = map_dominant[j];
-                    const double dx = particles[mi].x - particles[mj].x;
-                    const double dy = particles[mi].y - particles[mj].y;
-                    const double dz = particles[mi].z - particles[mj].z;
-                    const double dr = sqrt(dx*dx + dy*dy + dz*dz + softening2);
-                    const double dc_c = dcrit_c[mi]+dcrit_c[mj];
-                    double Lsum = 0.;
-                    if (dcrit_o){
-                        double dc_o = dcrit_o[mi]+dcrit_o[mj];
-                        Lsum -= _L(r,dr,dc_c,dc_o);
-                    }
-                    if (dcrit_i){
-                        double dc_i = dcrit_i[mi]+dcrit_i[mj];
-                        Lsum += _L(r,dr,dc_i,dc_c);
-                    }else{
-                        Lsum += 1; // Innermost
-                    }
-
-                    const double prefact = G*Lsum/(dr*dr*dr);
-                    const double prefactj = -prefact*particles[mj].m;
-                    const double prefacti = prefact*particles[mi].m;
-                    particles[mi].ax    += prefactj*dx;
-                    particles[mi].ay    += prefactj*dy;
-                    particles[mi].az    += prefactj*dz;
-                    particles[mj].ax    += prefacti*dx;
-                    particles[mj].ay    += prefacti*dy;
-                    particles[mj].az    += prefacti*dz;
+                    CALC_GRAV
+                }
+            }
+            // Dominant particles with encounter particles
+            for (int i=0; i<shellN_dominant; i++){
+                const int mi = map_dominant[i];
+                for (int j=0; j<shellN_encounter; j++){
+                    const int mj = map_encounter[j];
+                    CALC_GRAV
+                }
+            }
+            // Dominant particles with subdominant particles
+            for (int i=0; i<shellN_dominant; i++){
+                const int mi = map_dominant[i];
+                for (int j=0; j<shellN_subdominant; j++){
+                    const int mj = map_subdominant[j];
+                    CALC_GRAV
+                }
+            }
+            // Encounter particles with encounter particles
+            for (int i=0; i<shellN_encounter; i++){
+                const int mi = map_encounter[i];
+                for (int j=i+1; j<shellN_encounter; j++){
+                    const int mj = map_encounter[j];
+                    CALC_GRAV
                 }
             }
         }
@@ -1084,230 +1124,230 @@ void reb_calculate_and_apply_jerk(struct reb_simulation* r, const double v){
             }
             break;
         case REB_GRAVITY_MERCURANA:
-            {
-                struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
-                const unsigned int shell = rim->current_shell;
-                struct reb_particle* const particles = r->particles;
-                const int testparticle_type   = r->testparticle_type;
-                const double G = r->G;
-                const unsigned int N_dominant = rim->N_dominant;
-                unsigned int* map = rim->map[shell];
-                const double* dcrit_i = NULL; // critical radius of inner shell
-                const double* dcrit_c = NULL; // critical radius of current shell
-                const double* dcrit_o = NULL; // critical radius of outer shell
-                if (shell<rim->Nmaxshells-1){
-                    dcrit_i = r->ri_mercurana.dcrit[shell+1];
-                }
-                dcrit_c = r->ri_mercurana.dcrit[shell];
-                if (shell>0){
-                    dcrit_o = r->ri_mercurana.dcrit[shell-1];
-                }
-                
-                double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
-                double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.dLdr;
-                
-                if (N_dominant>0 && shell==1){
-                    // Calculate planet star interactions here, is O(N)
-                    // Note: this part uses the global N and N_active!
-                    const int N = r->N;
-                    const int N_active = r->N_active;
-                    const int _N_active = ((N_active==-1)?N:N_active);
-                    for (int i=0; i<N_dominant; i++){
-                        for (int j=i+1; j<_N_active; j++){
-                            const double dx = particles[j].x - particles[i].x; 
-                            const double dy = particles[j].y - particles[i].y; 
-                            const double dz = particles[j].z - particles[i].z; 
-                            
-                            const double dax = particles[j].ax - particles[i].ax; 
-                            const double day = particles[j].ay - particles[i].ay; 
-                            const double daz = particles[j].az - particles[i].az; 
+     //       {
+     //           struct reb_simulation_integrator_mercurana* const rim = &(r->ri_mercurana);
+     //           const unsigned int shell = rim->current_shell;
+     //           struct reb_particle* const particles = r->particles;
+     //           const int testparticle_type   = r->testparticle_type;
+     //           const double G = r->G;
+     //           const unsigned int N_dominant = rim->N_dominant;
+     //           unsigned int* map = rim->map[shell];
+     //           const double* dcrit_i = NULL; // critical radius of inner shell
+     //           const double* dcrit_c = NULL; // critical radius of current shell
+     //           const double* dcrit_o = NULL; // critical radius of outer shell
+     //           if (shell<rim->Nmaxshells-1){
+     //               dcrit_i = r->ri_mercurana.dcrit[shell+1];
+     //           }
+     //           dcrit_c = r->ri_mercurana.dcrit[shell];
+     //           if (shell>0){
+     //               dcrit_o = r->ri_mercurana.dcrit[shell-1];
+     //           }
+     //           
+     //           double (*_L) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.L;
+     //           double (*_dLdr) (const struct reb_simulation* const r, double d, double dcrit, double fracin) = r->ri_mercurana.dLdr;
+     //           
+     //           if (N_dominant>0 && shell==1){
+     //               // Calculate planet star interactions here, is O(N)
+     //               // Note: this part uses the global N and N_active!
+     //               const int N = r->N;
+     //               const int N_active = r->N_active;
+     //               const int _N_active = ((N_active==-1)?N:N_active);
+     //               for (int i=0; i<N_dominant; i++){
+     //                   for (int j=i+1; j<_N_active; j++){
+     //                       const double dx = particles[j].x - particles[i].x; 
+     //                       const double dy = particles[j].y - particles[i].y; 
+     //                       const double dz = particles[j].z - particles[i].z; 
+     //                       
+     //                       const double dax = particles[j].ax - particles[i].ax; 
+     //                       const double day = particles[j].ay - particles[i].ay; 
+     //                       const double daz = particles[j].az - particles[i].az; 
 
-                            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                            const double dc_c = dcrit_c[i]+dcrit_c[j];
-                            double Lsum = 0.;
-                            double dLdrsum = 0.;
-                            if (dcrit_i){
-                                double dc_i = dcrit_i[i]+dcrit_i[j];
-                                Lsum    +=    _L(r,dr,dc_i,dc_c);
-                                dLdrsum += _dLdr(r,dr,dc_i,dc_c);
-                            }else{
-                                Lsum += 1; // Innermost
-                            }
-                            const double alphasum = dax*dx+day*dy+daz*dz;
-                            const double prefact2 = 2.*v*G /(dr*dr*dr);
-                            const double prefact2i = Lsum*prefact2*particles[i].m;
-                            const double prefact2j = Lsum*prefact2*particles[j].m;
-                            particles[j].vx    -= dax*prefact2i;
-                            particles[j].vy    -= day*prefact2i;
-                            particles[j].vz    -= daz*prefact2i;
-                            particles[i].vx    += dax*prefact2j;
-                            particles[i].vy    += day*prefact2j;
-                            particles[i].vz    += daz*prefact2j;
-                            const double prefact1 = alphasum*prefact2/dr *(3.*Lsum/dr-dLdrsum);
-                            const double prefact1i = prefact1*particles[i].m;
-                            const double prefact1j = prefact1*particles[j].m;
-                            particles[j].vx    += dx*prefact1i;
-                            particles[j].vy    += dy*prefact1i;
-                            particles[j].vz    += dz*prefact1i;
-                            particles[i].vx    -= dx*prefact1j;
-                            particles[i].vy    -= dy*prefact1j;
-                            particles[i].vz    -= dz*prefact1j;
-                        }
-                    }
-                    for (int i=_N_active; i<N; i++){
-                        if (reb_sigint) return;
-                        for (int j=0; j<N_dominant; j++){
-                            const double dx = particles[j].x - particles[i].x; 
-                            const double dy = particles[j].y - particles[i].y; 
-                            const double dz = particles[j].z - particles[i].z; 
-                            
-                            const double dax = particles[j].ax - particles[i].ax; 
-                            const double day = particles[j].ay - particles[i].ay; 
-                            const double daz = particles[j].az - particles[i].az; 
+     //                       const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+     //                       const double dc_c = dcrit_c[i]+dcrit_c[j];
+     //                       double Lsum = 0.;
+     //                       double dLdrsum = 0.;
+     //                       if (dcrit_i){
+     //                           double dc_i = dcrit_i[i]+dcrit_i[j];
+     //                           Lsum    +=    _L(r,dr,dc_i,dc_c);
+     //                           dLdrsum += _dLdr(r,dr,dc_i,dc_c);
+     //                       }else{
+     //                           Lsum += 1; // Innermost
+     //                       }
+     //                       const double alphasum = dax*dx+day*dy+daz*dz;
+     //                       const double prefact2 = 2.*v*G /(dr*dr*dr);
+     //                       const double prefact2i = Lsum*prefact2*particles[i].m;
+     //                       const double prefact2j = Lsum*prefact2*particles[j].m;
+     //                       particles[j].vx    -= dax*prefact2i;
+     //                       particles[j].vy    -= day*prefact2i;
+     //                       particles[j].vz    -= daz*prefact2i;
+     //                       particles[i].vx    += dax*prefact2j;
+     //                       particles[i].vy    += day*prefact2j;
+     //                       particles[i].vz    += daz*prefact2j;
+     //                       const double prefact1 = alphasum*prefact2/dr *(3.*Lsum/dr-dLdrsum);
+     //                       const double prefact1i = prefact1*particles[i].m;
+     //                       const double prefact1j = prefact1*particles[j].m;
+     //                       particles[j].vx    += dx*prefact1i;
+     //                       particles[j].vy    += dy*prefact1i;
+     //                       particles[j].vz    += dz*prefact1i;
+     //                       particles[i].vx    -= dx*prefact1j;
+     //                       particles[i].vy    -= dy*prefact1j;
+     //                       particles[i].vz    -= dz*prefact1j;
+     //                   }
+     //               }
+     //               for (int i=_N_active; i<N; i++){
+     //                   if (reb_sigint) return;
+     //                   for (int j=0; j<N_dominant; j++){
+     //                       const double dx = particles[j].x - particles[i].x; 
+     //                       const double dy = particles[j].y - particles[i].y; 
+     //                       const double dz = particles[j].z - particles[i].z; 
+     //                       
+     //                       const double dax = particles[j].ax - particles[i].ax; 
+     //                       const double day = particles[j].ay - particles[i].ay; 
+     //                       const double daz = particles[j].az - particles[i].az; 
 
-                            const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                            const double dc_c = dcrit_c[i]+dcrit_c[j];
-                            double Lsum = 0.;
-                            double dLdrsum = 0.;
-                            if (dcrit_i){
-                                double dc_i = dcrit_i[i]+dcrit_i[j];
-                                Lsum    +=    _L(r,dr,dc_i,dc_c);
-                                dLdrsum += _dLdr(r,dr,dc_i,dc_c);
-                            }else{
-                                Lsum += 1; // Innermost
-                            }
-                            const double alphasum = dax*dx+day*dy+daz*dz;
-                            const double prefact2 = 2.*v*G /(dr*dr*dr);
-                            const double prefact2j = Lsum*prefact2*particles[j].m;
-                            const double prefact1 = alphasum*prefact2/dr*(3.*Lsum/dr-dLdrsum);
-                            const double prefact1j = prefact1*particles[j].m;
-                            particles[i].vx    += dax*prefact2j;
-                            particles[i].vy    += day*prefact2j;
-                            particles[i].vz    += daz*prefact2j;
-                            particles[i].vx    -= dx*prefact1j;
-                            particles[i].vy    -= dy*prefact1j;
-                            particles[i].vz    -= dz*prefact1j;
-                            if (testparticle_type){
-                                const double prefact1i = prefact1*particles[i].m;
-                                const double prefact2i = Lsum*prefact2*particles[i].m;
-                                particles[j].vx    += dx*prefact1i;
-                                particles[j].vy    += dy*prefact1i;
-                                particles[j].vz    += dz*prefact1i;
-                                particles[j].vx    -= dax*prefact2i;
-                                particles[j].vy    -= day*prefact2i;
-                                particles[j].vz    -= daz*prefact2i;
-                            }
-                        }
-                    }
-                }
-                // Non WH jerk
-                const int N_shell = rim->shellN[shell];
-                const int N_active_shell = rim->shellN_active[shell];
-                for (int i=0; i<N_active_shell; i++){
-                    const int mi = map[i];
-                    if (N_dominant>0 && shell<=1 && mi<N_dominant) continue;
-                    if (reb_sigint) return;
-                    for (int j=i+1; j<N_active_shell; j++){
-                        const int mj = map[j];
-                        const double dx = particles[mj].x - particles[mi].x; 
-                        const double dy = particles[mj].y - particles[mi].y; 
-                        const double dz = particles[mj].z - particles[mi].z; 
-                        
-                        const double dax = particles[mj].ax - particles[mi].ax; 
-                        const double day = particles[mj].ay - particles[mi].ay; 
-                        const double daz = particles[mj].az - particles[mi].az; 
+     //                       const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+     //                       const double dc_c = dcrit_c[i]+dcrit_c[j];
+     //                       double Lsum = 0.;
+     //                       double dLdrsum = 0.;
+     //                       if (dcrit_i){
+     //                           double dc_i = dcrit_i[i]+dcrit_i[j];
+     //                           Lsum    +=    _L(r,dr,dc_i,dc_c);
+     //                           dLdrsum += _dLdr(r,dr,dc_i,dc_c);
+     //                       }else{
+     //                           Lsum += 1; // Innermost
+     //                       }
+     //                       const double alphasum = dax*dx+day*dy+daz*dz;
+     //                       const double prefact2 = 2.*v*G /(dr*dr*dr);
+     //                       const double prefact2j = Lsum*prefact2*particles[j].m;
+     //                       const double prefact1 = alphasum*prefact2/dr*(3.*Lsum/dr-dLdrsum);
+     //                       const double prefact1j = prefact1*particles[j].m;
+     //                       particles[i].vx    += dax*prefact2j;
+     //                       particles[i].vy    += day*prefact2j;
+     //                       particles[i].vz    += daz*prefact2j;
+     //                       particles[i].vx    -= dx*prefact1j;
+     //                       particles[i].vy    -= dy*prefact1j;
+     //                       particles[i].vz    -= dz*prefact1j;
+     //                       if (testparticle_type){
+     //                           const double prefact1i = prefact1*particles[i].m;
+     //                           const double prefact2i = Lsum*prefact2*particles[i].m;
+     //                           particles[j].vx    += dx*prefact1i;
+     //                           particles[j].vy    += dy*prefact1i;
+     //                           particles[j].vz    += dz*prefact1i;
+     //                           particles[j].vx    -= dax*prefact2i;
+     //                           particles[j].vy    -= day*prefact2i;
+     //                           particles[j].vz    -= daz*prefact2i;
+     //                       }
+     //                   }
+     //               }
+     //           }
+     //           // Non WH jerk
+     //           const int N_shell = rim->shellN[shell];
+     //           const int N_active_shell = rim->shellN_active[shell];
+     //           for (int i=0; i<N_active_shell; i++){
+     //               const int mi = map[i];
+     //               if (N_dominant>0 && shell<=1 && mi<N_dominant) continue;
+     //               if (reb_sigint) return;
+     //               for (int j=i+1; j<N_active_shell; j++){
+     //                   const int mj = map[j];
+     //                   const double dx = particles[mj].x - particles[mi].x; 
+     //                   const double dy = particles[mj].y - particles[mi].y; 
+     //                   const double dz = particles[mj].z - particles[mi].z; 
+     //                   
+     //                   const double dax = particles[mj].ax - particles[mi].ax; 
+     //                   const double day = particles[mj].ay - particles[mi].ay; 
+     //                   const double daz = particles[mj].az - particles[mi].az; 
 
-                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                        const double dc_c = dcrit_c[mi]+dcrit_c[mj];
-                        double Lsum = 0.;
-                        double dLdrsum = 0.;
-                        if (dcrit_o){
-                            double dc_o = dcrit_o[mi]+dcrit_o[mj];
-                            Lsum    -=    _L(r,dr,dc_c,dc_o);
-                            dLdrsum -= _dLdr(r,dr,dc_c,dc_o);
-                        }
-                        if (dcrit_i){
-                            double dc_i = dcrit_i[mi]+dcrit_i[mj];
-                            Lsum    +=    _L(r,dr,dc_i,dc_c);
-                            dLdrsum += _dLdr(r,dr,dc_i,dc_c);
-                        }else{
-                            Lsum += 1; // Innermost
-                        }
-                        const double alphasum = dax*dx+day*dy+daz*dz;
-                        const double prefact2 = 2.*v*G /(dr*dr*dr);
-                        const double prefact2i = Lsum*prefact2*particles[mi].m;
-                        const double prefact2j = Lsum*prefact2*particles[mj].m;
-                        particles[mj].vx    -= dax*prefact2i;
-                        particles[mj].vy    -= day*prefact2i;
-                        particles[mj].vz    -= daz*prefact2i;
-                        particles[mi].vx    += dax*prefact2j;
-                        particles[mi].vy    += day*prefact2j;
-                        particles[mi].vz    += daz*prefact2j;
-                        const double prefact1 = alphasum*prefact2/dr *(3.*Lsum/dr-dLdrsum);
-                        const double prefact1i = prefact1*particles[mi].m;
-                        const double prefact1j = prefact1*particles[mj].m;
-                        particles[mj].vx    += dx*prefact1i;
-                        particles[mj].vy    += dy*prefact1i;
-                        particles[mj].vz    += dz*prefact1i;
-                        particles[mi].vx    -= dx*prefact1j;
-                        particles[mi].vy    -= dy*prefact1j;
-                        particles[mi].vz    -= dz*prefact1j;
-                    }
-                }
-                for (int i=N_active_shell; i<N_shell; i++){
-                    if (reb_sigint) return;
-                    const int mi = map[i];
-                    for (int j=0; j<N_active_shell; j++){
-                        const int mj = map[j];
-                        if (N_dominant>0 && shell<=1 && mj<N_dominant) continue;
-                        const double dx = particles[mj].x - particles[mi].x; 
-                        const double dy = particles[mj].y - particles[mi].y; 
-                        const double dz = particles[mj].z - particles[mi].z; 
-                        
-                        const double dax = particles[mj].ax - particles[mi].ax; 
-                        const double day = particles[mj].ay - particles[mi].ay; 
-                        const double daz = particles[mj].az - particles[mi].az; 
+     //                   const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+     //                   const double dc_c = dcrit_c[mi]+dcrit_c[mj];
+     //                   double Lsum = 0.;
+     //                   double dLdrsum = 0.;
+     //                   if (dcrit_o){
+     //                       double dc_o = dcrit_o[mi]+dcrit_o[mj];
+     //                       Lsum    -=    _L(r,dr,dc_c,dc_o);
+     //                       dLdrsum -= _dLdr(r,dr,dc_c,dc_o);
+     //                   }
+     //                   if (dcrit_i){
+     //                       double dc_i = dcrit_i[mi]+dcrit_i[mj];
+     //                       Lsum    +=    _L(r,dr,dc_i,dc_c);
+     //                       dLdrsum += _dLdr(r,dr,dc_i,dc_c);
+     //                   }else{
+     //                       Lsum += 1; // Innermost
+     //                   }
+     //                   const double alphasum = dax*dx+day*dy+daz*dz;
+     //                   const double prefact2 = 2.*v*G /(dr*dr*dr);
+     //                   const double prefact2i = Lsum*prefact2*particles[mi].m;
+     //                   const double prefact2j = Lsum*prefact2*particles[mj].m;
+     //                   particles[mj].vx    -= dax*prefact2i;
+     //                   particles[mj].vy    -= day*prefact2i;
+     //                   particles[mj].vz    -= daz*prefact2i;
+     //                   particles[mi].vx    += dax*prefact2j;
+     //                   particles[mi].vy    += day*prefact2j;
+     //                   particles[mi].vz    += daz*prefact2j;
+     //                   const double prefact1 = alphasum*prefact2/dr *(3.*Lsum/dr-dLdrsum);
+     //                   const double prefact1i = prefact1*particles[mi].m;
+     //                   const double prefact1j = prefact1*particles[mj].m;
+     //                   particles[mj].vx    += dx*prefact1i;
+     //                   particles[mj].vy    += dy*prefact1i;
+     //                   particles[mj].vz    += dz*prefact1i;
+     //                   particles[mi].vx    -= dx*prefact1j;
+     //                   particles[mi].vy    -= dy*prefact1j;
+     //                   particles[mi].vz    -= dz*prefact1j;
+     //               }
+     //           }
+     //           for (int i=N_active_shell; i<N_shell; i++){
+     //               if (reb_sigint) return;
+     //               const int mi = map[i];
+     //               for (int j=0; j<N_active_shell; j++){
+     //                   const int mj = map[j];
+     //                   if (N_dominant>0 && shell<=1 && mj<N_dominant) continue;
+     //                   const double dx = particles[mj].x - particles[mi].x; 
+     //                   const double dy = particles[mj].y - particles[mi].y; 
+     //                   const double dz = particles[mj].z - particles[mi].z; 
+     //                   
+     //                   const double dax = particles[mj].ax - particles[mi].ax; 
+     //                   const double day = particles[mj].ay - particles[mi].ay; 
+     //                   const double daz = particles[mj].az - particles[mi].az; 
 
-                        const double dr = sqrt(dx*dx + dy*dy + dz*dz);
-                        const double dc_c = dcrit_c[mi]+dcrit_c[mj];
-                        double Lsum = 0.;
-                        double dLdrsum = 0.;
-                        if (dcrit_o){
-                            double dc_o = dcrit_o[mi]+dcrit_o[mj];
-                            Lsum    -=    _L(r,dr,dc_c,dc_o);
-                            dLdrsum -= _dLdr(r,dr,dc_c,dc_o);
-                        }
-                        if (dcrit_i){
-                            double dc_i = dcrit_i[mi]+dcrit_i[mj];
-                            Lsum    +=    _L(r,dr,dc_i,dc_c);
-                            dLdrsum += _dLdr(r,dr,dc_i,dc_c);
-                        }else{
-                            Lsum += 1; // Innermost
-                        }
-                        const double alphasum = dax*dx+day*dy+daz*dz;
-                        const double prefact2 = 2.*v*G /(dr*dr*dr);
-                        const double prefact2j = Lsum*prefact2*particles[mj].m;
-                        const double prefact1 = alphasum*prefact2/dr*(3.*Lsum/dr-dLdrsum);
-                        const double prefact1j = prefact1*particles[mj].m;
-                        particles[mi].vx    += dax*prefact2j;
-                        particles[mi].vy    += day*prefact2j;
-                        particles[mi].vz    += daz*prefact2j;
-                        particles[mi].vx    -= dx*prefact1j;
-                        particles[mi].vy    -= dy*prefact1j;
-                        particles[mi].vz    -= dz*prefact1j;
-                        if (testparticle_type){
-                            const double prefact1i = prefact1*particles[mi].m;
-                            const double prefact2i = Lsum*prefact2*particles[mi].m;
-                            particles[mj].vx    += dx*prefact1i;
-                            particles[mj].vy    += dy*prefact1i;
-                            particles[mj].vz    += dz*prefact1i;
-                            particles[mj].vx    -= dax*prefact2i;
-                            particles[mj].vy    -= day*prefact2i;
-                            particles[mj].vz    -= daz*prefact2i;
-                        }
-                    }
-                }
-            }
+     //                   const double dr = sqrt(dx*dx + dy*dy + dz*dz);
+     //                   const double dc_c = dcrit_c[mi]+dcrit_c[mj];
+     //                   double Lsum = 0.;
+     //                   double dLdrsum = 0.;
+     //                   if (dcrit_o){
+     //                       double dc_o = dcrit_o[mi]+dcrit_o[mj];
+     //                       Lsum    -=    _L(r,dr,dc_c,dc_o);
+     //                       dLdrsum -= _dLdr(r,dr,dc_c,dc_o);
+     //                   }
+     //                   if (dcrit_i){
+     //                       double dc_i = dcrit_i[mi]+dcrit_i[mj];
+     //                       Lsum    +=    _L(r,dr,dc_i,dc_c);
+     //                       dLdrsum += _dLdr(r,dr,dc_i,dc_c);
+     //                   }else{
+     //                       Lsum += 1; // Innermost
+     //                   }
+     //                   const double alphasum = dax*dx+day*dy+daz*dz;
+     //                   const double prefact2 = 2.*v*G /(dr*dr*dr);
+     //                   const double prefact2j = Lsum*prefact2*particles[mj].m;
+     //                   const double prefact1 = alphasum*prefact2/dr*(3.*Lsum/dr-dLdrsum);
+     //                   const double prefact1j = prefact1*particles[mj].m;
+     //                   particles[mi].vx    += dax*prefact2j;
+     //                   particles[mi].vy    += day*prefact2j;
+     //                   particles[mi].vz    += daz*prefact2j;
+     //                   particles[mi].vx    -= dx*prefact1j;
+     //                   particles[mi].vy    -= dy*prefact1j;
+     //                   particles[mi].vz    -= dz*prefact1j;
+     //                   if (testparticle_type){
+     //                       const double prefact1i = prefact1*particles[mi].m;
+     //                       const double prefact2i = Lsum*prefact2*particles[mi].m;
+     //                       particles[mj].vx    += dx*prefact1i;
+     //                       particles[mj].vy    += dy*prefact1i;
+     //                       particles[mj].vz    += dz*prefact1i;
+     //                       particles[mj].vx    -= dax*prefact2i;
+     //                       particles[mj].vy    -= day*prefact2i;
+     //                       particles[mj].vz    -= daz*prefact2i;
+     //                   }
+     //               }
+     //           }
+     //       }
             break;
         default:
             reb_error(r,"Jerk calculation only supported for some gravity routines.");

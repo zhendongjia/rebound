@@ -380,11 +380,11 @@ void reb_reset_temporary_pointers(struct reb_simulation* const r){
     r->ri_janus.scale_vel = 1e-16;
     // ********** MERCURANA
     r->ri_mercurana.allocatedN = 0;
-    r->ri_mercurana.map = NULL;
     r->ri_mercurana.dcrit = NULL;
     r->ri_mercurana.inshell = NULL;
-    r->ri_mercurana.shellN = NULL;
-    r->ri_mercurana.shellN_active = NULL;
+    r->ri_mercurana.shellN_encounter = NULL;
+    r->ri_mercurana.shellN_dominant = NULL;
+    r->ri_mercurana.shellN_subdominant = NULL;
     
 }
 

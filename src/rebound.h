@@ -490,13 +490,14 @@ struct reb_simulation_integrator_mercurana {
     // The user does not need to change the following variables 
     double** dcrit;                 ///< Critical radii for each particle and each shell (automatically calculated)
     unsigned int Nmaxshellsused;     ///< Used for debugging only 
-    unsigned int** map;             ///< Internal variable to map from from shell to global particle index 
-    unsigned int** map_dominant;    ///< Internal variable to map from from shell to global particle index 
+    unsigned int** map_encounter;   ///< Internal variable to map from shell to global particle index 
+    unsigned int** map_dominant;    ///< Internal variable to map from shell to global particle index 
+    unsigned int** map_subdominant; ///< Internal variable to map from shell to global particle index 
     unsigned int* inshell;          ///< from global to shell
     unsigned int allocatedN;        ///< Allocated memory for various internal variables. 
-    unsigned int* shellN;           ///< Number of particles in each shell.
+    unsigned int* shellN_encounter; ///< Number of particles in each shell.
     unsigned int* shellN_dominant;  ///< Number of dominant particles in each shell.
-    unsigned int* shellN_active;    ///< Number of active particles in each shell. 
+    unsigned int* shellN_subdominant; ///< Number of encounter particles in each shell. 
     unsigned int current_shell;     ///< Internal variable used in gravity routine only.
     unsigned int is_synchronized;   ///< Flag to determine if current particle structure is synchronized
     unsigned int collisions_N;      ///< Internal variable to communicate to collision routine.
