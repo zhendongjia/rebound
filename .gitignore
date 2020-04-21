@@ -2,6 +2,7 @@
 /*.ipynb
 Info.plist
 *.so
+*.a
 *.pyc
 *.pdf
 *.bin
